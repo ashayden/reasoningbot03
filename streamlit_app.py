@@ -21,7 +21,7 @@ except Exception as e:
 # Configure API with error handling
 try:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-pro")  # Using gemini-pro
+    model = genai.GenerativeModel("gemini-2.0-flash-thinking-exp-1219")
 except Exception as e:
     logging.error(f"Error configuring Gemini API: {e}")
     st.error(f"⚠️ Error configuring Gemini API: {str(e)}")
