@@ -98,6 +98,10 @@ Your summary should:
 2. Use clear and simple language
 3. Be concise."""
 
+def clean_json_string(json_string):
+    # Remove all whitespace (including newlines) outside of quotes
+    return re.sub(r'\s+(?=([^"]*"[^"]*")*[^"]*$)', '', json_string)
+
 if st.button("Start Analysis"):
     if topic:
         # Agent 1: Framework Designer
@@ -117,16 +121,15 @@ if st.button("Start Analysis"):
                 else:
                     system_prompt_json = prompt_response.text.strip()
 
-                # --- Brute-Force Newline Removal ---
-                system_prompt_json = system_prompt_json.replace('\n', '')  # Remove ALL newlines
-                system_prompt_json = system_prompt_json.replace('\\n', '') # Remove escaped newlines
-                system_prompt_json = system_prompt_json.replace(' ', '') # Added to make the format readable for json.loads
+                # Clean the JSON string
+                cleaned_json = clean_json_string(system_prompt_json)
 
-                # --- End of Brute-Force Newline Removal ---
+                st.write("Cleaned JSON string:")
+                st.code(cleaned_json)
 
                 # Attempt to parse the JSON
                 try:
-                    system_prompt = json.loads(system_prompt_json)
+                    system_prompt = json.loads(cleaned_json)
 
                     # Normalize keys (if needed, but should be less necessary now)
                     system_prompt = {k.strip(): v for k, v in system_prompt.items()}
@@ -160,62 +163,63 @@ if st.button("Start Analysis"):
                 st.error("Failed to generate a valid framework. Analysis cannot continue.")
                 st.stop()
 
-            # Agent 2: Analysis Refiner
-            full_analysis = {}
-            for aspect, data_points in system_prompt["aspects"].items():
-                previous_analysis = ""
-                with st.expander(f"🔄 Refining Aspect: {aspect}", expanded=True):
-                    st.write(f"Agent 2: Refining analysis of '{aspect}'...")
-                    for i in range(loops):
-                        st.write(f"Iteration {i+1}/{loops}")
-                        response = model.generate_content(
-                            agent2_prompt.format(
-                                topic=topic,
-                                system_prompt=system_prompt,
-                                current_aspect=aspect,
-                                previous_analysis=previous_analysis
-                            ),
-                            generation_config=genai.types.GenerationConfig(temperature=0.7)
-                        )
-                        if hasattr(response, 'parts'):
-                            context = response.parts[0].text
-                        else:
-                            context = response.text
-                        previous_analysis = context
-                        st.write(context)
-                full_analysis[aspect] = previous_analysis
+        # Agent 2: Analysis Refiner
+        full_analysis = {}
+        for aspect, data_points in system_prompt["aspects"].items():
+            previous_analysis = ""
+            with st.expander(f"🔄 Refining Aspect: {aspect}", expanded=True):
+                st.write(f"Agent 2: Refining analysis of '{aspect}'...")
+                for i in range(loops):
+                    st.write(f"Iteration {i+1}/{loops}")
+                    response = model.generate_content(
+                        agent2_prompt.format(
+                            topic=topic,
+                            system_prompt=system_prompt,
+                            current_aspect=aspect,
+                            previous_analysis=previous_analysis
+                        ),
+                        generation_config=genai.types.GenerationConfig(temperature=0.7)
+                    )
+                    if hasattr(response, 'parts'):
+                        context = response.parts[0].text
+                    else:
+                        context = response.text
+                    previous_analysis = context
+                    st.write(context)
+            full_analysis[aspect] = previous_analysis
 
-            # Agent 3: Expert Response Generator
-            with st.expander("📊 Expert Response", expanded=True):
-                st.write("Agent 3: Generating expert response...")
-                analysis_text = ""
-                for aspect, analysis in full_analysis.items():
-                    analysis_text += f"\n\nAnalysis for {aspect}:\n{analysis}"
-                response = model.generate_content(
-                    agent3_prompt.format(
-                        topic=topic,
-                        system_prompt=system_prompt,
-                        all_aspect_analyses=analysis_text
-                    ),
-                    generation_config=genai.types.GenerationConfig(temperature=0.7)
-                )
-                if hasattr(response, 'parts'):
-                    expert_text = response.parts[0].text
-                else:
-                    expert_text = response.text
-                st.write(expert_text)
+        # Agent 3: Expert Response Generator
+        with st.expander("📊 Expert Response", expanded=True):
+            st.write("Agent 3: Generating expert response...")
+            analysis_text = ""
+            for aspect, analysis in full_analysis.items():
+                analysis_text += f"\n\nAnalysis for {aspect}:\n{analysis}"
+            response = model.generate_content(
+                agent3_prompt.format(
+                    topic=topic,
+                    system_prompt=system_prompt,
+                    all_aspect_analyses=analysis_text
+                ),
+                generation_config=genai.types.GenerationConfig(temperature=0.7)
+            )
+            if hasattr(response, 'parts'):
+                expert_text = response.parts[0].text
+            else:
+                expert_text = response.text
+            st.write(expert_text)
 
-            # Agent 4: Concise Overview Generator
-            with st.expander("💡 Simple Explanation", expanded=True):
-                st.write("Agent 4: Providing simplified overview...")
-                response = model.generate_content(
-                    agent4_prompt.format(topic=topic, expert_text=expert_text),
-                    generation_config=genai.types.GenerationConfig(temperature=0.3)
-                )
-                if hasattr(response, 'parts'):
-                    overview_text = response.parts[0].text
-                else:
-                    overview_text = response.text
-                st.write(overview_text)
+        # Agent 4: Concise Overview Generator
+        with st.expander("💡 Simple Explanation", expanded=True):
+            st.write("Agent 4: Providing simplified overview...")
+            response = model.generate_content(
+                agent4_prompt.format(topic=topic, expert_text=expert_text),
+                generation_config=genai.types.GenerationConfig(temperature=0.3)
+            )
+            if hasattr(response, 'parts'):
+                overview_text = response.parts[0].text
+            else:
+                overview_text = response.text
+            st.write(overview_text)
     else:
         st.warning("Please enter a topic to analyze.")
+
