@@ -97,24 +97,23 @@ Format your response with clear sections:
 **Implications:**
 [Discuss broader implications and impacts]'''
 
-agent4_prompt = '''As a Concise Overview Generator, distill this expert analysis into a clear summary:
-
-TOPIC:
-{topic}
+agent4_prompt = '''Summarize the following analysis:
 
 EXPERT ANALYSIS:
 {expert_text}
 
-Provide a concise summary in three parts:
+Format your response as follows:
 
 TL;DR:
-[Direct answer to the core question/topic, if applicable, using "✅ Yes" / "❌ No" / "❓ Uncertain"]
+[One sentence answer using "✅ Yes" / "❌ No" / "❓ Uncertain" followed by a brief explanation]
 
-KEY TAKEAWAYS:
-• [3-5 most important points, each starting with an action verb]
+KEY POINTS:
+• [First key finding or conclusion]
+• [Second key finding or conclusion]
+• [Third key finding or conclusion]
 
-EXECUTIVE SUMMARY:
-[Two paragraphs synthesizing the main findings and their significance]'''
+SUMMARY:
+[Two concise paragraphs presenting the main findings, evidence, and implications. Focus only on the content of the analysis, not the process.]'''
 
 def handle_response(response):
     """Handle model response and extract text."""
