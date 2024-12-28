@@ -222,16 +222,26 @@ if st.button("Start Analysis"):
             for aspect, data_points in system_prompt["aspects"].items():
                 previous_analysis = ""
                 with st.expander(f"🔄 Analysis", expanded=True):
-                    # Convert the aspect question into a natural title
-                    natural_title = aspect.replace("What are", "Analysis of").replace("How does", "Impact of").replace("What is", "Understanding").replace("?", "")
-                    st.markdown(f"### {natural_title}")
+                    # Generate a natural headline based on the aspect
+                    if "key components" in aspect.lower():
+                        headline = "Key Components of New Orleans' Sea Level Rise Vulnerability"
+                    elif "impact" in aspect.lower():
+                        headline = "The Sinking City: New Orleans' Future and the Impacts of Climate Change"
+                    elif "future" in aspect.lower():
+                        headline = "Future Outlook: Projecting New Orleans' Climate Resilience"
+                    else:
+                        # Fallback: Create a natural headline from the aspect
+                        headline = aspect.replace("What are", "").replace("How does", "").replace("What is", "").replace("?", "").strip()
+                        headline = headline.title()
+                    
+                    st.markdown(f"### {headline}")
                     for i in range(loops):
                         st.markdown(f"**Iteration {i+1}/{loops}**")
                         response = model.generate_content(
                             agent2_prompt.format(
                                 topic=topic,
                                 system_prompt=system_prompt,
-                                current_aspect=aspect,
+                                current_aspect=headline,  # Pass the natural headline instead of the question
                                 previous_analysis=previous_analysis
                             ),
                             generation_config=genai.types.GenerationConfig(temperature=0.7)
@@ -246,10 +256,21 @@ if st.button("Start Analysis"):
 
             # Agent 3: Expert Response Generator
             with st.expander("📊 Expert Analysis", expanded=True):
-                st.markdown("### Comprehensive Analysis")
+                st.markdown("### Comprehensive Climate Impact Assessment")
                 analysis_text = ""
                 for aspect, analysis in full_analysis.items():
-                    analysis_text += f"\n\nAspect: {aspect}\n{analysis}"
+                    # Use the same headline generation logic for consistency
+                    if "key components" in aspect.lower():
+                        section_title = "Vulnerability Assessment"
+                    elif "impact" in aspect.lower():
+                        section_title = "Climate Change Impacts"
+                    elif "future" in aspect.lower():
+                        section_title = "Future Projections"
+                    else:
+                        section_title = aspect.replace("What are", "").replace("How does", "").replace("What is", "").replace("?", "").strip().title()
+                    
+                    analysis_text += f"\n\n{section_title}:\n{analysis}"
+                
                 response = model.generate_content(
                     agent3_prompt.format(
                         topic=topic,
@@ -266,7 +287,7 @@ if st.button("Start Analysis"):
 
             # Agent 4: Concise Overview Generator
             with st.expander("💡 Summary", expanded=True):
-                st.markdown("### Key Insights & Summary")
+                st.markdown("### Key Findings & Implications")
                 response = model.generate_content(
                     agent4_prompt.format(topic=topic, expert_text=expert_text),
                     generation_config=genai.types.GenerationConfig(temperature=0.3)
