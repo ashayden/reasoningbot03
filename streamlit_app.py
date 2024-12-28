@@ -1,5 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
+import json
 
 # Get API key from Streamlit secrets
 try:
@@ -11,7 +12,7 @@ except Exception as e:
 # Configure API with error handling
 try:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash-thinking-exp-1219")
+    model = genai.GenerativeModel("gemini-2.0-flash-thinking-exp-1219")  # Keeping the experimental model
 except Exception as e:
     st.error(f"⚠️ Error configuring Gemini API: {str(e)}")
     st.stop()
@@ -22,7 +23,77 @@ st.write("This bot uses multiple AI agents to analyze topics in depth with sophi
 
 # Input section
 topic = st.text_input("What topic should we explore?")
-loops = st.slider("How many reasoning iterations?", min_value=1, max_value=5, value=3)
+loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=3, value=2)
+
+# Agent Prompts (defined outside the button click for efficiency)
+agent1_prompt = """As a Framework Designer, create a structured framework for answering the following user input directly and comprehensively:
+
+User Input: {topic}
+
+Your framework MUST include:
+
+1. A concise, direct answer to the user's input.
+2. 3-5 Key aspects or sub-questions that need to be explored to support and justify the answer. Phrase these as questions.
+3. For EACH aspect, suggest 2-3 specific data points or pieces of information that would be essential to answer that aspect.
+
+Output the framework as a valid JSON object with the following structure:
+{{
+  "direct_answer": "...",
+  "aspects": {{
+    "Aspect 1 Question?": ["Data point 1", "Data point 2", ...],
+    "Aspect 2 Question?": ["Data point 1", "Data point 2", ...],
+    ...
+  }}
+}}
+"""
+
+agent2_prompt = """As an Analysis Refiner, your task is to provide detailed information and analysis for one specific aspect in the following framework.
+
+User Input: {topic}
+
+Framework:
+{system_prompt}
+
+Current Aspect to Refine: {current_aspect}
+
+Previous Analysis for this Aspect: {previous_analysis}
+
+Based on the suggested data points in the framework, provide detailed information, analysis, and relevant data to answer the current aspect. Build upon the previous analysis, adding more detail, nuance, and supporting evidence. Do NOT repeat information already provided. Focus on adding NEW information and insights.
+"""
+
+agent3_prompt = """As an Expert Response Generator, create a comprehensive, Nobel laureate-level response to the following user input, informed by the detailed analysis provided:
+
+User Input: {topic}
+
+Framework:
+{system_prompt}
+
+Detailed Analysis (for each aspect):
+{all_aspect_analyses}
+
+Your response should:
+
+1. Provide a clear and authoritative answer to the user's input, directly addressing the question.
+2. Integrate the key insights and explanations from the analysis of each aspect.
+3. Demonstrate a deep understanding of the topic.
+4. Offer nuanced perspectives and potential implications.
+
+Write in a sophisticated and insightful manner, as if you were a leading expert in the field.
+"""
+
+agent4_prompt = """As a Concise Overview Generator, provide a simplified, easy-to-understand summary of the following expert response:
+
+User Input: {topic}
+
+Expert Response:
+{expert_text}
+
+Your summary should:
+
+1. Capture the main points of the expert response.
+2. Use clear and simple language.
+3. Be concise.
+"""
 
 if st.button("Start Analysis"):
     if topic:
@@ -31,110 +102,71 @@ if st.button("Start Analysis"):
             with st.expander("🎯 Analysis Framework", expanded=True):
                 st.write("Agent 1: Designing framework...")
                 prompt_response = model.generate_content(
-                    f"""As a Framework Designer, your task is to create a structured framework for answering the following user input directly and comprehensively:
-
-                    User Input: {topic}
-
-                    Your framework should include:
-                    1. A concise direct answer to the user's input
-                    2. Key aspects or sub-questions that need to be explored to support and justify the answer
-                    3. Relevant perspectives or angles to consider when examining each aspect
-
-                    The framework should be actionable and guide the subsequent analysis.""",
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.3
-                    )
+                    agent1_prompt.format(topic=topic),
+                    generation_config=genai.types.GenerationConfig(temperature=0.3)
                 )
+
                 if hasattr(prompt_response, 'parts'):
-                    system_prompt = prompt_response.parts[0].text
+                    system_prompt_json = prompt_response.parts[0].text
                 else:
-                    system_prompt = prompt_response.text
-                st.write(system_prompt)
+                    system_prompt_json = prompt_response.text
+                try:
+                    system_prompt = json.loads(system_prompt_json)
+                    st.json(system_prompt)
+                except json.JSONDecodeError as e:
+                    st.error(f"Invalid JSON from Agent 1: {e}\nRaw Response: {system_prompt_json}")
+                    st.stop()
+                if not ("direct_answer" in system_prompt and "aspects" in system_prompt):
+                    st.error(f"Invalid JSON format. Must contain 'direct_answer' and 'aspects'. JSON: {system_prompt}")
+                    st.stop()
 
             # Agent 2: Analysis Refiner
-            full_analysis = []
-            context = ""
-            for i in range(loops):
-                with st.expander(f"🔄 Analysis Iteration {i+1}/{loops}", expanded=True):
-                    st.write(f"Agent 2: Refining analysis (iteration {i+1})...")
-                    response = model.generate_content(
-                        f"""As an Analysis Refiner, your task is to conduct a detailed analysis based on the following framework and previous analysis context:
-
-                        User Input: {topic}
-
-                        Framework:
-                        {system_prompt}
-
-                        Previous Analysis Context: {context}
-
-                        For each key aspect (sub-question) in the framework, provide a deep, well-reasoned explanation, considering the suggested perspectives. Build upon the previous analysis context in each iteration. Focus on providing detailed information and insights related to each aspect.
-
-                        Output each aspect with the original question, followed by your analysis.""",
-                        generation_config=genai.types.GenerationConfig(
-                            temperature=1.0
+            full_analysis = {}
+            for aspect, data_points in system_prompt["aspects"].items():
+                previous_analysis = ""
+                with st.expander(f"🔄 Refining Aspect: {aspect}", expanded=True):
+                    st.write(f"Agent 2: Refining analysis of '{aspect}'...")
+                    for i in range(loops):
+                        st.write(f"Iteration {i+1}/{loops}")
+                        response = model.generate_content(
+                            agent2_prompt.format(topic=topic, system_prompt=system_prompt, current_aspect=aspect, previous_analysis=previous_analysis),
+                            generation_config=genai.types.GenerationConfig(temperature=0.7)
                         )
-                    )
-                    if hasattr(response, 'parts'):
-                        context = response.parts[0].text
-                    else:
-                        context = response.text
-                    full_analysis.append(context)
-                    st.write(context)
+                        if hasattr(response, 'parts'):
+                            context = response.parts[0].text
+                        else:
+                            context = response.text
+                        previous_analysis = context
+                        st.write(context)
+                full_analysis[aspect] = previous_analysis
 
             # Agent 3: Expert Response Generator
             with st.expander("📊 Expert Response", expanded=True):
                 st.write("Agent 3: Generating expert response...")
-                expert_response = model.generate_content(
-                    f"""As an Expert Response Generator, your task is to create a comprehensive, Nobel laureate-level response to the following user input, informed by the detailed analysis provided:
-
-                    User Input: {topic}
-
-                    Framework:
-                    {system_prompt}
-
-                    Detailed Analysis:
-                    {' '.join(full_analysis)}
-
-                    Your response should:
-                    1. Provide a clear and authoritative answer to the user's input, directly addressing the question
-                    2. Integrate the key insights and explanations from the analysis
-                    3. Demonstrate a deep understanding of the topic, as if you were a leading expert in the field
-                    4. Offer nuanced perspectives and potential implications
-
-                    Write in a sophisticated and insightful manner.""",
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.7
-                    )
+                analysis_text = ""
+                for aspect, analysis in full_analysis.items():
+                    analysis_text += f"\n\nAnalysis for {aspect}:\n{analysis}"
+                response = model.generate_content(
+                    agent3_prompt.format(topic=topic, system_prompt=system_prompt, all_aspect_analyses=analysis_text),
+                    generation_config=genai.types.GenerationConfig(temperature=0.7)
                 )
-                if hasattr(expert_response, 'parts'):
-                    expert_text = expert_response.parts[0].text
+                if hasattr(response, 'parts'):
+                    expert_text = response.parts[0].text
                 else:
-                    expert_text = expert_response.text
+                    expert_text = response.text
                 st.write(expert_text)
 
             # Agent 4: Concise Overview Generator
             with st.expander("💡 Simple Explanation", expanded=True):
                 st.write("Agent 4: Providing simplified overview...")
-                overview = model.generate_content(
-                    f"""As a Concise Overview Generator, your task is to provide a simplified, easy-to-understand summary of the following expert response:
-
-                    User Input: {topic}
-
-                    Expert Response:
-                    {expert_text}
-
-                    Your summary should:
-                    1. Capture the main points of the expert response
-                    2. Use clear and simple language, avoiding jargon or technical terms
-                    3. Be concise and easy to digest for a general audience""",
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.3
-                    )
+                response = model.generate_content(
+                    agent4_prompt.format(topic=topic, expert_text=expert_text),
+                    generation_config=genai.types.GenerationConfig(temperature=0.3)
                 )
-                if hasattr(overview, 'parts'):
-                    overview_text = overview.parts[0].text
+                if hasattr(response, 'parts'):
+                    overview_text = response.parts[0].text
                 else:
-                    overview_text = overview.text
+                    overview_text = response.text
                 st.write(overview_text)
 
         except Exception as e:
