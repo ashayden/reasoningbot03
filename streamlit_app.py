@@ -2,6 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 import json
 import re
+import time
 
 # Get API key from Streamlit secrets
 try:
@@ -13,7 +14,7 @@ except Exception as e:
 # Configure API with error handling
 try:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash-thinking-exp-1219")  # Keeping the experimental model
+    model = genai.GenerativeModel("gemini-2.0-flash-thinking-exp-1219")  # Keeping the experimental model as requested
 except Exception as e:
     st.error(f"⚠️ Error configuring Gemini API: {str(e)}")
     st.stop()
@@ -104,51 +105,57 @@ if st.button("Start Analysis"):
             with st.expander("🎯 Analysis Framework", expanded=True):
                 st.write("Agent 1: Designing framework...")
 
-                prompt_response = model.generate_content(
-                    agent1_prompt.format(topic=topic),
-                    generation_config=genai.types.GenerationConfig(temperature=0.3)
-                )
+                # --- RETRY MECHANISM FOR AGENT 1 ---
+                retries = 3
+                for attempt in range(retries):
+                    try:
+                        prompt_response = model.generate_content(
+                            agent1_prompt.format(topic=topic),
+                            generation_config=genai.types.GenerationConfig(temperature=0.3)
+                        )
 
-                if hasattr(prompt_response, 'parts'):
-                    system_prompt_json = prompt_response.parts[0].text.strip()
-                else:
-                    system_prompt_json = prompt_response.text.strip()
+                        if hasattr(prompt_response, 'parts'):
+                            system_prompt_json = prompt_response.parts[0].text.strip()
+                        else:
+                            system_prompt_json = prompt_response.text.strip()
 
-                try:
-                    # Improved JSON extraction and key normalization
-                    match = re.search(r"\{.*\}", system_prompt_json, re.DOTALL)
-                    if match:
-                        system_prompt_json = match.group(0)
-                    else:
-                        st.error(f"Could not find JSON in Agent 1 response. Raw response: {system_prompt_json}")
-                        st.stop()
+                        # Improved JSON extraction and key normalization
+                        match = re.search(r"\{.*\}", system_prompt_json, re.DOTALL)
+                        if match:
+                            system_prompt_json = match.group(0)
+                        else:
+                            raise ValueError("Could not find JSON in Agent 1 response.")
 
-                    system_prompt = json.loads(system_prompt_json)
+                        system_prompt = json.loads(system_prompt_json)
 
-                    # Normalize keys (Crucial fix for whitespace issues)
-                    system_prompt = {k.strip(): v for k, v in system_prompt.items()}
-                    if "aspects" in system_prompt:
-                        system_prompt["aspects"] = {k.strip(): v for k, v in system_prompt["aspects"].items()}
+                        # Normalize keys (Crucial fix for whitespace issues)
+                        system_prompt = {k.strip(): v for k, v in system_prompt.items()}
+                        if "aspects" in system_prompt:
+                            system_prompt["aspects"] = {k.strip(): v for k, v in system_prompt["aspects"].items()}
 
-                    # Validate JSON structure (more robust validation)
-                    if not isinstance(system_prompt, dict) or "direct_answer" not in system_prompt or "aspects" not in system_prompt or not isinstance(system_prompt["aspects"], dict) or len(system_prompt["aspects"]) != 3:
-                        st.error(f"Invalid JSON structure after normalization: {system_prompt}")
-                        st.stop()
-                    for aspect, data_points in system_prompt["aspects"].items():
-                        if not isinstance(data_points, list) or len(data_points) != 2:
-                            st.error(f"Invalid JSON: Each aspect must have exactly 2 data points. Error in: {aspect}")
+                        # Validate JSON structure (more robust validation)
+                        if not isinstance(system_prompt, dict) or "direct_answer" not in system_prompt or "aspects" not in system_prompt or not isinstance(system_prompt["aspects"], dict) or len(system_prompt["aspects"]) != 3:
+                            raise ValueError("Invalid JSON structure after normalization.")
+                        for aspect, data_points in system_prompt["aspects"].items():
+                            if not isinstance(data_points, list) or len(data_points) != 2:
+                                raise ValueError(f"Invalid JSON: Each aspect must have exactly 2 data points. Error in: {aspect}")
+
+                        st.json(system_prompt)
+                        break  # Success! Exit the retry loop
+
+                    except (json.JSONDecodeError, ValueError) as e:
+                        if attempt < retries - 1:
+                            st.warning(f"Attempt {attempt + 1} failed: {e}. Retrying...")
+                            time.sleep(2)  # Wait before retrying
+                        else:
+                            st.error(f"Error after multiple retries: {e}")
+                            st.write("Raw response:", system_prompt_json)
                             st.stop()
-
-                    st.json(system_prompt)
-
-                except json.JSONDecodeError as e:
-                    st.error(f"Invalid JSON syntax: {e}")
-                    st.write("Raw response:", system_prompt_json)
-                    st.stop()
-                except Exception as e:
-                    st.error(f"Error processing response: {str(e)}")
-                    st.write("Raw response:", system_prompt_json)
-                    st.stop()
+                    except Exception as e:
+                        st.error(f"Unexpected error: {str(e)}")
+                        st.write("Raw response:", system_prompt_json)
+                        st.stop()
+                # --- END OF RETRY MECHANISM ---
 
             # Agent 2: Analysis Refiner
             full_analysis = {}
