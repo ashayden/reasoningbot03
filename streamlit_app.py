@@ -40,24 +40,36 @@ agent1_prompt = '''You are an expert prompt engineer. Your task is to take a use
 
 USER'S TOPIC/QUESTION: {topic}
 
-1.  **Prompt Refinement:**
+1.  **Prompt Refinement**
     *   Analyze the user's input and identify areas where you can add more detail, specificity, and context.
     *   Consider what background information or assumptions might be helpful to include.
     *   Reformulate the user's input into a more comprehensive and well-defined prompt.
 
-2.  **Investigation Framework:**
+2.  **Investigation Framework**
     *   Based on your **refined prompt**, define a structured approach for investigating the topic.
     *   Outline:
-        *   Core question/hypothesis (based on the refined prompt)
-        *   Key areas requiring investigation
-        *   Critical factors to examine
-        *   Required data and information sources
-        *   Potential challenges or limitations
+        -   Core Question/Hypothesis
+        -   Key Areas Requiring Investigation
+        -   Critical Factors to Examine
+        -   Required Data and Information Sources
+        -   Potential Challenges or Limitations
 
     *   Present this as a clear investigation framework that will guide further research and analysis.
 
-    *   Start with the **Refined Prompt** followed by the **Investigation Framework** separated by "---".
-'''
+Format your response as follows:
+
+Refined Prompt
+[Your refined prompt here]
+
+---
+
+Investigation Framework
+
+Core Question/Hypothesis
+[Your hypothesis here]
+
+Key Areas Requiring Investigation
+[Your key areas here]'''
 
 agent2_prompt = '''Using the refined prompt and the established framework, continue researching and analyzing:
 
@@ -158,16 +170,18 @@ def generate_refined_prompt_and_framework(topic):
         if agent1_response:
             parts = agent1_response.split("---")
             if len(parts) >= 2:
+                # Clean up the refined prompt section
                 refined_prompt = parts[0].replace("Refined Prompt", "").strip()
                 
-                # Find the start of the Investigation Framework
-                framework_start_index = agent1_response.find("Investigation Framework")
-                if framework_start_index != -1:
-                    framework = agent1_response[framework_start_index + len("Investigation Framework"):].strip()
-                else:
-                    framework = ""
-                    logging.warning("Could not find 'Investigation Framework' in Agent 1's response.")
-
+                # Clean up the framework section
+                framework = parts[1].strip()
+                if framework.startswith("Investigation Framework"):
+                    framework = framework[len("Investigation Framework"):].strip()
+                
+                # Remove any stray colons from section headers
+                framework = framework.replace("Core Question/Hypothesis:", "Core Question/Hypothesis")
+                framework = framework.replace("Key Areas Requiring Investigation:", "Key Areas Requiring Investigation")
+                
                 logging.info("Refined prompt and investigation framework generated successfully")
                 return refined_prompt, framework
             else:
