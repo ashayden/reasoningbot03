@@ -32,9 +32,9 @@ topic = st.text_input("What topic should we explore?")
 loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=3, value=2)
 
 # Agent Prompts
-agent1_prompt = """You are a JSON generator. Output a JSON object analyzing: {topic}
+agent1_prompt = """You are a JSON generator. Your task is to output a JSON object analyzing: {topic}
 
-ONLY output the JSON structure below:
+STRICTLY adhere to the following JSON structure:
 
 {
     "direct_answer": "A clear yes/no/uncertain answer followed by one sentence explanation",
@@ -54,13 +54,13 @@ ONLY output the JSON structure below:
     }
 }
 
-CRITICAL:
+IMPORTANT:
 - Output ONLY the JSON above
-- Start with { and end with }
+- Begin with { and end with }
 - Use " for all strings
-- No comments or explanation
+- No comments, explanations, or additional text
 - No markdown formatting
-- No extra text before or after"""
+- Ensure the JSON is valid and complete"""
 
 agent2_prompt = """As an Analysis Refiner, provide a detailed analysis of the following:
 
@@ -207,9 +207,9 @@ def clean_and_extract_json(raw_response):
         return None
 
 # Simplify Agent 1 Prompt
-agent1_prompt = """You are a JSON generator. Output a JSON object analyzing: {topic}
+agent1_prompt = """You are a JSON generator. Your task is to output a JSON object analyzing: {topic}
 
-ONLY output the JSON structure below:
+STRICTLY adhere to the following JSON structure:
 
 {
     "direct_answer": "A clear yes/no/uncertain answer followed by one sentence explanation",
@@ -229,13 +229,13 @@ ONLY output the JSON structure below:
     }
 }
 
-CRITICAL:
+IMPORTANT:
 - Output ONLY the JSON above
-- Start with { and end with }
+- Begin with { and end with }
 - Use " for all strings
-- No comments or explanation
+- No comments, explanations, or additional text
 - No markdown formatting
-- No extra text before or after"""
+- Ensure the JSON is valid and complete"""
 
 # Streamline Response Handling
 
