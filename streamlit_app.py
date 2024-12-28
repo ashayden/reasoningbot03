@@ -69,29 +69,34 @@ Core Question/Hypothesis
 [Your hypothesis here]
 
 Key Areas Requiring Investigation
-[Format each key area as follows:]
 
 1. [Area Name]:
-   ○ [First sub-point]
-   ○ [Second sub-point]
-   ○ [Third sub-point]
-   ○ [Fourth sub-point]
-
-[Add blank line between numbered items]
+   ○ [First point with detailed explanation that may wrap to multiple lines, with proper
+     indentation for wrapped lines]
+   ○ [Second point with similarly detailed explanation, maintaining consistent
+     indentation for wrapped text]
+   ○ [Third point following the same format, ensuring all wrapped lines align
+     with the first line of the point]
+   ○ [Fourth point demonstrating proper formatting for multi-line
+     bullet points]
 
 2. [Area Name]:
-   ○ [First sub-point]
-   ○ [Second sub-point]
-   ○ [Third sub-point]
-   ○ [Fourth sub-point]
+   ○ [First point with detailed explanation that may wrap to multiple lines, with proper
+     indentation for wrapped lines]
+   ○ [Second point with similarly detailed explanation, maintaining consistent
+     indentation for wrapped text]
+   ○ [Third point following the same format, ensuring all wrapped lines align
+     with the first line of the point]
+   ○ [Fourth point demonstrating proper formatting for multi-line
+     bullet points]
 
 Note: 
-- Each numbered item should be followed by a colon
-- Sub-points should be indented using 3 spaces
-- Use circular bullet points (○)
-- Each sub-point should be on its own line
+- Each numbered item starts with a number followed by a period, space, and area name
+- Bullet points appear on new lines beneath the numbered item
+- Use 3 spaces indentation for bullet points
+- Wrapped lines should align with the start of the text in the bullet point
 - Add a blank line between numbered items
-- Keep sub-points aligned vertically'''
+- Use circular bullet points (○)'''
 
 agent2_prompt = '''Using the refined prompt and the established framework, continue researching and analyzing:
 
