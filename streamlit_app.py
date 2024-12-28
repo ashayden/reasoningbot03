@@ -66,7 +66,7 @@ if st.button("Start Analysis"):
 
                         Previous Analysis Context: {context}
 
-                        Execute this framework rigorously, building upon previous insights while maintaining focus on the framework structure. 
+                        Execute this framework rigorously as if you were a Nobel prize winner in the relevant field, building upon previous insights while maintaining focus on the framework structure. 
                         Provide novel insights and deep analysis for each point in the framework.""",
                         generation_config=genai.types.GenerationConfig(
                             temperature=1.0
@@ -91,7 +91,7 @@ if st.button("Start Analysis"):
 
                     Provide:
                     1. Key Insights: Bullet point the most significant findings
-                    2. Synthesis: Write a concise paragraph that weaves together the main themes
+                    2. Synthesis: Write a concise paragraph that weaves together the main themes in simple language
                     3. Evolution of Understanding: How did the analysis deepen or change across iterations
                     4. Follow-up Questions:
                        - One question that delves deeper into the most intriguing aspect
