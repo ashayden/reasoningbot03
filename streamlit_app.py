@@ -158,29 +158,44 @@ EXECUTIVE SUMMARY:
 - Highlight the most significant implications
 - Use clear, professional language]"""
 
-def clean_json_string(json_string):
-    """Clean and validate JSON string."""
-    # Remove any non-JSON text
-    json_match = re.search(r'{{.*}}', json_string, re.DOTALL)
-    if not json_match:
-        raise ValueError("No valid JSON object found in response")
-    
-    json_string = json_match.group(0)
-    
-    # Fix common JSON formatting issues
-    json_string = re.sub(r'^\s*{{', '{', json_string)  # Remove extra {
-    json_string = re.sub(r'}}\s*$', '}', json_string)  # Remove extra }
-    json_string = re.sub(r'(?<!\\)"(?!")(?![:,}{\]])', '\\"', json_string)  # Escape unescaped quotes
-    json_string = re.sub(r'\s+(?=([^"]*"[^"]*")*[^"]*$)', '', json_string)  # Remove whitespace outside strings
-    
-    # Validate JSON structure
-    try:
-        json.loads(json_string)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON structure: {str(e)}")
-    
-    return json_string.strip()
+def clean_and_extract_json(raw_response):
+    """
+    Cleans and extracts a JSON object from a raw string response.
 
+    Args:
+        raw_response: The raw string response from the model.
+
+    Returns:
+        A dictionary representing the parsed JSON object, or None if parsing fails.
+    """
+
+    # 1. Find the start and end of the JSON object
+    json_start = raw_response.find('{')
+    json_end = raw_response.rfind('}') + 1
+
+    if json_start == -1 or json_end == 0:
+        return None  # No JSON object found
+
+    json_string = raw_response[json_start:json_end]
+
+    # 2. Remove all newlines and extra whitespace
+    json_string = json_string.replace('\n', '').replace('\\n', '')
+    json_string = re.sub(r'\s+', ' ', json_string)
+
+    # 3. Remove any trailing commas before closing braces/brackets
+    json_string = re.sub(r',\s*}', '}', json_string)
+    json_string = re.sub(r',\s*]', ']', json_string)
+
+    # 4. Escape unescaped double quotes inside strings
+    json_string = re.sub(r'(?<!\\)"(?=[^"]*":)', '\\"', json_string)
+
+    # 5. Attempt to parse the cleaned JSON string
+    try:
+        parsed_json = json.loads(json_string)
+        return parsed_json
+    except json.JSONDecodeError:
+        return None
+    
 if st.button("Start Analysis"):
     if topic:
         try:
@@ -211,42 +226,34 @@ if st.button("Start Analysis"):
                         else:
                             raw_response = prompt_response.text.strip()
 
-                        # Clean and parse JSON
-                        try:
-                            # Remove any text before the first { and after the last }
-                            json_start = raw_response.find('{')
-                            json_end = raw_response.rfind('}') + 1
-                            if json_start == -1 or json_end == 0:
-                                raise ValueError("No JSON object markers found in response")
-                            
-                            cleaned_json = raw_response[json_start:json_end]
-                            framework = json.loads(cleaned_json)
-                            
-                            # Validate structure
-                            if not isinstance(framework, dict):
-                                raise ValueError("Response is not a dictionary")
-                            if "direct_answer" not in framework:
-                                raise ValueError("Missing 'direct_answer' field")
-                            if "aspects" not in framework:
-                                raise ValueError("Missing 'aspects' field")
-                            if not isinstance(framework["aspects"], dict):
-                                raise ValueError("'aspects' is not a dictionary")
-                            if len(framework["aspects"]) != 3:
-                                raise ValueError("Wrong number of aspects")
-                            
-                            # Validate each aspect
-                            for aspect, data_points in framework["aspects"].items():
-                                if not isinstance(data_points, list):
-                                    raise ValueError(f"Data points for '{aspect}' is not a list")
-                                if len(data_points) != 2:
-                                    raise ValueError(f"Wrong number of data points for '{aspect}'")
-                            
-                            st.success("✅ Framework generated successfully")
-                            st.json(framework)
-                            break
-                            
-                        except Exception as e:
-                            raise ValueError(f"JSON validation failed: {str(e)}")
+                        # Clean and parse JSON using the new function
+                        framework = clean_and_extract_json(raw_response)
+
+                        if framework is None:
+                            raise ValueError("Failed to clean and extract JSON")
+
+                        # Validate structure
+                        if not isinstance(framework, dict):
+                            raise ValueError("Response is not a dictionary")
+                        if "direct_answer" not in framework:
+                            raise ValueError("Missing 'direct_answer' field")
+                        if "aspects" not in framework:
+                            raise ValueError("Missing 'aspects' field")
+                        if not isinstance(framework["aspects"], dict):
+                            raise ValueError("'aspects' is not a dictionary")
+                        if len(framework["aspects"]) != 3:
+                            raise ValueError("Wrong number of aspects")
+                        
+                        # Validate each aspect
+                        for aspect, data_points in framework["aspects"].items():
+                            if not isinstance(data_points, list):
+                                raise ValueError(f"Data points for '{aspect}' is not a list")
+                            if len(data_points) != 2:
+                                raise ValueError(f"Wrong number of data points for '{aspect}'")
+                        
+                        st.success("✅ Framework generated successfully")
+                        st.json(framework)
+                        break
                             
                     except Exception as e:
                         retry_count += 1
@@ -390,4 +397,3 @@ if st.button("Start Analysis"):
             st.write(f"Iterations: {loops}")
     else:
         st.warning("Please enter a topic to analyze.")
-
