@@ -32,7 +32,7 @@ loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_
 # Agent Prompts
 agent1_prompt = """You are an expert analyst. Provide a structured analysis of the topic: {topic}
 
-Format your response with clear headings and bullet points as follows:
+EXACTLY follow this format with these EXACT section headings:
 
 Direct Answer:
 - A clear yes/no/uncertain answer followed by one sentence explanation
@@ -49,10 +49,29 @@ Future Implications or Developments:
 - First future implication or trend
 - Second future implication or trend
 
-IMPORTANT:
-- Use clear and concise language
-- No additional commentary or explanations outside the specified format
-- Ensure the response is complete and directly addresses the topic"""
+Example output for the topic "artificial intelligence":
+
+Direct Answer:
+- Yes, artificial intelligence is transforming our world through its ability to automate complex tasks and enhance decision-making processes.
+
+Key Components or Elements:
+- Machine Learning algorithms that enable systems to learn and improve from experience
+- Neural Networks designed to process information similar to biological brains
+
+Impact or Influence:
+- Automation of routine tasks leading to increased efficiency in various industries
+- Enhanced decision-making through data analysis and pattern recognition
+
+Future Implications or Developments:
+- Integration of AI into healthcare for improved diagnosis and treatment planning
+- Development of more sophisticated autonomous systems for transportation
+
+CRITICAL REQUIREMENTS:
+- Use EXACTLY these section headings
+- Each section MUST start with the heading followed by a colon
+- Each point MUST start with a hyphen (-)
+- Provide at least one point per section
+- No additional text or explanations outside this format"""
 
 agent2_prompt = """As an Analysis Refiner, provide a detailed analysis of the following:
 
