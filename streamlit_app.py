@@ -161,6 +161,7 @@ if st.button("Start Analysis"):
                 max_retries = 3
                 retry_count = 0
                 system_prompt = None
+                raw_response = None  # Initialize raw_response
                 
                 while retry_count < max_retries and system_prompt is None:
                     try:
@@ -212,8 +213,9 @@ if st.button("Start Analysis"):
                         else:
                             st.error(f"Failed to generate valid framework after {max_retries} attempts.")
                             st.write("Last error:", str(e))
-                            st.write("Raw response:")
-                            st.code(raw_response)
+                            if raw_response:  # Only show raw response if it exists
+                                st.write("Raw response:")
+                                st.code(raw_response)
                             st.stop()
 
             if system_prompt is None:
