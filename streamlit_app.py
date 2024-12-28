@@ -105,7 +105,7 @@ if st.button("Start Analysis"):
             st.write("Agent 1: Designing framework...")
 
             system_prompt = None  # Initialize outside the try block
-            system_prompt_json = None # Add this line to fix the error
+            system_prompt_json = None  # Initialize outside the try block
             try:
                 prompt_response = model.generate_content(
                     agent1_prompt.format(topic=topic),
@@ -117,19 +117,25 @@ if st.button("Start Analysis"):
                 else:
                     system_prompt_json = prompt_response.text.strip()
 
-                # Attempt to parse the JSON (should be more reliable with gemini-pro)
+                # --- Robust JSON Handling ---
                 try:
+                    # 1. Remove leading/trailing whitespace and newlines
+                    system_prompt_json = system_prompt_json.strip()
+
+                    # 2. Attempt to parse the JSON
                     system_prompt = json.loads(system_prompt_json)
+
+                    # 3. Normalize keys (remove leading/trailing whitespace and newlines)
+                    system_prompt = {k.strip(): v for k, v in system_prompt.items()}
+                    if "aspects" in system_prompt:
+                        system_prompt["aspects"] = {k.strip(): v for k, v in system_prompt["aspects"].items()}
+
                 except json.JSONDecodeError as e:
                     st.error(f"Error parsing JSON: {e}")
                     st.write("Raw Model Response (may be malformed):")
-                    st.code(system_prompt_json) # Display raw response in a code block
+                    st.code(system_prompt_json)
                     st.stop()
-
-                # Normalize keys
-                system_prompt = {k.strip(): v for k, v in system_prompt.items()}
-                if "aspects" in system_prompt:
-                    system_prompt["aspects"] = {k.strip(): v for k, v in system_prompt["aspects"].items()}
+                # --- End of Robust JSON Handling ---
 
                 # Validate JSON structure
                 if not isinstance(system_prompt, dict) or "direct_answer" not in system_prompt or "aspects" not in system_prompt or not isinstance(system_prompt["aspects"], dict) or len(system_prompt["aspects"]) != 3:
@@ -142,9 +148,9 @@ if st.button("Start Analysis"):
 
             except Exception as e:
                 st.error(f"Unexpected error during framework design: {e}")
-                if system_prompt_json:  # Now it's safe to check this variable
+                if system_prompt_json:
                     st.write("Raw Model Response:")
-                    st.code(system_prompt_json) # Display raw response in a code block
+                    st.code(system_prompt_json)
                 st.stop()
 
             # Check if we have a valid system_prompt before proceeding
