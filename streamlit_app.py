@@ -60,16 +60,17 @@ IMPORTANT RULES:
 7. Replace all placeholders with actual content about {topic}
 """
 
-agent2_prompt = """As an Analysis Refiner, analyze the following aspect of {topic}:
+agent2_prompt = """As an Analysis Refiner, provide a detailed analysis of the following:
 
-CURRENT ASPECT: {current_aspect}
+FOCUS AREA: {current_aspect}
+[Rephrase this aspect using natural language, focusing on the core concept]
 
-PREVIOUS ANALYSIS:
+PREVIOUS INSIGHTS:
 {previous_analysis}
 
-Provide a detailed analysis using the following structure:
+Structure your analysis as follows:
 
-[ASPECT TITLE IN CAPS]
+[DESCRIPTIVE TITLE THAT NATURALLY CAPTURES THE FOCUS AREA]
 
 • Key Point 1: Detailed explanation with supporting evidence
 • Key Point 2: Detailed explanation with supporting evidence
@@ -79,11 +80,12 @@ Each point should:
 - Build upon the previous analysis
 - Add NEW information and insights
 - Include specific data or examples where relevant
-- Connect to the broader implications of {topic}"""
+- Connect to the broader implications for the subject"""
 
-agent3_prompt = """As an Expert Response Generator, synthesize the following analysis into a comprehensive response:
+agent3_prompt = """As an Expert Response Generator, synthesize this comprehensive analysis:
 
-TOPIC: {topic}
+SUBJECT MATTER:
+[Naturally rephrase {topic} to focus on the core concept]
 
 FRAMEWORK:
 {system_prompt}
@@ -94,7 +96,7 @@ DETAILED ANALYSIS:
 Structure your response as follows:
 
 OVERVIEW
-[2-3 sentences introducing the topic and its significance]
+[2-3 sentences introducing the core concept and its significance]
 
 DETAILED ANALYSIS
 [Break down the key aspects using clear headings and bullet points]
@@ -108,9 +110,10 @@ Your response should:
 • Connect individual aspects into a cohesive narrative
 • Highlight critical insights and implications"""
 
-agent4_prompt = """As a Concise Overview Generator, provide a structured summary of the following expert analysis:
+agent4_prompt = """As a Concise Overview Generator, provide a structured summary of this expert analysis:
 
-TOPIC: {topic}
+SUBJECT:
+[Naturally rephrase {topic} to focus on the core concept]
 
 EXPERT ANALYSIS:
 {expert_text}
@@ -127,7 +130,7 @@ KEY TAKEAWAYS:
 EXECUTIVE SUMMARY:
 [Two paragraphs that:
 - Synthesize the main ideas into a coherent narrative
-- Explain why {topic} matters
+- Explain the significance of the core concept
 - Highlight the most significant implications
 - Use clear, professional language]"""
 
@@ -218,8 +221,10 @@ if st.button("Start Analysis"):
             full_analysis = {}
             for aspect, data_points in system_prompt["aspects"].items():
                 previous_analysis = ""
-                with st.expander(f"🔄 {aspect}", expanded=True):
-                    st.markdown(f"### Analysis of: {aspect}")
+                with st.expander(f"🔄 Analysis", expanded=True):
+                    # Convert the aspect question into a natural title
+                    natural_title = aspect.replace("What are", "Analysis of").replace("How does", "Impact of").replace("What is", "Understanding").replace("?", "")
+                    st.markdown(f"### {natural_title}")
                     for i in range(loops):
                         st.markdown(f"**Iteration {i+1}/{loops}**")
                         response = model.generate_content(
