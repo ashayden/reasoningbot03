@@ -165,10 +165,10 @@ if st.button("Start Analysis"):
                 
                 max_retries = 3
                 retry_count = 0
-                system_prompt = None
-                raw_response = None  # Initialize raw_response
+                framework = None  # Initialize framework variable
+                raw_response = None
                 
-                while retry_count < max_retries and system_prompt is None:
+                while retry_count < max_retries and framework is None:
                     try:
                         prompt_response = model.generate_content(
                             agent1_prompt.format(topic=topic),
@@ -186,28 +186,28 @@ if st.button("Start Analysis"):
                         st.code(cleaned_json)
                         
                         # Parse and validate JSON
-                        system_prompt = json.loads(cleaned_json)
+                        framework = json.loads(cleaned_json)
                         
                         # Validate structure
-                        if not isinstance(system_prompt, dict):
+                        if not isinstance(framework, dict):
                             raise ValueError("Response is not a dictionary")
-                        if "direct_answer" not in system_prompt:
+                        if "direct_answer" not in framework:
                             raise ValueError("Missing 'direct_answer' field")
-                        if "aspects" not in system_prompt:
+                        if "aspects" not in framework:
                             raise ValueError("Missing 'aspects' field")
-                        if not isinstance(system_prompt["aspects"], dict):
+                        if not isinstance(framework["aspects"], dict):
                             raise ValueError("'aspects' is not a dictionary")
-                        if len(system_prompt["aspects"]) != 3:
+                        if len(framework["aspects"]) != 3:
                             raise ValueError("Wrong number of aspects")
                         
                         # Validate each aspect
-                        for aspect, data_points in system_prompt["aspects"].items():
+                        for aspect, data_points in framework["aspects"].items():
                             if not isinstance(data_points, list):
                                 raise ValueError(f"Data points for '{aspect}' is not a list")
                             if len(data_points) != 2:
                                 raise ValueError(f"Wrong number of data points for '{aspect}'")
                         
-                        st.json(system_prompt)
+                        st.json(framework)
                         break
                         
                     except Exception as e:
@@ -218,18 +218,18 @@ if st.button("Start Analysis"):
                         else:
                             st.error(f"Failed to generate valid framework after {max_retries} attempts.")
                             st.write("Last error:", str(e))
-                            if raw_response:  # Only show raw response if it exists
+                            if raw_response:
                                 st.write("Raw response:")
                                 st.code(raw_response)
                             st.stop()
 
-            if system_prompt is None:
+            if framework is None:
                 st.error("Failed to generate a valid framework. Analysis cannot continue.")
                 st.stop()
 
             # Agent 2: Analysis Refiner
             full_analysis = {}
-            for aspect, data_points in system_prompt["aspects"].items():
+            for aspect, data_points in framework["aspects"].items():
                 previous_analysis = ""
                 with st.expander(f"🔄 Analysis", expanded=True):
                     # Create a natural headline from the aspect
@@ -245,7 +245,7 @@ if st.button("Start Analysis"):
                         response = model.generate_content(
                             agent2_prompt.format(
                                 topic=topic,
-                                system_prompt=system_prompt,
+                                system_prompt=framework,
                                 current_aspect=headline,
                                 previous_analysis=previous_analysis
                             ),
@@ -314,7 +314,7 @@ if st.button("Start Analysis"):
                 response = model.generate_content(
                     agent3_prompt.format(
                         topic=topic,
-                        system_prompt=system_prompt,
+                        system_prompt=framework,
                         all_aspect_analyses=analysis_text
                     ),
                     generation_config=genai.types.GenerationConfig(temperature=0.7)
