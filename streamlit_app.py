@@ -1,15 +1,11 @@
 import streamlit as st
 import google.generativeai as genai
-from dotenv import load_dotenv
-import os
 
-# Load environment variables
-load_dotenv()
-
-# Get API key and show status
-api_key = os.getenv("GOOGLE_API_KEY")
-if not api_key:
-    st.error("⚠️ GOOGLE_API_KEY not found in environment variables!")
+# Get API key from Streamlit secrets
+try:
+    api_key = st.secrets["GOOGLE_API_KEY"]
+except Exception as e:
+    st.error("⚠️ GOOGLE_API_KEY not found in Streamlit secrets! Make sure to add it in the Streamlit Cloud dashboard.")
     st.stop()
 
 # Configure API with error handling
