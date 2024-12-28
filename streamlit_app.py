@@ -98,22 +98,40 @@ FRAMEWORK:
 DETAILED ANALYSIS:
 {all_aspect_analyses}
 
-Structure your response as follows:
+Your response should follow this EXACT format:
 
-OVERVIEW
+### Comprehensive Analysis
+
+**OVERVIEW:**
 [2-3 sentences introducing the core concept and its significance]
 
-DETAILED ANALYSIS
-[Break down the key aspects using clear headings and bullet points]
+**DETAILED ANALYSIS:**
 
-IMPLICATIONS AND FUTURE OUTLOOK
-[Discuss the broader implications and future developments]
+Key Factors Driving [Topic]:
+• [Factor 1]
+• [Factor 2]
+• [Factor 3]
+• [Factor 4]
+• [Factor 5]
 
-Your response should:
-• Maintain a clear, authoritative voice
-• Support claims with specific evidence
-• Connect individual aspects into a cohesive narrative
-• Highlight critical insights and implications"""
+Impact on [Domain]:
+• [Impact 1]: [Brief explanation]
+• [Impact 2]: [Brief explanation]
+• [Impact 3]: [Brief explanation]
+• [Impact 4]: [Brief explanation]
+
+**IMPLICATIONS AND FUTURE OUTLOOK:**
+• [Implication 1]
+• [Implication 2]
+• [Implication 3]
+• [Implication 4]
+
+Maintain:
+- Clear, authoritative voice
+- Bullet points with consistent formatting
+- Bold section headers
+- One line spacing between sections
+- Proper indentation for sub-points"""
 
 agent4_prompt = """As a Concise Overview Generator, provide a structured summary of this expert analysis:
 
@@ -268,11 +286,9 @@ if st.button("Start Analysis"):
                             for line in context_lines:
                                 # Handle numbered headings
                                 if re.match(r'^\d+\.', line.strip()):
-                                    if in_list:
-                                        # Add previous list content if exists
-                                        if list_content:
-                                            styled_lines.append('<div style="margin-left: 2em; margin-bottom: 1em;">' + '<br>'.join(list_content) + '</div>')
-                                            list_content = []
+                                    if in_list and list_content:
+                                        styled_lines.append('<div style="margin-left: 2em; margin-bottom: 1em;">' + '<br>'.join(list_content) + '</div>')
+                                        list_content = []
                                     
                                     # Extract and style the heading
                                     heading_text = line.strip()
@@ -285,13 +301,11 @@ if st.button("Start Analysis"):
                                 
                                 # Handle non-list content
                                 elif line.strip():
-                                    if in_list:
-                                        # Add previous list content if exists
-                                        if list_content:
-                                            styled_lines.append('<div style="margin-left: 2em; margin-bottom: 1em;">' + '<br>'.join(list_content) + '</div>')
-                                            list_content = []
+                                    if in_list and list_content:
+                                        styled_lines.append('<div style="margin-left: 2em; margin-bottom: 1em;">' + '<br>'.join(list_content) + '</div>')
+                                        list_content = []
                                         in_list = False
-                                    styled_lines.append(line)
+                                    styled_lines.append(f'<div style="margin-bottom: 1em;">{line}</div>')
                             
                             # Add any remaining list content
                             if list_content:
@@ -304,13 +318,6 @@ if st.button("Start Analysis"):
 
             # Agent 3: Expert Response Generator
             with st.expander("📊 Expert Analysis", expanded=True):
-                st.markdown("### Comprehensive Analysis")
-                analysis_text = ""
-                for aspect, analysis in full_analysis.items():
-                    # Create a natural section title from the aspect
-                    section_title = aspect.replace("What are", "").replace("How does", "").replace("What is", "").replace("?", "").strip().title()
-                    analysis_text += f"\n\n{section_title}:\n{analysis}"
-                
                 response = model.generate_content(
                     agent3_prompt.format(
                         topic=topic,
@@ -323,7 +330,24 @@ if st.button("Start Analysis"):
                     expert_text = response.parts[0].text
                 else:
                     expert_text = response.text
-                st.markdown(expert_text)
+                
+                # Process the expert text to ensure consistent formatting
+                lines = expert_text.split('\n')
+                formatted_lines = []
+                for line in lines:
+                    if line.startswith('###'):
+                        formatted_lines.append(f"\n{line}\n")
+                    elif line.startswith('**'):
+                        formatted_lines.append(f"\n{line}")
+                    elif line.strip().endswith(':'):
+                        formatted_lines.append(f"\n{line}")
+                    elif line.strip().startswith('•'):
+                        formatted_lines.append(line)
+                    elif line.strip():
+                        formatted_lines.append(line)
+                
+                formatted_text = '\n'.join(formatted_lines)
+                st.markdown(formatted_text)
 
             # Agent 4: Concise Overview Generator
             with st.expander("💡 Summary", expanded=True):
