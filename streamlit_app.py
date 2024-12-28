@@ -26,26 +26,35 @@ topic = st.text_input("What topic should we explore?")
 loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=3, value=2)
 
 # Agent Prompts (defined outside the button click for efficiency)
-agent1_prompt = """As a Framework Designer, create a structured framework for answering the following user input directly and comprehensively:
+agent1_prompt = """You are a Framework Designer. Your task is to analyze this topic and output ONLY a valid JSON object with no additional commentary:
 
-User Input: {topic}
+Topic: {topic}
 
-Your framework MUST include:
-
-1. A concise, direct answer to the user's input.
-2. 3-5 Key aspects or sub-questions that need to be explored to support and justify the answer. Phrase these as questions.
-3. For EACH aspect, suggest 2-3 specific data points or pieces of information that would be essential to answer that aspect.
-
-Output the framework as a valid JSON object with the following structure:
+Required JSON structure:
 {{
-  "direct_answer": "...",
-  "aspects": {{
-    "Aspect 1 Question?": ["Data point 1", "Data point 2", ...],
-    "Aspect 2 Question?": ["Data point 1", "Data point 2", ...],
-    ...
-  }}
+    "direct_answer": "A clear, concise answer about {topic}",
+    "aspects": {{
+        "Question 1?": [
+            "Required data point 1",
+            "Required data point 2"
+        ],
+        "Question 2?": [
+            "Required data point 1",
+            "Required data point 2"
+        ],
+        "Question 3?": [
+            "Required data point 1",
+            "Required data point 2"
+        ]
+    }}
 }}
-"""
+
+Rules:
+1. Output ONLY the JSON object, no other text
+2. Include 3-5 key questions as aspects
+3. Each question must have exactly 2 required data points
+4. Ensure all JSON syntax is valid
+5. Use proper quotes and formatting"""
 
 agent2_prompt = """As an Analysis Refiner, your task is to provide detailed information and analysis for one specific aspect in the following framework.
 
@@ -58,8 +67,7 @@ Current Aspect to Refine: {current_aspect}
 
 Previous Analysis for this Aspect: {previous_analysis}
 
-Based on the suggested data points in the framework, provide detailed information, analysis, and relevant data to answer the current aspect. Build upon the previous analysis, adding more detail, nuance, and supporting evidence. Do NOT repeat information already provided. Focus on adding NEW information and insights.
-"""
+Based on the suggested data points in the framework, provide detailed information, analysis, and relevant data to answer the current aspect. Build upon the previous analysis, adding more detail, nuance, and supporting evidence. Do NOT repeat information already provided. Focus on adding NEW information and insights."""
 
 agent3_prompt = """As an Expert Response Generator, create a comprehensive, Nobel laureate-level response to the following user input, informed by the detailed analysis provided:
 
@@ -72,14 +80,12 @@ Detailed Analysis (for each aspect):
 {all_aspect_analyses}
 
 Your response should:
+1. Provide a clear and authoritative answer to the user's input, directly addressing the question
+2. Integrate the key insights and explanations from the analysis of each aspect
+3. Demonstrate a deep understanding of the topic
+4. Offer nuanced perspectives and potential implications
 
-1. Provide a clear and authoritative answer to the user's input, directly addressing the question.
-2. Integrate the key insights and explanations from the analysis of each aspect.
-3. Demonstrate a deep understanding of the topic.
-4. Offer nuanced perspectives and potential implications.
-
-Write in a sophisticated and insightful manner, as if you were a leading expert in the field.
-"""
+Write in a sophisticated and insightful manner, as if you were a leading expert in the field."""
 
 agent4_prompt = """As a Concise Overview Generator, provide a simplified, easy-to-understand summary of the following expert response:
 
@@ -89,11 +95,9 @@ Expert Response:
 {expert_text}
 
 Your summary should:
-
-1. Capture the main points of the expert response.
-2. Use clear and simple language.
-3. Be concise.
-"""
+1. Capture the main points of the expert response
+2. Use clear and simple language
+3. Be concise"""
 
 if st.button("Start Analysis"):
     if topic:
@@ -103,14 +107,25 @@ if st.button("Start Analysis"):
                 st.write("Agent 1: Designing framework...")
                 prompt_response = model.generate_content(
                     agent1_prompt.format(topic=topic),
-                    generation_config=genai.types.GenerationConfig(temperature=0.3)
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.3,
+                        candidate_count=1
+                    )
                 )
 
                 if hasattr(prompt_response, 'parts'):
-                    system_prompt_json = prompt_response.parts[0].text
+                    system_prompt_json = prompt_response.parts[0].text.strip()
                 else:
-                    system_prompt_json = prompt_response.text
+                    system_prompt_json = prompt_response.text.strip()
+                
+                # Remove any potential commentary before or after the JSON
                 try:
+                    # Find the first '{' and last '}'
+                    start_idx = system_prompt_json.find('{')
+                    end_idx = system_prompt_json.rindex('}') + 1
+                    if start_idx != -1 and end_idx != -1:
+                        system_prompt_json = system_prompt_json[start_idx:end_idx]
+                    
                     system_prompt = json.loads(system_prompt_json)
                     st.json(system_prompt)
                 except json.JSONDecodeError as e:
