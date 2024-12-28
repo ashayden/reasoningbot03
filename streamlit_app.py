@@ -14,7 +14,7 @@ except Exception as e:
 # Configure API with error handling
 try:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash-thinking-exp-1219")  # Keeping the experimental model
+    model = genai.GenerativeModel("gemini-pro")  # Using the stable gemini-pro model
 except Exception as e:
     st.error(f"⚠️ Error configuring Gemini API: {str(e)}")
     st.stop()
@@ -104,62 +104,47 @@ if st.button("Start Analysis"):
         with st.expander("🎯 Analysis Framework", expanded=True):
             st.write("Agent 1: Designing framework...")
 
-            # --- RETRY MECHANISM FOR AGENT 1 ---
-            retries = 3
-            system_prompt_json = None  # Initialize outside the try block
-            for attempt in range(retries):
+            system_prompt = None  # Initialize outside the try block
+            try:
+                prompt_response = model.generate_content(
+                    agent1_prompt.format(topic=topic),
+                    generation_config=genai.types.GenerationConfig(temperature=0.3)
+                )
+
+                if hasattr(prompt_response, 'parts'):
+                    system_prompt_json = prompt_response.parts[0].text.strip()
+                else:
+                    system_prompt_json = prompt_response.text.strip()
+
+                # Attempt to parse the JSON (should be more reliable with gemini-pro)
                 try:
-                    prompt_response = model.generate_content(
-                        agent1_prompt.format(topic=topic),
-                        generation_config=genai.types.GenerationConfig(temperature=0.3)
-                    )
-                    # The error is occurring here, prompt_response doesn't have a parts attribute
-                    if hasattr(prompt_response, 'parts'):
-                        system_prompt_json = prompt_response.parts[0].text.strip()
-                    else:
-                        system_prompt_json = prompt_response.text.strip()
-
-                    # Improved JSON extraction and key normalization
-                    match = re.search(r"\{.*\}", system_prompt_json, re.DOTALL)
-                    if match:
-                        system_prompt_json = match.group(0)
-                    else:
-                        raise ValueError("Could not find JSON in Agent 1 response.")
-
                     system_prompt = json.loads(system_prompt_json)
-
-                    # Normalize keys (Crucial fix for whitespace issues)
-                    system_prompt = {k.strip(): v for k, v in system_prompt.items()}
-                    if "aspects" in system_prompt:
-                        system_prompt["aspects"] = {k.strip(): v for k, v in system_prompt["aspects"].items()}
-
-                    # Validate JSON structure (more robust validation)
-                    if not isinstance(system_prompt, dict) or "direct_answer" not in system_prompt or "aspects" not in system_prompt or not isinstance(system_prompt["aspects"], dict) or len(system_prompt["aspects"]) != 3:
-                        raise ValueError("Invalid JSON structure after normalization.")
-                    for aspect, data_points in system_prompt["aspects"].items():
-                        if not isinstance(data_points, list) or len(data_points) != 2:
-                            raise ValueError(f"Invalid JSON: Each aspect must have exactly 2 data points. Error in: {aspect}")
-
-                    st.json(system_prompt)
-                    break  # Success! Exit the retry loop
-
-                except (json.JSONDecodeError, ValueError) as e:
-                    if attempt < retries - 1:
-                        st.warning(f"Attempt {attempt + 1} failed: {e}. Retrying...")
-                        time.sleep(2)  # Wait before retrying
-                    else:
-                        st.error(f"Error after multiple retries: {e}")
-                        if system_prompt_json:
-                            st.write("Raw response:", system_prompt_json)
-                        else:
-                            st.write("Could not get a valid response from the model.")
-                        st.stop()
-                except Exception as e:
-                    st.error(f"Unexpected error during framework design: {e}")
-                    if system_prompt_json:
-                        st.write("Raw response:", system_prompt_json)
+                except json.JSONDecodeError as e:
+                    st.error(f"Error parsing JSON: {e}")
+                    st.write("Raw Model Response (may be malformed):")
+                    st.code(system_prompt_json) # Display raw response in a code block
                     st.stop()
-            # --- END OF RETRY MECHANISM ---
+
+                # Normalize keys
+                system_prompt = {k.strip(): v for k, v in system_prompt.items()}
+                if "aspects" in system_prompt:
+                    system_prompt["aspects"] = {k.strip(): v for k, v in system_prompt["aspects"].items()}
+
+                # Validate JSON structure
+                if not isinstance(system_prompt, dict) or "direct_answer" not in system_prompt or "aspects" not in system_prompt or not isinstance(system_prompt["aspects"], dict) or len(system_prompt["aspects"]) != 3:
+                    raise ValueError("Invalid JSON structure.")
+                for aspect, data_points in system_prompt["aspects"].items():
+                    if not isinstance(data_points, list) or len(data_points) != 2:
+                        raise ValueError(f"Invalid JSON: Each aspect must have exactly 2 data points. Error in: {aspect}")
+
+                st.json(system_prompt)
+
+            except Exception as e:
+                st.error(f"Unexpected error during framework design: {e}")
+                if system_prompt_json:
+                    st.write("Raw Model Response:")
+                    st.code(system_prompt_json) # Display raw response in a code block
+                st.stop()
 
             # Check if we have a valid system_prompt before proceeding
             if system_prompt is None:
