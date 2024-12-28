@@ -54,7 +54,7 @@ if st.button("Start Analysis"):
                         f"""{system_prompt}
                         
                         Previous context: {context}
-                        Analyze this topic as if you were a Nobel Prize winner in the relevant field, drawing upon deep expertise and groundbreaking insights. Provide fresh analysis following the framework above.""",
+                        Analyze this topic as if you were a Nobel Prize winner in the relevant field, drawing upon deep expertise and groundbreaking insights. Use the prompt structure from agent 1 to guide your analysis of the topic.""",
                         generation_config=genai.types.GenerationConfig(
                             temperature=1.0
                         )
@@ -70,7 +70,7 @@ if st.button("Start Analysis"):
             with st.expander("📊 Final Summary", expanded=True):
                 st.write("Generating final summary...")
                 summary = model.generate_content(
-                    f"""Synthesize the findings from the analysis loops about '{topic}' into a clear, comprehensive summary in simple language bulleting key points and crafting a concise summary paragraph. Finally, suggest 3 follow-up questions, 1 that digs deeper into a key aspect of the topic, 1 that explores a related topic, and 1 that investigates unexpected connections to the topic:
+                    f"""Synthesize the findings from Agent 2 into a clear, comprehensive summary in simple language bulleting key points and crafting a concise summary paragraph. Finally, suggest 3 follow-up questions, 1 that digs deeper into a key aspect of the topic, 1 that explores a related topic, and 1 that investigates unexpected connections to the topic:
 
                     {' '.join(full_analysis)}""",
                     generation_config=genai.types.GenerationConfig(
