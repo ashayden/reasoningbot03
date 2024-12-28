@@ -1,7 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
 import json
-import re
 
 # Get API key from Streamlit secrets
 try:
@@ -26,33 +25,27 @@ st.write("This bot uses multiple AI agents to analyze topics in depth with sophi
 topic = st.text_input("What topic should we explore?")
 loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=3, value=2)
 
-# Agent Prompts
-agent1_prompt = """You are a JSON generator. Your task is to analyze {topic} and output a JSON object with this structure:
+# Agent Prompts (defined outside the button click for efficiency)
+agent1_prompt = """As a Framework Designer, create a structured framework for answering the following user input directly and comprehensively:
 
-{
-    "direct_answer": "A clear, direct answer about the topic",
-    "aspects": {
-        "First key question?": [
-            "Data point 1",
-            "Data point 2"
-        ],
-        "Second key question?": [
-            "Data point 1",
-            "Data point 2"
-        ],
-        "Third key question?": [
-            "Data point 1",
-            "Data point 2"
-        ]
-    }
-}
+User Input: {topic}
 
-IMPORTANT:
-1. Output ONLY the JSON object
-2. Do not include any other text or explanation
-3. Do not modify the structure
-4. Use proper JSON formatting with double quotes
-5. Keep exactly 3 questions and 2 data points per question"""
+Your framework MUST include:
+
+1. A concise, direct answer to the user's input.
+2. 3-5 Key aspects or sub-questions that need to be explored to support and justify the answer. Phrase these as questions.
+3. For EACH aspect, suggest 2-3 specific data points or pieces of information that would be essential to answer that aspect.
+
+Output the framework as a valid JSON object with the following structure:
+{{
+  "direct_answer": "...",
+  "aspects": {{
+    "Aspect 1 Question?": ["Data point 1", "Data point 2", ...],
+    "Aspect 2 Question?": ["Data point 1", "Data point 2", ...],
+    ...
+  }}
+}}
+"""
 
 agent2_prompt = """As an Analysis Refiner, your task is to provide detailed information and analysis for one specific aspect in the following framework.
 
@@ -65,7 +58,8 @@ Current Aspect to Refine: {current_aspect}
 
 Previous Analysis for this Aspect: {previous_analysis}
 
-Based on the suggested data points in the framework, provide detailed information, analysis, and relevant data to answer the current aspect. Build upon the previous analysis, adding more detail, nuance, and supporting evidence. Do NOT repeat information already provided. Focus on adding NEW information and insights."""
+Based on the suggested data points in the framework, provide detailed information, analysis, and relevant data to answer the current aspect. Build upon the previous analysis, adding more detail, nuance, and supporting evidence. Do NOT repeat information already provided. Focus on adding NEW information and insights.
+"""
 
 agent3_prompt = """As an Expert Response Generator, create a comprehensive, Nobel laureate-level response to the following user input, informed by the detailed analysis provided:
 
@@ -78,12 +72,14 @@ Detailed Analysis (for each aspect):
 {all_aspect_analyses}
 
 Your response should:
-1. Provide a clear and authoritative answer to the user's input, directly addressing the question
-2. Integrate the key insights and explanations from the analysis of each aspect
-3. Demonstrate a deep understanding of the topic
-4. Offer nuanced perspectives and potential implications
 
-Write in a sophisticated and insightful manner, as if you were a leading expert in the field."""
+1. Provide a clear and authoritative answer to the user's input, directly addressing the question.
+2. Integrate the key insights and explanations from the analysis of each aspect.
+3. Demonstrate a deep understanding of the topic.
+4. Offer nuanced perspectives and potential implications.
+
+Write in a sophisticated and insightful manner, as if you were a leading expert in the field.
+"""
 
 agent4_prompt = """As a Concise Overview Generator, provide a simplified, easy-to-understand summary of the following expert response:
 
@@ -93,9 +89,11 @@ Expert Response:
 {expert_text}
 
 Your summary should:
-1. Capture the main points of the expert response
-2. Use clear and simple language
-3. Be concise"""
+
+1. Capture the main points of the expert response.
+2. Use clear and simple language.
+3. Be concise.
+"""
 
 if st.button("Start Analysis"):
     if topic:
@@ -103,75 +101,23 @@ if st.button("Start Analysis"):
             # Agent 1: Framework Designer
             with st.expander("🎯 Analysis Framework", expanded=True):
                 st.write("Agent 1: Designing framework...")
-                
-                # Configure model with safety settings
-                safety_settings = {
-                    "HARASSMENT": "block_none",
-                    "HATE_SPEECH": "block_none",
-                    "SEXUALLY_EXPLICIT": "block_none",
-                    "DANGEROUS_CONTENT": "block_none"
-                }
-                
                 prompt_response = model.generate_content(
                     agent1_prompt.format(topic=topic),
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.3,
-                        candidate_count=1,
-                        stop_sequences=["\n\n", "Here", "Let", "Now"],
-                        max_output_tokens=2048
-                    ),
-                    safety_settings=safety_settings
+                    generation_config=genai.types.GenerationConfig(temperature=0.3)
                 )
 
                 if hasattr(prompt_response, 'parts'):
-                    system_prompt_json = prompt_response.parts[0].text.strip()
+                    system_prompt_json = prompt_response.parts[0].text
                 else:
-                    system_prompt_json = prompt_response.text.strip()
-                
-                # Clean up the response
+                    system_prompt_json = prompt_response.text
                 try:
-                    # Find JSON pattern
-                    json_pattern = r'\{[\s\S]*\}'  # Modified to match multiline
-                    json_match = re.search(json_pattern, system_prompt_json)
-                    
-                    if not json_match:
-                        st.error("No valid JSON object found in response")
-                        st.write("Raw response:", system_prompt_json)
-                        st.stop()
-                    
-                    system_prompt_json = json_match.group()
-                    # Remove any potential comments or extra text
-                    system_prompt_json = re.sub(r'//.*?\n|/\*.*?\*/', '', system_prompt_json, flags=re.S)
                     system_prompt = json.loads(system_prompt_json)
-                    
-                    # Validate JSON structure
-                    if not isinstance(system_prompt, dict):
-                        st.error("Invalid JSON: Root must be an object")
-                        st.stop()
-                    if "direct_answer" not in system_prompt or "aspects" not in system_prompt:
-                        st.error("Invalid JSON: Missing required fields 'direct_answer' or 'aspects'")
-                        st.stop()
-                    if not isinstance(system_prompt["aspects"], dict):
-                        st.error("Invalid JSON: 'aspects' must be an object")
-                        st.stop()
-                    if len(system_prompt["aspects"]) != 3:
-                        st.error("Invalid JSON: Must have exactly 3 aspects")
-                        st.stop()
-                    
-                    for aspect, data_points in system_prompt["aspects"].items():
-                        if not isinstance(data_points, list) or len(data_points) != 2:
-                            st.error(f"Invalid JSON: Each aspect must have exactly 2 data points. Error in: {aspect}")
-                            st.stop()
-                    
                     st.json(system_prompt)
-                    
                 except json.JSONDecodeError as e:
-                    st.error(f"Invalid JSON syntax: {e}")
-                    st.write("Raw response:", system_prompt_json)
+                    st.error(f"Invalid JSON from Agent 1: {e}\nRaw Response: {system_prompt_json}")
                     st.stop()
-                except Exception as e:
-                    st.error(f"Error processing response: {str(e)}")
-                    st.write("Raw response:", system_prompt_json)
+                if not ("direct_answer" in system_prompt and "aspects" in system_prompt):
+                    st.error(f"Invalid JSON format. Must contain 'direct_answer' and 'aspects'. JSON: {system_prompt}")
                     st.stop()
 
             # Agent 2: Analysis Refiner
@@ -231,4 +177,3 @@ if st.button("Start Analysis"):
             st.write(f"Iterations: {loops}")
     else:
         st.warning("Please enter a topic to analyze.")
-
