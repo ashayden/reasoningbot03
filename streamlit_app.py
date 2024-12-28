@@ -229,10 +229,10 @@ if st.button("Start Analysis"):
                 st.error("Failed to generate refined prompt and investigation framework. Please check the logs for details and try again.")
             else:
                 st.markdown("### Refined Prompt")
-                st.markdown(refined_prompt)
+                st.markdown(refined_prompt.lstrip(':\n').strip())  # Remove leading colon and newlines
                 st.markdown("---")
                 st.markdown("### Investigation Framework")
-                st.markdown(framework)
+                st.markdown(framework.lstrip(':**\n').strip())  # Remove leading asterisks, colon, and newlines
                 st.markdown("---")
 
                 # Agent 2: Conduct research through iterations
