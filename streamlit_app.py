@@ -38,7 +38,10 @@ if st.button("Start Analysis"):
                         temperature=0.3
                     )
                 )
-                system_prompt = prompt_response.text
+                if hasattr(prompt_response, 'parts'):
+                    system_prompt = prompt_response.parts[0].text
+                else:
+                    system_prompt = prompt_response.text
                 st.write(system_prompt)
 
             # Agent 2: Reasoning agent
@@ -56,7 +59,10 @@ if st.button("Start Analysis"):
                             temperature=1.0
                         )
                     )
-                    context = response.text
+                    if hasattr(response, 'parts'):
+                        context = response.parts[0].text
+                    else:
+                        context = response.text
                     full_analysis.append(context)
                     st.write(context)
 
@@ -71,7 +77,11 @@ if st.button("Start Analysis"):
                         temperature=0.1
                     )
                 )
-                st.write(summary.text)
+                if hasattr(summary, 'parts'):
+                    summary_text = summary.parts[0].text
+                else:
+                    summary_text = summary.text
+                st.write(summary_text)
         except Exception as e:
             st.error(f"⚠️ Error during analysis: {str(e)}")
             st.write("Debug info:")
