@@ -30,12 +30,10 @@ st.write("This bot uses multiple AI agents to analyze topics in depth with sophi
 
 # Input section
 topic = st.text_input("What topic should we explore?")
-loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=3, value=2)
+loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=10, value=2)
 
 # Agent Prompts
 agent1_prompt = '''You are an expert analyst. Your task is to analyze this topic: {topic}
-
-YOU MUST USE THESE EXACT SECTION HEADINGS IN THIS EXACT ORDER:
 
 Direct Answer:
 - Your answer here
