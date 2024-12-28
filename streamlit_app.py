@@ -28,12 +28,12 @@ topic = st.text_input("What topic should we explore?")
 loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=3, value=2)
 
 # Agent Prompts
-agent1_prompt = """You are a JSON generator. Your task is to analyze {topic} and output a valid JSON object.
+agent1_prompt = """You are a JSON generator. Generate a valid JSON object to analyze this topic: {topic}
 
-RESPOND WITH ONLY THE FOLLOWING JSON STRUCTURE, NO OTHER TEXT:
+IMPORTANT: Your entire response must be ONLY the JSON object shown below, with NO additional text or explanation:
 
 {{
-    "direct_answer": "A clear, direct answer about what {topic} is",
+    "direct_answer": "A clear, direct answer about {topic}",
     "aspects": {{
         "What are the key components or elements of {topic}?": [
             "First key component with brief explanation",
@@ -50,15 +50,14 @@ RESPOND WITH ONLY THE FOLLOWING JSON STRUCTURE, NO OTHER TEXT:
     }}
 }}
 
-IMPORTANT RULES:
-1. Output ONLY the JSON object, nothing else
-2. Use the exact structure shown above
-3. Use proper JSON formatting with double quotes for all keys and values
-4. Keep exactly 3 questions and 2 data points per question
-5. Make sure all JSON syntax is valid
-6. Do not include any explanatory text or comments
-7. Replace all placeholders with actual content about {topic}
-"""
+CRITICAL RULES:
+1. Output MUST start with {{ and end with }}
+2. Use ONLY double quotes for ALL keys and values
+3. NO comments, NO explanations, NO additional text
+4. EXACT structure as shown above
+5. ALL text MUST be inside the JSON structure
+6. Replace placeholders with relevant content about {topic}
+7. Keep exactly 2 data points per aspect"""
 
 agent2_prompt = """As an Analysis Refiner, provide a detailed analysis of the following:
 
@@ -161,36 +160,49 @@ EXECUTIVE SUMMARY:
 - Use clear, professional language]"""
 
 def clean_json_string(json_string):
-    # Remove code block markers if present
-    json_string = re.sub(r'^```json\s*|\s*```$', '', json_string, flags=re.MULTILINE)
+    """Clean and validate JSON string."""
+    # Remove any non-JSON text
+    json_match = re.search(r'{{.*}}', json_string, re.DOTALL)
+    if not json_match:
+        raise ValueError("No valid JSON object found in response")
     
-    # Remove any non-JSON text before or after the JSON object
-    match = re.search(r'\{.*\}', json_string, re.DOTALL)
-    if match:
-        json_string = match.group(0)
+    json_string = json_match.group(0)
     
-    # Remove all whitespace between JSON tokens while preserving spaces in strings
-    cleaned = re.sub(r'\s+(?=([^"]*"[^"]*")*[^"]*$)', '', json_string)
+    # Fix common JSON formatting issues
+    json_string = re.sub(r'^\s*{{', '{', json_string)  # Remove extra {
+    json_string = re.sub(r'}}\s*$', '}', json_string)  # Remove extra }
+    json_string = re.sub(r'(?<!\\)"(?!")(?![:,}{\]])', '\\"', json_string)  # Escape unescaped quotes
+    json_string = re.sub(r'\s+(?=([^"]*"[^"]*")*[^"]*$)', '', json_string)  # Remove whitespace outside strings
     
-    return cleaned.strip()
+    # Validate JSON structure
+    try:
+        json.loads(json_string)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON structure: {str(e)}")
+    
+    return json_string.strip()
 
 if st.button("Start Analysis"):
     if topic:
         try:
             # Agent 1: Framework Designer
             with st.expander("🎯 Analysis Framework", expanded=True):
-                st.write("Agent 1: Designing framework...")
+                st.write("Designing analysis framework...")
                 
                 max_retries = 3
                 retry_count = 0
-                framework = None  # Initialize framework variable
+                framework = None
                 raw_response = None
                 
                 while retry_count < max_retries and framework is None:
                     try:
                         prompt_response = model.generate_content(
                             agent1_prompt.format(topic=topic),
-                            generation_config=genai.types.GenerationConfig(temperature=0.3)
+                            generation_config=genai.types.GenerationConfig(
+                                temperature=0.1,  # Lower temperature for more consistent output
+                                top_p=0.8,
+                                top_k=40
+                            )
                         )
 
                         if hasattr(prompt_response, 'parts'):
@@ -199,35 +211,36 @@ if st.button("Start Analysis"):
                             raw_response = prompt_response.text
 
                         # Clean and parse JSON
-                        cleaned_json = clean_json_string(raw_response)
-                        st.write("Cleaned JSON:")
-                        st.code(cleaned_json)
-                        
-                        # Parse and validate JSON
-                        framework = json.loads(cleaned_json)
-                        
-                        # Validate structure
-                        if not isinstance(framework, dict):
-                            raise ValueError("Response is not a dictionary")
-                        if "direct_answer" not in framework:
-                            raise ValueError("Missing 'direct_answer' field")
-                        if "aspects" not in framework:
-                            raise ValueError("Missing 'aspects' field")
-                        if not isinstance(framework["aspects"], dict):
-                            raise ValueError("'aspects' is not a dictionary")
-                        if len(framework["aspects"]) != 3:
-                            raise ValueError("Wrong number of aspects")
-                        
-                        # Validate each aspect
-                        for aspect, data_points in framework["aspects"].items():
-                            if not isinstance(data_points, list):
-                                raise ValueError(f"Data points for '{aspect}' is not a list")
-                            if len(data_points) != 2:
-                                raise ValueError(f"Wrong number of data points for '{aspect}'")
-                        
-                        st.json(framework)
-                        break
-                        
+                        try:
+                            cleaned_json = clean_json_string(raw_response)
+                            framework = json.loads(cleaned_json)
+                            
+                            # Validate structure
+                            if not isinstance(framework, dict):
+                                raise ValueError("Response is not a dictionary")
+                            if "direct_answer" not in framework:
+                                raise ValueError("Missing 'direct_answer' field")
+                            if "aspects" not in framework:
+                                raise ValueError("Missing 'aspects' field")
+                            if not isinstance(framework["aspects"], dict):
+                                raise ValueError("'aspects' is not a dictionary")
+                            if len(framework["aspects"]) != 3:
+                                raise ValueError("Wrong number of aspects")
+                            
+                            # Validate each aspect
+                            for aspect, data_points in framework["aspects"].items():
+                                if not isinstance(data_points, list):
+                                    raise ValueError(f"Data points for '{aspect}' is not a list")
+                                if len(data_points) != 2:
+                                    raise ValueError(f"Wrong number of data points for '{aspect}'")
+                            
+                            st.success("✅ Framework generated successfully")
+                            st.json(framework)
+                            break
+                            
+                        except Exception as e:
+                            raise ValueError(f"JSON validation failed: {str(e)}")
+                            
                     except Exception as e:
                         retry_count += 1
                         if retry_count < max_retries:
@@ -241,9 +254,9 @@ if st.button("Start Analysis"):
                                 st.code(raw_response)
                             st.stop()
 
-            if framework is None:
-                st.error("Failed to generate a valid framework. Analysis cannot continue.")
-                st.stop()
+                if framework is None:
+                    st.error("Failed to generate a valid framework. Analysis cannot continue.")
+                    st.stop()
 
             # Agent 2: Analysis Refiner
             full_analysis = {}
