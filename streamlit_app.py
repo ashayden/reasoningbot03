@@ -91,17 +91,29 @@ Your response should:
 
 Write in a sophisticated and insightful manner, as if you were a leading expert in the field."""
 
-agent4_prompt = """As a Concise Overview Generator, provide a simplified, easy-to-understand summary of the following expert response:
+agent4_prompt = """As a Concise Overview Generator, provide a comprehensive yet accessible summary of the following expert response:
 
 User Input: {topic}
 
 Expert Response:
 {expert_text}
 
-Your summary should:
-1. Capture the main points of the expert response
-2. Use clear and simple language
-3. Be concise."""
+Structure your response in TWO parts:
+
+PART 1 - KEY TAKEAWAYS:
+• List 5-7 specific takeaways about {topic}
+• Include concrete details, numbers, and examples where relevant
+• Start each bullet point with an action verb or key concept
+• Focus on the most important insights from the expert response
+
+PART 2 - EXECUTIVE SUMMARY:
+Write a 1-2 paragraph summary that:
+• Synthesizes the main ideas into a coherent narrative
+• Explains why {topic} matters
+• Highlights the most significant implications
+• Uses clear, professional language accessible to an educated general audience
+
+Remember to maintain accuracy while making complex ideas understandable."""
 
 def clean_json_string(json_string):
     # Remove code block markers if present
