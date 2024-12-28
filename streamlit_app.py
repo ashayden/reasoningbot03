@@ -70,7 +70,7 @@ FRAMEWORK:
 PREVIOUS ANALYSIS:
 {previous_analysis}
 
-ITERATION FOCUS:
+CURRENT FOCUS:
 {current_aspect}
 
 Build upon the existing analysis by:
@@ -78,7 +78,9 @@ Build upon the existing analysis by:
 2. Analyzing new findings
 3. Identifying connections and patterns
 4. Updating conclusions based on new information
-5. Noting any emerging implications'''
+5. Noting any emerging implications
+
+Present your findings in a clear, structured format starting with a brief introduction of the focus area.'''
 
 agent3_prompt = '''Based on the completed analysis of the topic:
 
@@ -190,12 +192,26 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
 
         research = handle_response(prompt_response)
         if research:
-            logging.info(f"Research iteration {iteration} completed successfully")
+            # Remove any iteration focus headers if they exist
+            research_lines = research.split('\n')
+            cleaned_research = []
+            skip_next = False
+            for line in research_lines:
+                if "Iteration Focus:" in line or "ITERATION FOCUS:" in line:
+                    skip_next = True
+                    continue
+                if skip_next:
+                    skip_next = False
+                    continue
+                cleaned_research.append(line)
+            
+            research = '\n'.join(cleaned_research).strip()
+            logging.info(f"Research phase {iteration} completed successfully")
             return research
         else:
-            logging.warning(f"Research iteration {iteration} returned empty or invalid content")
+            logging.warning(f"Research phase {iteration} returned empty or invalid content")
     except Exception as e:
-        logging.error(f"Failed to conduct research in iteration {iteration}: {e}")
+        logging.error(f"Failed to conduct research in phase {iteration}: {e}")
     return None
 
 
