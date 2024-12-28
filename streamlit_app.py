@@ -33,152 +33,88 @@ topic = st.text_input("What topic should we explore?")
 loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=10, value=2)
 
 # Agent Prompts
-agent1_prompt = '''You are an expert analyst. Your task is to analyze this topic: {topic}
+agent1_prompt = '''You are an expert research strategist and analyst. Your task is to create a comprehensive reasoning strategy for analyzing: {topic}
 
-Direct Answer:
-- Your answer here
+Develop a strategic framework that will guide our analysis. Consider:
+1. The core question or hypothesis to investigate
+2. Key areas that need to be examined
+3. Critical factors that could influence the outcome
+4. Potential data sources or evidence to consider
+5. Methodological approaches for analysis
 
-Key Components or Elements:
-- Your first point here
-- Your second point here
+Present your strategy in a clear, organized format that will guide further investigation.
+Focus on creating a thorough and logical approach to understanding {topic}.
 
-Impact or Influence:
-- Your first point here
-- Your second point here
+Your response should be comprehensive yet clear, avoiding unnecessary complexity while ensuring all crucial aspects are covered.'''
 
-Future Implications or Developments:
-- Your first point here
-- Your second point here
+agent2_prompt = '''As an Analysis Refiner, build upon the previous analysis to deepen our understanding.
 
-RULES:
-1. Keep the section headings EXACTLY as shown
-2. Start each section with the heading and a colon
-3. Start each point with a hyphen
-4. Include at least one point per section
-5. Do not add any other text
-
-EXAMPLE OUTPUT:
-
-Direct Answer:
-- Yes, artificial intelligence is transforming our world through its ability to automate complex tasks.
-
-Key Components or Elements:
-- Machine Learning algorithms that enable systems to learn from experience
-- Neural Networks designed to process information like biological brains
-
-Impact or Influence:
-- Automation of routine tasks increasing efficiency across industries
-- Enhanced decision-making through data analysis
-
-Future Implications or Developments:
-- Integration of AI into healthcare for improved diagnosis
-- Development of autonomous transportation systems
-
-END OF EXAMPLE
-
-Remember: Use the EXACT same format for {topic}. Keep the section headings identical.'''
-
-agent2_prompt = """As an Analysis Refiner, provide a detailed analysis of the following:
-
-FOCUS AREA: {current_aspect}
-# [Rephrase this aspect using natural language, focusing on the core concept]
-
-PREVIOUS INSIGHTS:
+PREVIOUS ANALYSIS:
 {previous_analysis}
 
-Structure your analysis as follows:
+FOCUS AREA:
+{current_aspect}
 
-*[MAIN TITLE]*
+Your task is to:
+1. Evaluate the evidence and reasoning presented
+2. Identify gaps or areas needing deeper investigation
+3. Add new insights or perspectives
+4. Challenge assumptions if necessary
+5. Strengthen the analytical framework
 
-1. [Descriptive Heading]
-   Detailed explanation with supporting evidence
+Maintain a clear, logical structure while adding depth to the analysis.'''
 
-2. [Descriptive Heading]
-   Detailed explanation with supporting evidence
+agent3_prompt = '''As an Expert Response Generator, synthesize this comprehensive analysis:
 
-3. [Descriptive Heading]
-   Detailed explanation with supporting evidence
+TOPIC:
+{topic}
 
-Each point should:
-- Build upon the previous analysis
-- Add NEW information and insights
-- Include specific data or examples where relevant
-- Connect to the broader implications for the subject"""
-
-agent3_prompt = """As an Expert Response Generator, synthesize this comprehensive analysis:
-
-SUBJECT MATTER:
-[Naturally rephrase {topic} to focus on the core concept]
-
-FRAMEWORK:
+ANALYSIS FRAMEWORK:
 {system_prompt}
 
 DETAILED ANALYSIS:
 {all_aspect_analyses}
 
-Your response should follow this EXACT format:
+Provide a comprehensive expert analysis that:
+1. Synthesizes all key findings
+2. Evaluates the strength of evidence
+3. Draws well-reasoned conclusions
+4. Identifies implications
+5. Addresses uncertainties
 
+Format your response with clear sections:
 ### Comprehensive Analysis
 
-**OVERVIEW:**
-[2-3 sentences introducing the core concept and its significance]
+**Key Findings:**
+[Present main discoveries and insights]
 
-**DETAILED ANALYSIS:**
+**Evidence Assessment:**
+[Evaluate the strength and reliability of evidence]
 
-Key Factors Driving [Topic]:
-• [Factor 1]
-• [Factor 2]
-• [Factor 3]
-• [Factor 4]
-• [Factor 5]
+**Conclusions:**
+[Present well-reasoned conclusions]
 
-Impact on [Domain]:
-• [Impact 1]: [Brief explanation]
-• [Impact 2]: [Brief explanation]
-• [Impact 3]: [Brief explanation]
-• [Impact 4]: [Brief explanation]
+**Implications:**
+[Discuss broader implications and impacts]'''
 
-**IMPLICATIONS AND FUTURE OUTLOOK:**
-• [Implication 1]
-• [Implication 2]
-• [Implication 3]
-• [Implication 4]
+agent4_prompt = '''As a Concise Overview Generator, distill this expert analysis into a clear summary:
 
-Maintain:
-- Clear, authoritative voice
-- Bullet points with consistent formatting
-- Bold section headers
-- One line spacing between sections
-- Proper indentation for sub-points"""
-
-agent4_prompt = """As a Concise Overview Generator, provide a structured summary of this expert analysis:
-
-SUBJECT:
-[Naturally rephrase {topic} to focus on the core concept]
+TOPIC:
+{topic}
 
 EXPERT ANALYSIS:
 {expert_text}
 
-Structure your response in THREE parts:
+Provide a concise summary in three parts:
 
 TL;DR:
- [If the user asked a question answer it with"✅ Yes" / "❌ No" / "❓ Uncertain"] + [One sentence that directly answers the core question or summarizes the key finding]
+[Direct answer to the core question/topic, if applicable, using "✅ Yes" / "❌ No" / "❓ Uncertain"]
 
 KEY TAKEAWAYS:
-• [Action] + [Specific Detail] + [Impact/Significance]
-• Include 5-7 bullet points
-• Focus on concrete facts, numbers, and examples
-• Start each point with a clear action verb
-• Maintain consistent bullet point formatting
+• [3-5 most important points, each starting with an action verb]
 
 EXECUTIVE SUMMARY:
-[Two paragraphs that:
-- Synthesize the main ideas into a coherent narrative
-- Explain the significance of the core concept
-- Highlight the most significant implications
-- Use clear, professional language]"""
-
-# Streamline Response Handling
+[Two paragraphs synthesizing the main findings and their significance]'''
 
 def handle_response(response):
     """Handle model response and extract text."""
@@ -186,132 +122,117 @@ def handle_response(response):
         return response.parts[0].text.strip()
     return response.text.strip()
 
-def parse_structured_text(raw_response):
-    """
-    Parses the structured text response into sections.
-    
-    Args:
-        raw_response: The raw text response from the model.
-        
-    Returns:
-        A dictionary containing the parsed sections, or None if parsing fails.
-    """
+def generate_analysis(topic):
+    """Generate initial analysis framework using Agent 1."""
     try:
-        sections = {}
-        current_section = None
-        current_points = []
+        prompt_response = model.generate_content(
+            agent1_prompt.format(topic=topic),
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.7,  # Increased for more creative strategy
+                top_p=0.8,
+                top_k=40,
+                max_output_tokens=2048
+            )
+        )
         
-        for line in raw_response.split('\n'):
-            line = line.strip()
-            if not line:
-                continue
-                
-            # Check if line is a section header
-            if line.endswith(':'):
-                if current_section and current_points:
-                    sections[current_section] = current_points
-                current_section = line[:-1]  # Remove the colon
-                current_points = []
-            # Check if line is a bullet point
-            elif line.startswith('- '):
-                current_points.append(line[2:])  # Remove the "- " prefix
-                
-        # Add the last section
-        if current_section and current_points:
-            sections[current_section] = current_points
-            
-        logging.info("Successfully parsed structured text")
-        return sections
+        analysis = handle_response(prompt_response)
+        logging.info("Initial analysis framework generated successfully")
+        return analysis
         
     except Exception as e:
-        logging.error(f"Failed to parse structured text: {str(e)}")
+        logging.error(f"Failed to generate initial analysis: {str(e)}")
         return None
 
-def generate_analysis(topic):
-    """Generate structured analysis using Agent 1."""
-    max_retries = 3
-    retry_count = 0
-    analysis = None
-    raw_response = None
-
-    while retry_count < max_retries and analysis is None:
-        try:
-            # Add safety rails to generation parameters
-            prompt_response = model.generate_content(
-                agent1_prompt.format(topic=topic),
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.0,
-                    top_p=0.1,
-                    top_k=1,
-                    max_output_tokens=2048,
-                    candidate_count=1,
-                    stop_sequences=["\n\n\n"]
-                )
+def refine_analysis(topic, previous_analysis, current_aspect, iteration):
+    """Refine analysis using Agent 2."""
+    try:
+        prompt_response = model.generate_content(
+            agent2_prompt.format(
+                previous_analysis=previous_analysis,
+                current_aspect=current_aspect
+            ),
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.5,
+                top_p=0.7,
+                top_k=20,
+                max_output_tokens=2048
             )
-
-            raw_response = handle_response(prompt_response)
-            
-            # Log the raw response for debugging
-            logging.debug(f"Raw response:\n{raw_response}")
-            
-            analysis = parse_structured_text(raw_response)
-            
-            if analysis is None:
-                raise ValueError("Failed to parse structured text response")
-
-            # Log the parsed sections for debugging
-            logging.debug(f"Parsed sections: {list(analysis.keys())}")
-
-            # Validate sections
-            required_sections = [
-                "Direct Answer",
-                "Key Components or Elements",
-                "Impact or Influence",
-                "Future Implications or Developments"
-            ]
-            
-            for section in required_sections:
-                if section not in analysis:
-                    logging.debug(f"Missing section: {section}")
-                    logging.debug(f"Available sections: {list(analysis.keys())}")
-                    raise ValueError(f"Missing required section: {section}")
-                if not analysis[section]:
-                    raise ValueError(f"No points found in section: {section}")
-
-            logging.info("Analysis generated successfully")
-            return analysis
-
-        except Exception as e:
-            retry_count += 1
-            logging.warning(f"Retry {retry_count}/{max_retries}: {str(e)}")
-            if raw_response:
-                logging.debug(f"Failed response:\n{raw_response}")
-            time.sleep(1)
-
-    logging.error("Failed to generate valid analysis after retries")
-    return None
+        )
+        
+        refined_analysis = handle_response(prompt_response)
+        logging.info(f"Analysis refinement iteration {iteration} completed")
+        return refined_analysis
+        
+    except Exception as e:
+        logging.error(f"Failed to refine analysis: {str(e)}")
+        return None
 
 # Main Execution
 if st.button("Start Analysis"):
     if topic:
         with st.spinner("Generating analysis..."):
-            analysis = generate_analysis(topic)
+            # Agent 1: Generate initial framework
+            initial_analysis = generate_analysis(topic)
             
-            if analysis is None:
-                st.error("Failed to generate analysis. Please try again.")
+            if initial_analysis is None:
+                st.error("Failed to generate initial analysis. Please try again.")
                 st.stop()
             
-            # Display the analysis
-            st.success("Analysis complete!")
+            st.markdown("### Initial Analysis Framework")
+            st.markdown(initial_analysis)
+            st.markdown("---")
             
-            for section, points in analysis.items():
-                st.markdown(f"### {section}")
-                for point in points:
-                    st.markdown(f"- {point}")
-                st.markdown("")  # Add spacing between sections
-
-            # Continue with Agent 2, 3, and 4 logic...
-            # (Update these to work with the new structured format)
-
+            # Agent 2: Refine analysis through iterations
+            current_analysis = initial_analysis
+            for i in range(loops):
+                refined = refine_analysis(topic, current_analysis, f"Iteration {i+1}", i+1)
+                if refined:
+                    current_analysis = refined
+                    st.markdown(f"### Refinement Iteration {i+1}")
+                    st.markdown(refined)
+                    st.markdown("---")
+            
+            # Agent 3: Generate expert analysis
+            try:
+                expert_response = model.generate_content(
+                    agent3_prompt.format(
+                        topic=topic,
+                        system_prompt=initial_analysis,
+                        all_aspect_analyses=current_analysis
+                    ),
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.3,
+                        top_p=0.7,
+                        top_k=20,
+                        max_output_tokens=2048
+                    )
+                )
+                
+                expert_analysis = handle_response(expert_response)
+                st.markdown("### Expert Analysis")
+                st.markdown(expert_analysis)
+                st.markdown("---")
+                
+                # Agent 4: Generate concise overview
+                overview_response = model.generate_content(
+                    agent4_prompt.format(
+                        topic=topic,
+                        expert_text=expert_analysis
+                    ),
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.2,
+                        top_p=0.7,
+                        top_k=20,
+                        max_output_tokens=2048
+                    )
+                )
+                
+                overview = handle_response(overview_response)
+                st.markdown("### Summary")
+                st.markdown(overview)
+                
+            except Exception as e:
+                st.error(f"Error in final analysis generation: {str(e)}")
+                
     else:
         st.warning("Please enter a topic to analyze.")
