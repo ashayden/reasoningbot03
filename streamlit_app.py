@@ -70,11 +70,17 @@ PREVIOUS INSIGHTS:
 
 Structure your analysis as follows:
 
-### __[DESCRIPTIVE TITLE THAT NATURALLY CAPTURES THE FOCUS AREA]__
+# [MAIN TITLE]
+*[Descriptive subtitle that provides context]*
 
-1. [Descriptive Heading]: Detailed explanation with supporting evidence
-2. [Descriptive Heading]: Detailed explanation with supporting evidence
-3. [Descriptive Heading]: Detailed explanation with supporting evidence
+1. [Descriptive Heading]
+   Detailed explanation with supporting evidence
+
+2. [Descriptive Heading]
+   Detailed explanation with supporting evidence
+
+3. [Descriptive Heading]
+   Detailed explanation with supporting evidence
 
 Each point should:
 - Build upon the previous analysis
