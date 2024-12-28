@@ -56,7 +56,7 @@ USER'S TOPIC/QUESTION: {topic}
 
     *   Present this as a clear investigation framework that will guide further research and analysis.
 
-Format your response as follows:
+Format your response with appropriate spacing between sections:
 
 Refined Prompt
 [Your refined prompt here]
@@ -69,7 +69,18 @@ Core Question/Hypothesis
 [Your hypothesis here]
 
 Key Areas Requiring Investigation
-[Your key areas here]'''
+[List each key area with a number, followed by its sub-points with bullet points. Add a blank line between each numbered item.]
+
+Example format:
+1. First Key Area:
+    ○ Sub-point one
+    ○ Sub-point two
+    ○ Sub-point three
+
+2. Second Key Area:
+    ○ Sub-point one
+    ○ Sub-point two
+    ○ Sub-point three'''
 
 agent2_prompt = '''Using the refined prompt and the established framework, continue researching and analyzing:
 
