@@ -26,38 +26,26 @@ st.write("This bot uses multiple AI agents to analyze topics in depth with sophi
 topic = st.text_input("What topic should we explore?")
 loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=3, value=2)
 
-# Agent Prompts (defined outside the button click for efficiency)
-agent1_prompt = """Return ONLY a JSON object analyzing this topic. Do not include any other text or explanation:
+# Agent Prompts
+agent1_prompt = """Create a JSON object with this exact structure (replace example values with relevant content for: {topic}):
 
-Topic: {topic}
-
-Required JSON structure:
 {{
-    "direct_answer": "A clear, concise answer about {topic}",
+    "direct_answer": "Example answer about the topic",
     "aspects": {{
-        "Question 1?": [
-            "Required data point 1",
-            "Required data point 2"
+        "First key question?": [
+            "Data point 1",
+            "Data point 2"
         ],
-        "Question 2?": [
-            "Required data point 1",
-            "Required data point 2"
+        "Second key question?": [
+            "Data point 1",
+            "Data point 2"
         ],
-        "Question 3?": [
-            "Required data point 1",
-            "Required data point 2"
+        "Third key question?": [
+            "Data point 1",
+            "Data point 2"
         ]
-    }
-}
-
-Using this exact format, create a JSON response for: {topic}
-
-Rules:
-1. Output MUST be valid JSON
-2. Include exactly 3 questions as aspects
-3. Each aspect must have exactly 2 data points
-4. Use proper JSON formatting with double quotes
-5. No comments or text outside the JSON structure"""
+    }}
+}}"""
 
 agent2_prompt = """As an Analysis Refiner, your task is to provide detailed information and analysis for one specific aspect in the following framework.
 
