@@ -117,15 +117,18 @@ if st.button("Start Analysis"):
                 else:
                     system_prompt_json = prompt_response.text.strip()
 
-                # --- Robust JSON Handling ---
-                try:
-                    # 1. Remove leading/trailing whitespace and newlines
-                    system_prompt_json = system_prompt_json.strip()
+                # --- Brute-Force Newline Removal ---
+                system_prompt_json = system_prompt_json.replace('\n', '')  # Remove ALL newlines
+                system_prompt_json = system_prompt_json.replace('\\n', '') # Remove escaped newlines
+                system_prompt_json = system_prompt_json.replace(' ', '') # Added to make the format readable for json.loads
 
-                    # 2. Attempt to parse the JSON
+                # --- End of Brute-Force Newline Removal ---
+
+                # Attempt to parse the JSON
+                try:
                     system_prompt = json.loads(system_prompt_json)
 
-                    # 3. Normalize keys (remove leading/trailing whitespace and newlines)
+                    # Normalize keys (if needed, but should be less necessary now)
                     system_prompt = {k.strip(): v for k, v in system_prompt.items()}
                     if "aspects" in system_prompt:
                         system_prompt["aspects"] = {k.strip(): v for k, v in system_prompt["aspects"].items()}
@@ -135,7 +138,6 @@ if st.button("Start Analysis"):
                     st.write("Raw Model Response (may be malformed):")
                     st.code(system_prompt_json)
                     st.stop()
-                # --- End of Robust JSON Handling ---
 
                 # Validate JSON structure
                 if not isinstance(system_prompt, dict) or "direct_answer" not in system_prompt or "aspects" not in system_prompt or not isinstance(system_prompt["aspects"], dict) or len(system_prompt["aspects"]) != 3:
