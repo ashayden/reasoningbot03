@@ -32,35 +32,29 @@ topic = st.text_input("What topic should we explore?")
 loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=3, value=2)
 
 # Agent Prompts
-agent1_prompt = """You are a JSON generator. Your task is to output a JSON object analyzing: {topic}
+agent1_prompt = """You are an expert analyst. Provide a structured analysis of the topic: {topic}
 
-STRICTLY adhere to the following JSON structure:
+Format your response with clear headings and bullet points as follows:
 
-{
-    "direct_answer": "A clear yes/no/uncertain answer followed by one sentence explanation",
-    "aspects": {
-        "What are the key components or elements of {topic}?": [
-            "First key component with brief explanation",
-            "Second key component with brief explanation"
-        ],
-        "How does {topic} impact or influence its domain?": [
-            "First major impact or influence",
-            "Second major impact or influence"
-        ],
-        "What are the future implications or developments of {topic}?": [
-            "First future implication or trend",
-            "Second future implication or trend"
-        ]
-    }
-}
+Direct Answer:
+- A clear yes/no/uncertain answer followed by one sentence explanation
+
+Key Components or Elements:
+- First key component with brief explanation
+- Second key component with brief explanation
+
+Impact or Influence:
+- First major impact or influence
+- Second major impact or influence
+
+Future Implications or Developments:
+- First future implication or trend
+- Second future implication or trend
 
 IMPORTANT:
-- Output ONLY the JSON above
-- Begin with { and end with }
-- Use " for all strings
-- No comments, explanations, or additional text
-- No markdown formatting
-- Ensure the JSON is valid and complete"""
+- Use clear and concise language
+- No additional commentary or explanations outside the specified format
+- Ensure the response is complete and directly addresses the topic"""
 
 agent2_prompt = """As an Analysis Refiner, provide a detailed analysis of the following:
 
@@ -207,35 +201,29 @@ def clean_and_extract_json(raw_response):
         return None
 
 # Simplify Agent 1 Prompt
-agent1_prompt = """You are a JSON generator. Your task is to output a JSON object analyzing: {topic}
+agent1_prompt = """You are an expert analyst. Provide a structured analysis of the topic: {topic}
 
-STRICTLY adhere to the following JSON structure:
+Format your response with clear headings and bullet points as follows:
 
-{
-    "direct_answer": "A clear yes/no/uncertain answer followed by one sentence explanation",
-    "aspects": {
-        "What are the key components or elements of {topic}?": [
-            "First key component with brief explanation",
-            "Second key component with brief explanation"
-        ],
-        "How does {topic} impact or influence its domain?": [
-            "First major impact or influence",
-            "Second major impact or influence"
-        ],
-        "What are the future implications or developments of {topic}?": [
-            "First future implication or trend",
-            "Second future implication or trend"
-        ]
-    }
-}
+Direct Answer:
+- A clear yes/no/uncertain answer followed by one sentence explanation
+
+Key Components or Elements:
+- First key component with brief explanation
+- Second key component with brief explanation
+
+Impact or Influence:
+- First major impact or influence
+- Second major impact or influence
+
+Future Implications or Developments:
+- First future implication or trend
+- Second future implication or trend
 
 IMPORTANT:
-- Output ONLY the JSON above
-- Begin with { and end with }
-- Use " for all strings
-- No comments, explanations, or additional text
-- No markdown formatting
-- Ensure the JSON is valid and complete"""
+- Use clear and concise language
+- No additional commentary or explanations outside the specified format
+- Ensure the response is complete and directly addresses the topic"""
 
 # Streamline Response Handling
 
