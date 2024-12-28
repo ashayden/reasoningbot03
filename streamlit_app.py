@@ -72,9 +72,9 @@ Structure your analysis as follows:
 
 [DESCRIPTIVE TITLE THAT NATURALLY CAPTURES THE FOCUS AREA]
 
-• Key Point 1: Detailed explanation with supporting evidence
-• Key Point 2: Detailed explanation with supporting evidence
-• Key Point 3: Detailed explanation with supporting evidence
+1. [Descriptive Heading]: Detailed explanation with supporting evidence
+2. [Descriptive Heading]: Detailed explanation with supporting evidence
+3. [Descriptive Heading]: Detailed explanation with supporting evidence
 
 Each point should:
 - Build upon the previous analysis
@@ -121,7 +121,7 @@ EXPERT ANALYSIS:
 Structure your response in TWO parts:
 
 KEY TAKEAWAYS:
-• [Action Verb] + [Specific Detail] + [Impact/Significance]
+• [Action] + [Specific Detail] + [Impact/Significance]
 • Include 5-7 bullet points
 • Focus on concrete facts, numbers, and examples
 • Start each point with a clear action verb
