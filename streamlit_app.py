@@ -1,7 +1,5 @@
 import streamlit as st
 import google.generativeai as genai
-import json
-import re
 import time
 import logging
 
@@ -156,75 +154,6 @@ EXECUTIVE SUMMARY:
 - Highlight the most significant implications
 - Use clear, professional language]"""
 
-# Enhanced JSON Parsing and Validation
-
-def clean_and_extract_json(raw_response):
-    """
-    Cleans and extracts a JSON object from a raw string response.
-
-    Args:
-        raw_response: The raw string response from the model.
-
-    Returns:
-        A dictionary representing the parsed JSON object, or None if parsing fails.
-    """
-    logging.info("Starting JSON extraction")
-
-    # 1. Find the start and end of the JSON object
-    json_start = raw_response.find('{')
-    json_end = raw_response.rfind('}') + 1
-
-    if json_start == -1 or json_end == 0:
-        logging.error("No JSON object found")
-        return None
-
-    json_string = raw_response[json_start:json_end]
-
-    # 2. Remove all newlines and extra whitespace
-    json_string = json_string.replace('\n', '').replace('\\n', '')
-    json_string = re.sub(r'\s+', ' ', json_string)
-
-    # 3. Remove any trailing commas before closing braces/brackets
-    json_string = re.sub(r',\s*}', '}', json_string)
-    json_string = re.sub(r',\s*]', ']', json_string)
-
-    # 4. Escape unescaped double quotes inside strings
-    json_string = re.sub(r'(?<!\\)"(?=[^":]*":)', '\\"', json_string)
-
-    # 5. Attempt to parse the cleaned JSON string
-    try:
-        parsed_json = json.loads(json_string)
-        logging.info("JSON parsed successfully")
-        return parsed_json
-    except json.JSONDecodeError as e:
-        logging.error(f"JSON parsing failed: {str(e)}")
-        return None
-
-# Simplify Agent 1 Prompt
-agent1_prompt = """You are an expert analyst. Provide a structured analysis of the topic: {topic}
-
-Format your response with clear headings and bullet points as follows:
-
-Direct Answer:
-- A clear yes/no/uncertain answer followed by one sentence explanation
-
-Key Components or Elements:
-- First key component with brief explanation
-- Second key component with brief explanation
-
-Impact or Influence:
-- First major impact or influence
-- Second major impact or influence
-
-Future Implications or Developments:
-- First future implication or trend
-- Second future implication or trend
-
-IMPORTANT:
-- Use clear and concise language
-- No additional commentary or explanations outside the specified format
-- Ensure the response is complete and directly addresses the topic"""
-
 # Streamline Response Handling
 
 def handle_response(response):
@@ -233,19 +162,55 @@ def handle_response(response):
         return response.parts[0].text.strip()
     return response.text.strip()
 
-# Add UI Feedback
-st.spinner("Processing...")
+def parse_structured_text(raw_response):
+    """
+    Parses the structured text response into sections.
+    
+    Args:
+        raw_response: The raw text response from the model.
+        
+    Returns:
+        A dictionary containing the parsed sections, or None if parsing fails.
+    """
+    try:
+        sections = {}
+        current_section = None
+        current_points = []
+        
+        for line in raw_response.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Check if line is a section header
+            if line.endswith(':'):
+                if current_section and current_points:
+                    sections[current_section] = current_points
+                current_section = line[:-1]  # Remove the colon
+                current_points = []
+            # Check if line is a bullet point
+            elif line.startswith('- '):
+                current_points.append(line[2:])  # Remove the "- " prefix
+                
+        # Add the last section
+        if current_section and current_points:
+            sections[current_section] = current_points
+            
+        logging.info("Successfully parsed structured text")
+        return sections
+        
+    except Exception as e:
+        logging.error(f"Failed to parse structured text: {str(e)}")
+        return None
 
-# Refactor Code Structure
-
-def generate_framework(topic):
-    """Generate analysis framework using Agent 1."""
+def generate_analysis(topic):
+    """Generate structured analysis using Agent 1."""
     max_retries = 3
     retry_count = 0
-    framework = None
+    analysis = None
     raw_response = None
 
-    while retry_count < max_retries and framework is None:
+    while retry_count < max_retries and analysis is None:
         try:
             prompt_response = model.generate_content(
                 agent1_prompt.format(topic=topic),
@@ -253,57 +218,64 @@ def generate_framework(topic):
                     temperature=0.0,
                     top_p=0.1,
                     top_k=1,
-                    max_output_tokens=2048,
-                    stop_sequences=["\n\n", "```"]
+                    max_output_tokens=2048
                 )
             )
 
             raw_response = handle_response(prompt_response)
-            framework = clean_and_extract_json(raw_response)
+            analysis = parse_structured_text(raw_response)
 
-            if framework is None:
-                raise ValueError("Failed to clean and extract JSON")
+            if analysis is None:
+                raise ValueError("Failed to parse structured text response")
 
-            # Validate structure
-            if not isinstance(framework, dict):
-                raise ValueError("Response is not a dictionary")
-            if "direct_answer" not in framework:
-                raise ValueError("Missing 'direct_answer' field")
-            if "aspects" not in framework:
-                raise ValueError("Missing 'aspects' field")
-            if not isinstance(framework["aspects"], dict):
-                raise ValueError("'aspects' is not a dictionary")
-            if len(framework["aspects"]) != 3:
-                raise ValueError("Wrong number of aspects")
+            # Validate sections
+            required_sections = [
+                "Direct Answer",
+                "Key Components or Elements",
+                "Impact or Influence",
+                "Future Implications or Developments"
+            ]
+            
+            for section in required_sections:
+                if section not in analysis:
+                    raise ValueError(f"Missing required section: {section}")
+                if not analysis[section]:
+                    raise ValueError(f"No points found in section: {section}")
 
-            # Validate each aspect
-            for aspect, data_points in framework["aspects"].items():
-                if not isinstance(data_points, list):
-                    raise ValueError(f"Data points for '{aspect}' is not a list")
-                if len(data_points) != 2:
-                    raise ValueError(f"Wrong number of data points for '{aspect}'")
-
-            logging.info("Framework generated successfully")
-            return framework
+            logging.info("Analysis generated successfully")
+            return analysis
 
         except Exception as e:
             retry_count += 1
             logging.warning(f"Retry {retry_count}/{max_retries}: {str(e)}")
+            if raw_response:
+                logging.debug(f"Raw response: {raw_response}")
             time.sleep(1)
 
-    logging.error("Failed to generate valid framework after retries")
+    logging.error("Failed to generate valid analysis after retries")
     return None
 
 # Main Execution
 if st.button("Start Analysis"):
     if topic:
-        framework = generate_framework(topic)
-        if framework is None:
-            st.error("Failed to generate a valid framework. Analysis cannot continue.")
-            st.stop()
+        with st.spinner("Generating analysis..."):
+            analysis = generate_analysis(topic)
+            
+            if analysis is None:
+                st.error("Failed to generate analysis. Please try again.")
+                st.stop()
+            
+            # Display the analysis
+            st.success("Analysis complete!")
+            
+            for section, points in analysis.items():
+                st.markdown(f"### {section}")
+                for point in points:
+                    st.markdown(f"- {point}")
+                st.markdown("")  # Add spacing between sections
 
-        # Continue with Agent 2, 3, and 4 logic...
-        # (Refactor similar to Agent 1)
+            # Continue with Agent 2, 3, and 4 logic...
+            # (Update these to work with the new structured format)
 
     else:
         st.warning("Please enter a topic to analyze.")
