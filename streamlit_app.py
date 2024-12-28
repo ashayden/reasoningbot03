@@ -73,14 +73,17 @@ PREVIOUS ANALYSIS:
 CURRENT FOCUS:
 {current_aspect}
 
-Build upon the existing analysis by:
+Begin your response with a descriptive title that summarizes the focus area and its relation to the main topic.
+For example: "Economic Factors: Impact on Regional Development Trends"
+
+Then present your findings by:
 1. Gathering relevant data and evidence
 2. Analyzing new findings
 3. Identifying connections and patterns
 4. Updating conclusions based on new information
 5. Noting any emerging implications
 
-Present your findings in a clear, structured format starting with a brief introduction of the focus area.'''
+Structure your response with the descriptive title on the first line, followed by your analysis.'''
 
 agent3_prompt = '''Based on the completed analysis of the topic:
 
@@ -246,13 +249,17 @@ if st.button("Start Analysis"):
                     if aspects:
                         current_aspect = random.choice(aspects)
                     else:
-                        current_aspect = "Analysis of Current State and Trends"
+                        current_aspect = "Current State and Trends"
 
                     research = conduct_research(refined_prompt, framework, current_analysis, current_aspect, i + 1)
                     if research:
                         current_analysis += "\n\n" + research  # Append to the ongoing analysis
-                        st.markdown(f"### Research Phase {i + 1}: {current_aspect}")
-                        st.markdown(research)
+                        # Extract the first line of research as the descriptive title
+                        research_lines = research.split('\n')
+                        title = next((line for line in research_lines if line.strip()), current_aspect)
+                        st.markdown(f"### {title}")
+                        # Display the rest of the research content
+                        st.markdown('\n'.join(research_lines[1:]))
                         st.markdown("---")
                     else:
                         st.error(
