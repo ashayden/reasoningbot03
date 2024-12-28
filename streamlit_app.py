@@ -230,12 +230,12 @@ if st.button("Start Analysis"):
                     if aspects:
                         current_aspect = random.choice(aspects)
                     else:
-                        current_aspect = f"General Research Phase {i+1}"
+                        current_aspect = "Analysis of Current State and Trends"
 
                     research = conduct_research(refined_prompt, framework, current_analysis, current_aspect, i + 1)
                     if research:
                         current_analysis += "\n\n" + research  # Append to the ongoing analysis
-                        st.markdown(f"### Research Phase {i + 1} (Focus: {current_aspect})")
+                        st.markdown(f"### Research Phase {i + 1}: {current_aspect}")
                         st.markdown(research)
                         st.markdown("---")
                     else:
