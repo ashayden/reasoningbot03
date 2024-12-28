@@ -69,18 +69,29 @@ Core Question/Hypothesis
 [Your hypothesis here]
 
 Key Areas Requiring Investigation
-[List each key area with a number, followed by its sub-points with bullet points. Add a blank line between each numbered item.]
+[Format each key area as follows:]
 
-Example format:
-1. First Key Area:
-    ○ Sub-point one
-    ○ Sub-point two
-    ○ Sub-point three
+1. [Area Name]:
+   ○ [First sub-point]
+   ○ [Second sub-point]
+   ○ [Third sub-point]
+   ○ [Fourth sub-point]
 
-2. Second Key Area:
-    ○ Sub-point one
-    ○ Sub-point two
-    ○ Sub-point three'''
+[Add blank line between numbered items]
+
+2. [Area Name]:
+   ○ [First sub-point]
+   ○ [Second sub-point]
+   ○ [Third sub-point]
+   ○ [Fourth sub-point]
+
+Note: 
+- Each numbered item should be followed by a colon
+- Sub-points should be indented using 3 spaces
+- Use circular bullet points (○)
+- Each sub-point should be on its own line
+- Add a blank line between numbered items
+- Keep sub-points aligned vertically'''
 
 agent2_prompt = '''Using the refined prompt and the established framework, continue researching and analyzing:
 
