@@ -232,21 +232,10 @@ if st.button("Start Analysis"):
             for aspect, data_points in system_prompt["aspects"].items():
                 previous_analysis = ""
                 with st.expander(f"🔄 Analysis", expanded=True):
-                    # Generate a natural headline based on the aspect
-                    if "key components" in aspect.lower():
-                        headline = "Key Components of New Orleans' Sea Level Rise Vulnerability"
-                        subheading = "*A Comprehensive Assessment of Climate Vulnerabilities*"
-                    elif "impact" in aspect.lower():
-                        headline = "The Sinking City: New Orleans' Future and the Impacts of Climate Change"
-                        subheading = "*Analyzing the Cascading Effects of Rising Waters*"
-                    elif "future" in aspect.lower():
-                        headline = "Future Outlook: Projecting New Orleans' Climate Resilience"
-                        subheading = "*Forecasting Adaptation and Mitigation Strategies*"
-                    else:
-                        # Fallback: Create a natural headline from the aspect
-                        headline = aspect.replace("What are", "").replace("How does", "").replace("What is", "").replace("?", "").strip()
-                        headline = headline.title()
-                        subheading = f"*Understanding {headline}*"
+                    # Create a natural headline from the aspect
+                    headline = aspect.replace("What are", "").replace("How does", "").replace("What is", "").replace("?", "").strip()
+                    headline = headline.title()
+                    subheading = f"*Analyzing {topic}'s {headline}*"
                     
                     st.markdown(f"### {headline}")
                     st.markdown(subheading)
@@ -273,17 +262,40 @@ if st.button("Start Analysis"):
                             # Process the context to add HTML styling to headings
                             context_lines = context.split('\n')
                             styled_lines = []
+                            in_list = False
+                            list_content = []
+                            
                             for line in context_lines:
-                                if line.strip().startswith(('1.', '2.', '3.', '4.', '5.')):
-                                    # Extract the heading text
-                                    heading_text = line.split(':', 1)[0] if ':' in line else line
-                                    # Add HTML styling for larger, underlined text
-                                    styled_lines.append(f'<div style="font-size: 1.2em; text-decoration: underline; margin-top: 1em; margin-bottom: 0.5em;">{heading_text}</div>')
-                                    # Add the rest of the line if there was a colon
-                                    if ':' in line:
-                                        styled_lines.append(line.split(':', 1)[1])
-                                else:
+                                # Handle numbered headings
+                                if re.match(r'^\d+\.', line.strip()):
+                                    if in_list:
+                                        # Add previous list content if exists
+                                        if list_content:
+                                            styled_lines.append('<div style="margin-left: 2em; margin-bottom: 1em;">' + '<br>'.join(list_content) + '</div>')
+                                            list_content = []
+                                    
+                                    # Extract and style the heading
+                                    heading_text = line.strip()
+                                    styled_lines.append(f'<div style="font-size: 1.1em; font-weight: bold; margin-top: 1.5em; margin-bottom: 0.5em;">{heading_text}</div>')
+                                    in_list = True
+                                
+                                # Handle list content
+                                elif in_list and line.strip():
+                                    list_content.append(line.strip())
+                                
+                                # Handle non-list content
+                                elif line.strip():
+                                    if in_list:
+                                        # Add previous list content if exists
+                                        if list_content:
+                                            styled_lines.append('<div style="margin-left: 2em; margin-bottom: 1em;">' + '<br>'.join(list_content) + '</div>')
+                                            list_content = []
+                                        in_list = False
                                     styled_lines.append(line)
+                            
+                            # Add any remaining list content
+                            if list_content:
+                                styled_lines.append('<div style="margin-left: 2em; margin-bottom: 1em;">' + '<br>'.join(list_content) + '</div>')
                             
                             styled_context = '\n'.join(styled_lines)
                             st.markdown(styled_context, unsafe_allow_html=True)
@@ -292,19 +304,11 @@ if st.button("Start Analysis"):
 
             # Agent 3: Expert Response Generator
             with st.expander("📊 Expert Analysis", expanded=True):
-                st.markdown("### Comprehensive Climate Impact Assessment")
+                st.markdown("### Comprehensive Analysis")
                 analysis_text = ""
                 for aspect, analysis in full_analysis.items():
-                    # Use the same headline generation logic for consistency
-                    if "key components" in aspect.lower():
-                        section_title = "Vulnerability Assessment"
-                    elif "impact" in aspect.lower():
-                        section_title = "Climate Change Impacts"
-                    elif "future" in aspect.lower():
-                        section_title = "Future Projections"
-                    else:
-                        section_title = aspect.replace("What are", "").replace("How does", "").replace("What is", "").replace("?", "").strip().title()
-                    
+                    # Create a natural section title from the aspect
+                    section_title = aspect.replace("What are", "").replace("How does", "").replace("What is", "").replace("?", "").strip().title()
                     analysis_text += f"\n\n{section_title}:\n{analysis}"
                 
                 response = model.generate_content(
