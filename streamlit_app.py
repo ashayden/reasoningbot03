@@ -105,6 +105,7 @@ if st.button("Start Analysis"):
             st.write("Agent 1: Designing framework...")
 
             system_prompt = None  # Initialize outside the try block
+            system_prompt_json = None # Add this line to fix the error
             try:
                 prompt_response = model.generate_content(
                     agent1_prompt.format(topic=topic),
@@ -141,7 +142,7 @@ if st.button("Start Analysis"):
 
             except Exception as e:
                 st.error(f"Unexpected error during framework design: {e}")
-                if system_prompt_json:
+                if system_prompt_json:  # Now it's safe to check this variable
                     st.write("Raw Model Response:")
                     st.code(system_prompt_json) # Display raw response in a code block
                 st.stop()
