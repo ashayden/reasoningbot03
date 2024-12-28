@@ -56,7 +56,7 @@ USER'S TOPIC/QUESTION: {topic}
 
     *   Present this as a clear investigation framework that will guide further research and analysis.
 
-    *   Start with the **Refined Prompt** followed by the **Investigation Framework**.
+    *   Start with the **Refined Prompt** followed by the **Investigation Framework** separated by "---".
 '''
 
 agent2_prompt = '''Using the refined prompt and the established framework, continue researching and analyzing:
@@ -123,15 +123,20 @@ default_generation_config = genai.types.GenerationConfig(
     max_output_tokens=2048
 )
 
-# Modified configs for other agents:
-agent2_config = default_generation_config.copy()
-agent2_config.temperature = 0.5
-agent2_config.top_p = 0.7
+# Create new GenerationConfig objects for other agents:
+agent2_config = genai.types.GenerationConfig(
+    temperature=0.5,
+    top_p=0.7,
+    top_k=40,  # Add top_k or other parameters as needed
+    max_output_tokens=2048
+)
 
-agent3_config = default_generation_config.copy()
-agent3_config.temperature = 0.3
-agent3_config.top_p = 0.7
-agent3_config.top_k = 20
+agent3_config = genai.types.GenerationConfig(
+    temperature=0.3,
+    top_p=0.7,
+    top_k=20,
+    max_output_tokens=2048
+)
 
 
 def generate_refined_prompt_and_framework(topic):
@@ -147,9 +152,16 @@ def generate_refined_prompt_and_framework(topic):
         # Extract refined prompt and framework from agent 1's response
         if agent1_response:
             parts = agent1_response.split("---")
-            if len(parts) == 2:
+            if len(parts) >= 2:
                 refined_prompt = parts[0].replace("Refined Prompt", "").strip()
-                framework = parts[1].replace("Investigation Framework", "").strip()
+                
+                # Find the start of the Investigation Framework
+                framework_start_index = agent1_response.find("Investigation Framework")
+                if framework_start_index != -1:
+                    framework = agent1_response[framework_start_index + len("Investigation Framework"):].strip()
+                else:
+                    framework = ""
+                    logging.warning("Could not find 'Investigation Framework' in Agent 1's response.")
 
                 logging.info("Refined prompt and investigation framework generated successfully")
                 return refined_prompt, framework
