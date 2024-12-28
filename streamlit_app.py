@@ -27,8 +27,32 @@ topic = st.text_input("What topic should we explore?")
 loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=3, value=2)
 
 # Agent Prompts
-agent1_prompt = r'''Output a valid JSON object in this exact format (replace example values with content about {topic}):
-{{"direct_answer": "A direct answer about the topic", "aspects": {{"First key question?": ["Data point 1", "Data point 2"], "Second key question?": ["Data point 1", "Data point 2"], "Third key question?": ["Data point 1", "Data point 2"]}}}}'''
+agent1_prompt = """You are a JSON generator. Your task is to analyze {topic} and output a JSON object with this structure:
+
+{
+    "direct_answer": "A clear, direct answer about the topic",
+    "aspects": {
+        "First key question?": [
+            "Data point 1",
+            "Data point 2"
+        ],
+        "Second key question?": [
+            "Data point 1",
+            "Data point 2"
+        ],
+        "Third key question?": [
+            "Data point 1",
+            "Data point 2"
+        ]
+    }
+}
+
+IMPORTANT:
+1. Output ONLY the JSON object
+2. Do not include any other text or explanation
+3. Do not modify the structure
+4. Use proper JSON formatting with double quotes
+5. Keep exactly 3 questions and 2 data points per question"""
 
 agent2_prompt = """As an Analysis Refiner, your task is to provide detailed information and analysis for one specific aspect in the following framework.
 
@@ -79,13 +103,24 @@ if st.button("Start Analysis"):
             # Agent 1: Framework Designer
             with st.expander("🎯 Analysis Framework", expanded=True):
                 st.write("Agent 1: Designing framework...")
+                
+                # Configure model with safety settings
+                safety_settings = {
+                    "HARASSMENT": "block_none",
+                    "HATE_SPEECH": "block_none",
+                    "SEXUALLY_EXPLICIT": "block_none",
+                    "DANGEROUS_CONTENT": "block_none"
+                }
+                
                 prompt_response = model.generate_content(
                     agent1_prompt.format(topic=topic),
                     generation_config=genai.types.GenerationConfig(
                         temperature=0.3,
                         candidate_count=1,
-                        stop_sequences=["\n\n"]
-                    )
+                        stop_sequences=["\n\n", "Here", "Let", "Now"],
+                        max_output_tokens=2048
+                    ),
+                    safety_settings=safety_settings
                 )
 
                 if hasattr(prompt_response, 'parts'):
@@ -96,7 +131,7 @@ if st.button("Start Analysis"):
                 # Clean up the response
                 try:
                     # Find JSON pattern
-                    json_pattern = r'\{[^{}]*\}'
+                    json_pattern = r'\{[\s\S]*\}'  # Modified to match multiline
                     json_match = re.search(json_pattern, system_prompt_json)
                     
                     if not json_match:
@@ -105,6 +140,8 @@ if st.button("Start Analysis"):
                         st.stop()
                     
                     system_prompt_json = json_match.group()
+                    # Remove any potential comments or extra text
+                    system_prompt_json = re.sub(r'//.*?\n|/\*.*?\*/', '', system_prompt_json, flags=re.S)
                     system_prompt = json.loads(system_prompt_json)
                     
                     # Validate JSON structure
