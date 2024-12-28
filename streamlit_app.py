@@ -27,13 +27,20 @@ loops = st.slider("How many reasoning iterations?", min_value=1, max_value=5, va
 if st.button("Start Analysis"):
     if topic:
         try:
-            # Agent 1: Creates sophisticated prompt structure
+            # Agent 1: Framework Designer
+            # Creates a structured analysis framework for the topic
             with st.expander("🎯 Analysis Framework", expanded=True):
-                st.write("Formulating analysis framework...")
+                st.write("Agent 1: Designing analysis framework...")
                 prompt_response = model.generate_content(
-                    f"""Create a detailed system prompt for analyzing '{topic}'. 
-                    Include instructions for examining multiple perspectives, potential implications, and interconnected aspects.
-                    Be specific but concise.""",
+                    f"""As a Framework Designer, create a comprehensive system prompt for analyzing '{topic}'.
+                    Your framework should include:
+                    1. Key aspects to examine
+                    2. Different perspectives to consider
+                    3. Potential implications to explore
+                    4. Interconnected elements to analyze
+                    5. Specific questions to address
+                    
+                    Make the framework clear, structured, and actionable for deep analysis.""",
                     generation_config=genai.types.GenerationConfig(
                         temperature=0.3
                     )
@@ -44,17 +51,23 @@ if st.button("Start Analysis"):
                     system_prompt = prompt_response.text
                 st.write(system_prompt)
 
-            # Agent 2: Reasoning agent
+            # Agent 2: Analysis Executor
+            # Executes the framework through multiple iterations
             full_analysis = []
             context = topic
             for i in range(loops):
-                with st.expander(f"🔄 Reasoning Loop {i+1}/{loops}", expanded=True):
-                    st.write(f"Processing iteration {i+1}...")
+                with st.expander(f"🔄 Analysis Iteration {i+1}/{loops}", expanded=True):
+                    st.write(f"Agent 2: Executing iteration {i+1}...")
                     response = model.generate_content(
-                        f"""{system_prompt}
-                        
-                        Previous context: {context}
-                        Analyze this topic as if you were a Nobel Prize winner in the relevant field, drawing upon deep expertise and groundbreaking insights. Use the prompt structure from agent 1 to guide your analysis of the topic.""",
+                        f"""As an Analysis Executor, your task is to apply the following analytical framework to the topic:
+
+                        Framework:
+                        {system_prompt}
+
+                        Previous Analysis Context: {context}
+
+                        Execute this framework rigorously, building upon previous insights while maintaining focus on the framework structure. 
+                        Provide novel insights and deep analysis for each point in the framework.""",
                         generation_config=genai.types.GenerationConfig(
                             temperature=1.0
                         )
@@ -66,13 +79,26 @@ if st.button("Start Analysis"):
                     full_analysis.append(context)
                     st.write(context)
 
-            # Agent 3: Summarization agent
-            with st.expander("📊 Final Summary", expanded=True):
-                st.write("Generating final summary...")
+            # Agent 3: Synthesis Expert
+            # Synthesizes insights from all iterations
+            with st.expander("📊 Final Synthesis", expanded=True):
+                st.write("Agent 3: Synthesizing findings...")
                 summary = model.generate_content(
-                    f"""Synthesize the findings from Agent 2 into a clear, comprehensive summary in simple language bulleting key points and crafting a concise summary paragraph. Finally, suggest 3 follow-up questions, 1 that digs deeper into a key aspect of the topic, 1 that explores a related topic, and 1 that investigates unexpected connections to the topic:
+                    f"""As a Synthesis Expert, analyze and synthesize the findings from {loops} iterations of analysis on '{topic}'.
 
-                    {' '.join(full_analysis)}""",
+                    Analysis Iterations:
+                    {' '.join(full_analysis)}
+
+                    Provide:
+                    1. Key Insights: Bullet point the most significant findings
+                    2. Synthesis: Write a concise paragraph that weaves together the main themes
+                    3. Evolution of Understanding: How did the analysis deepen or change across iterations
+                    4. Follow-up Questions:
+                       - One question that delves deeper into the most intriguing aspect
+                       - One question that explores a related but unexplored area
+                       - One question that examines unexpected connections discovered
+
+                    Focus on extracting unique insights and patterns that emerged across iterations.""",
                     generation_config=genai.types.GenerationConfig(
                         temperature=0.1
                     )
