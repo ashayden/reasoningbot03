@@ -142,4 +142,77 @@ if st.button("Start Analysis"):
                     st.json(system_prompt)
 
                 except json.JSONDecodeError as e:
-                    st.error(f"Invalid JSON syntax: {e}\
+                    st.error(f"Invalid JSON syntax: {e}")
+                    st.write("Raw response:", system_prompt_json)
+                    st.stop()
+                except Exception as e:
+                    st.error(f"Error processing response: {str(e)}")
+                    st.write("Raw response:", system_prompt_json)
+                    st.stop()
+
+            # Agent 2: Analysis Refiner
+            full_analysis = {}
+            for aspect, data_points in system_prompt["aspects"].items():
+                previous_analysis = ""
+                with st.expander(f"🔄 Refining Aspect: {aspect}", expanded=True):
+                    st.write(f"Agent 2: Refining analysis of '{aspect}'...")
+                    for i in range(loops):
+                        st.write(f"Iteration {i+1}/{loops}")
+                        response = model.generate_content(
+                            agent2_prompt.format(
+                                topic=topic,
+                                system_prompt=system_prompt,
+                                current_aspect=aspect,
+                                previous_analysis=previous_analysis
+                            ),
+                            generation_config=genai.types.GenerationConfig(temperature=0.7)
+                        )
+                        if hasattr(response, 'parts'):
+                            context = response.parts[0].text
+                        else:
+                            context = response.text
+                        previous_analysis = context
+                        st.write(context)
+                full_analysis[aspect] = previous_analysis
+
+            # Agent 3: Expert Response Generator
+            with st.expander("📊 Expert Response", expanded=True):
+                st.write("Agent 3: Generating expert response...")
+                analysis_text = ""
+                for aspect, analysis in full_analysis.items():
+                    analysis_text += f"\n\nAnalysis for {aspect}:\n{analysis}"
+                response = model.generate_content(
+                    agent3_prompt.format(
+                        topic=topic,
+                        system_prompt=system_prompt,
+                        all_aspect_analyses=analysis_text
+                    ),
+                    generation_config=genai.types.GenerationConfig(temperature=0.7)
+                )
+                if hasattr(response, 'parts'):
+                    expert_text = response.parts[0].text
+                else:
+                    expert_text = response.text
+                st.write(expert_text)
+
+            # Agent 4: Concise Overview Generator
+            with st.expander("💡 Simple Explanation", expanded=True):
+                st.write("Agent 4: Providing simplified overview...")
+                response = model.generate_content(
+                    agent4_prompt.format(topic=topic, expert_text=expert_text),
+                    generation_config=genai.types.GenerationConfig(temperature=0.3)
+                )
+                if hasattr(response, 'parts'):
+                    overview_text = response.parts[0].text
+                else:
+                    overview_text = response.text
+                st.write(overview_text)
+
+        except Exception as e:
+            st.error(f"⚠️ Error during analysis: {str(e)}")
+            st.write("Debug info:")
+            st.write(f"API Key status: {'Present' if api_key else 'Missing'}")
+            st.write(f"Topic: {topic}")
+            st.write(f"Iterations: {loops}")
+    else:
+        st.warning("Please enter a topic to analyze.")
