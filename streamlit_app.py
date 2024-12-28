@@ -104,10 +104,39 @@ if st.button("Start Analysis"):
                     )
                 )
                 if hasattr(summary, 'parts'):
-                    summary_text = summary.parts[0].text
+                    synthesis_text = summary.parts[0].text
                 else:
-                    summary_text = summary.text
-                st.write(summary_text)
+                    synthesis_text = summary.text
+                st.write(synthesis_text)
+
+            # Agent 4: Response Architect
+            # Creates a focused response to the original topic using the synthesis
+            with st.expander("💡 Final Response", expanded=True):
+                st.write("Agent 4: Crafting final response...")
+                final_response = model.generate_content(
+                    f"""As a Response Architect, your task is to provide a clear, authoritative answer about '{topic}' using the comprehensive analysis provided.
+
+                    Synthesis of Analysis:
+                    {synthesis_text}
+
+                    Create a response that:
+                    1. Directly addresses the topic with newfound expertise
+                    2. Integrates the key insights discovered
+                    3. Acknowledges the complexity revealed through analysis
+                    4. Provides practical implications or applications
+                    5. Suggests how this understanding could evolve in the future
+
+                    Write as if you are a world-leading expert explaining this topic to an interested learner. Be clear, engaging, and insightful.""",
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.7
+                    )
+                )
+                if hasattr(final_response, 'parts'):
+                    response_text = final_response.parts[0].text
+                else:
+                    response_text = final_response.text
+                st.write(response_text)
+
         except Exception as e:
             st.error(f"⚠️ Error during analysis: {str(e)}")
             st.write("Debug info:")
