@@ -93,8 +93,8 @@ Expert Response:
 {expert_text}
 
 Your summary should:
-1. Capture the main points of the expert response.
-2. Use clear and simple language.
+1. Capture the main points of the expert response
+2. Use clear and simple language
 3. Be concise."""
 
 if st.button("Start Analysis"):
@@ -115,7 +115,7 @@ if st.button("Start Analysis"):
                     system_prompt_json = prompt_response.text.strip()
 
                 try:
-                    # Improved JSON extraction using regex (handles multiline and extra text)
+                    # Improved JSON extraction and key normalization
                     match = re.search(r"\{.*\}", system_prompt_json, re.DOTALL)
                     if match:
                         system_prompt_json = match.group(0)
@@ -125,81 +125,21 @@ if st.button("Start Analysis"):
 
                     system_prompt = json.loads(system_prompt_json)
 
-                    # Validate JSON structure
-                    if not isinstance(system_prompt, dict):
-                        st.error("Invalid JSON: Root must be an object")
-                        st.stop()
-                    if "direct_answer" not in system_prompt or "aspects" not in system_prompt:
-                        st.error("Invalid JSON: Missing required fields 'direct_answer' or 'aspects'")
-                        st.stop()
-                    if not isinstance(system_prompt["aspects"], dict):
-                        st.error("Invalid JSON: 'aspects' must be an object")
-                        st.stop()
-                    if len(system_prompt["aspects"]) != 3: # Enforce 3 aspects
-                        st.error("Invalid JSON: Must have exactly 3 aspects")
+                    # Normalize keys (Crucial fix for whitespace issues)
+                    system_prompt = {k.strip(): v for k, v in system_prompt.items()}
+                    if "aspects" in system_prompt:
+                        system_prompt["aspects"] = {k.strip(): v for k, v in system_prompt["aspects"].items()}
+
+                    # Validate JSON structure (more robust validation)
+                    if not isinstance(system_prompt, dict) or "direct_answer" not in system_prompt or "aspects" not in system_prompt or not isinstance(system_prompt["aspects"], dict) or len(system_prompt["aspects"]) != 3:
+                        st.error(f"Invalid JSON structure after normalization: {system_prompt}")
                         st.stop()
                     for aspect, data_points in system_prompt["aspects"].items():
-                        if not isinstance(data_points, list) or len(data_points) != 2: # Enforce 2 datapoints
+                        if not isinstance(data_points, list) or len(data_points) != 2:
                             st.error(f"Invalid JSON: Each aspect must have exactly 2 data points. Error in: {aspect}")
                             st.stop()
 
                     st.json(system_prompt)
 
                 except json.JSONDecodeError as e:
-                    st.error(f"Invalid JSON syntax: {e}\nRaw Response: {system_prompt_json}")
-                    st.stop()
-                except Exception as e:
-                    st.error(f"Error processing response: {str(e)}\nRaw Response: {system_prompt_json}")
-                    st.stop()
-
-            # Agent 2: Analysis Refiner
-            full_analysis = {}
-            for aspect, data_points in system_prompt["aspects"].items():
-                previous_analysis = ""
-                with st.expander(f"🔄 Refining Aspect: {aspect}", expanded=True):
-                    st.write(f"Agent 2: Refining analysis of '{aspect}'...")
-                    for i in range(loops):
-                        st.write(f"Iteration {i+1}/{loops}")
-                        response = model.generate_content(
-                            agent2_prompt.format(topic=topic, system_prompt=system_prompt, current_aspect=aspect, previous_analysis=previous_analysis),
-                            generation_config=genai.types.GenerationConfig(temperature=0.7)
-                        )
-                        if hasattr(response, 'parts'):
-                            context = response.parts[0].text
-                        else:
-                            context = response.text
-                        previous_analysis = context
-                        st.write(context)
-                full_analysis[aspect] = previous_analysis
-
-            # Agent 3: Expert Response Generator
-            with st.expander("📊 Expert Response", expanded=True):
-                st.write("Agent 3: Generating expert response...")
-                analysis_text = ""
-                for aspect, analysis in full_analysis.items():
-                    analysis_text += f"\n\nAnalysis for {aspect}:\n{analysis}"
-                response = model.generate_content(
-                    agent3_prompt.format(topic=topic, system_prompt=system_prompt, all_aspect_analyses=analysis_text),
-                    generation_config=genai.types.GenerationConfig(temperature=0.7)
-                )
-                if hasattr(response, 'parts'):
-                    expert_text = response.parts[0].text
-                else:
-                    expert_text = response.text
-                st.write(expert_text)
-
-            # Agent 4: Concise Overview Generator
-            with st.expander("💡 Simple Explanation", expanded=True):
-                st.write("Agent 4: Providing simplified overview...")
-                response = model.generate_content(
-                    agent4_prompt.format(topic=topic, expert_text=expert_text),
-                    generation_config=genai.types.GenerationConfig(temperature=0.3)
-                )
-                if hasattr(response, 'parts'):
-                    overview_text = response.parts[0].text
-                else:
-                    overview_text = response.text
-                st.write(overview_text)
-
-        except Exception as e:
-            st.error(f"⚠️ Error during analysis: {str(e)}")
+                    st.error(f"Invalid JSON syntax: {e}\
