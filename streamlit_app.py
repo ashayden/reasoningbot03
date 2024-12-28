@@ -1,6 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 import json
+import re
 
 # Get API key from Streamlit secrets
 try:
@@ -26,7 +27,7 @@ topic = st.text_input("What topic should we explore?")
 loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=3, value=2)
 
 # Agent Prompts (defined outside the button click for efficiency)
-agent1_prompt = """You are a Framework Designer. Your task is to analyze this topic and output ONLY a valid JSON object with no additional commentary:
+agent1_prompt = """Return ONLY a JSON object analyzing this topic. Do not include any other text or explanation:
 
 Topic: {topic}
 
@@ -46,15 +47,17 @@ Required JSON structure:
             "Required data point 1",
             "Required data point 2"
         ]
-    }}
-}}
+    }
+}
+
+Using this exact format, create a JSON response for: {topic}
 
 Rules:
-1. Output ONLY the JSON object, no other text
-2. Include 3-5 key questions as aspects
-3. Each question must have exactly 2 required data points
-4. Ensure all JSON syntax is valid
-5. Use proper quotes and formatting"""
+1. Output MUST be valid JSON
+2. Include exactly 3 questions as aspects
+3. Each aspect must have exactly 2 data points
+4. Use proper JSON formatting with double quotes
+5. No comments or text outside the JSON structure"""
 
 agent2_prompt = """As an Analysis Refiner, your task is to provide detailed information and analysis for one specific aspect in the following framework.
 
@@ -109,7 +112,8 @@ if st.button("Start Analysis"):
                     agent1_prompt.format(topic=topic),
                     generation_config=genai.types.GenerationConfig(
                         temperature=0.3,
-                        candidate_count=1
+                        candidate_count=1,
+                        stop_sequences=["\n\n"]
                     )
                 )
 
@@ -118,21 +122,48 @@ if st.button("Start Analysis"):
                 else:
                     system_prompt_json = prompt_response.text.strip()
                 
-                # Remove any potential commentary before or after the JSON
+                # Clean up the response
                 try:
-                    # Find the first '{' and last '}'
-                    start_idx = system_prompt_json.find('{')
-                    end_idx = system_prompt_json.rindex('}') + 1
-                    if start_idx != -1 and end_idx != -1:
-                        system_prompt_json = system_prompt_json[start_idx:end_idx]
+                    # Find JSON pattern
+                    json_pattern = r'\{[^{}]*\}'
+                    json_match = re.search(json_pattern, system_prompt_json)
                     
+                    if not json_match:
+                        st.error("No valid JSON object found in response")
+                        st.write("Raw response:", system_prompt_json)
+                        st.stop()
+                    
+                    system_prompt_json = json_match.group()
                     system_prompt = json.loads(system_prompt_json)
+                    
+                    # Validate JSON structure
+                    if not isinstance(system_prompt, dict):
+                        st.error("Invalid JSON: Root must be an object")
+                        st.stop()
+                    if "direct_answer" not in system_prompt or "aspects" not in system_prompt:
+                        st.error("Invalid JSON: Missing required fields 'direct_answer' or 'aspects'")
+                        st.stop()
+                    if not isinstance(system_prompt["aspects"], dict):
+                        st.error("Invalid JSON: 'aspects' must be an object")
+                        st.stop()
+                    if len(system_prompt["aspects"]) != 3:
+                        st.error("Invalid JSON: Must have exactly 3 aspects")
+                        st.stop()
+                    
+                    for aspect, data_points in system_prompt["aspects"].items():
+                        if not isinstance(data_points, list) or len(data_points) != 2:
+                            st.error(f"Invalid JSON: Each aspect must have exactly 2 data points. Error in: {aspect}")
+                            st.stop()
+                    
                     st.json(system_prompt)
+                    
                 except json.JSONDecodeError as e:
-                    st.error(f"Invalid JSON from Agent 1: {e}\nRaw Response: {system_prompt_json}")
+                    st.error(f"Invalid JSON syntax: {e}")
+                    st.write("Raw response:", system_prompt_json)
                     st.stop()
-                if not ("direct_answer" in system_prompt and "aspects" in system_prompt):
-                    st.error(f"Invalid JSON format. Must contain 'direct_answer' and 'aspects'. JSON: {system_prompt}")
+                except Exception as e:
+                    st.error(f"Error processing response: {str(e)}")
+                    st.write("Raw response:", system_prompt_json)
                     st.stop()
 
             # Agent 2: Analysis Refiner
