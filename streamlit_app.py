@@ -33,87 +33,53 @@ topic = st.text_input("What topic should we explore?")
 loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=10, value=2)
 
 # Agent Prompts
-agent1_prompt = '''You are an expert research strategist and analyst. Your task is to create a comprehensive reasoning strategy for analyzing: {topic}
+agent1_prompt = '''Define a structured approach for investigating: {topic}
 
-Develop a strategic framework that will guide our analysis. Consider:
-1. The core question or hypothesis to investigate
-2. Key areas that need to be examined
-3. Critical factors that could influence the outcome
-4. Potential data sources or evidence to consider
-5. Methodological approaches for analysis
+Outline:
+1. Core question/hypothesis
+2. Key areas requiring investigation
+3. Critical factors to examine
+4. Required data and information sources
+5. Potential challenges or limitations
 
-Present your strategy in a clear, organized format that will guide further investigation.
-Focus on creating a thorough and logical approach to understanding {topic}.
+Present this as a clear investigation framework that will guide our research and analysis.'''
 
-Your response should be comprehensive yet clear, avoiding unnecessary complexity while ensuring all crucial aspects are covered.'''
-
-agent2_prompt = '''As an Analysis Refiner, build upon the previous analysis to deepen our understanding.
+agent2_prompt = '''Using the established framework, continue researching and analyzing: {topic}
 
 PREVIOUS ANALYSIS:
 {previous_analysis}
 
-FOCUS AREA:
+ITERATION FOCUS:
 {current_aspect}
 
-Your task is to:
-1. Evaluate the evidence and reasoning presented
-2. Identify gaps or areas needing deeper investigation
-3. Add new insights or perspectives
-4. Challenge assumptions if necessary
-5. Strengthen the analytical framework
+Build upon the existing analysis by:
+1. Gathering relevant data and evidence
+2. Analyzing new findings
+3. Identifying connections and patterns
+4. Updating conclusions based on new information
+5. Noting any emerging implications'''
 
-Maintain a clear, logical structure while adding depth to the analysis.'''
+agent3_prompt = '''Based on the completed analysis of {topic}:
 
-agent3_prompt = '''As an Expert Response Generator, synthesize this comprehensive analysis:
-
-TOPIC:
-{topic}
-
-ANALYSIS FRAMEWORK:
+FRAMEWORK:
 {system_prompt}
 
-DETAILED ANALYSIS:
+ANALYSIS:
 {all_aspect_analyses}
 
-Provide a comprehensive expert analysis that:
-1. Synthesizes all key findings
-2. Evaluates the strength of evidence
-3. Draws well-reasoned conclusions
-4. Identifies implications
-5. Addresses uncertainties
-
-Format your response with clear sections:
 ### Comprehensive Analysis
 
-**Key Findings:**
-[Present main discoveries and insights]
+**Current State:**
+[Present the current situation and key context]
 
-**Evidence Assessment:**
-[Evaluate the strength and reliability of evidence]
+**Analysis:**
+[Present the main findings and evidence]
 
 **Conclusions:**
-[Present well-reasoned conclusions]
+[Present the conclusions drawn from the analysis]
 
-**Implications:**
-[Discuss broader implications and impacts]'''
-
-agent4_prompt = '''Summarize the following analysis:
-
-EXPERT ANALYSIS:
-{expert_text}
-
-Format your response as follows:
-
-TL;DR:
-[One sentence answer using "✅ Yes" / "❌ No" / "❓ Uncertain" followed by a brief explanation]
-
-KEY POINTS:
-• [First key finding or conclusion]
-• [Second key finding or conclusion]
-• [Third key finding or conclusion]
-
-SUMMARY:
-[Two concise paragraphs presenting the main findings, evidence, and implications. Focus only on the content of the analysis, not the process.]'''
+**Future Outlook:**
+[Present the implications and future projections]'''
 
 def handle_response(response):
     """Handle model response and extract text."""
@@ -121,32 +87,33 @@ def handle_response(response):
         return response.parts[0].text.strip()
     return response.text.strip()
 
-def generate_analysis(topic):
-    """Generate initial analysis framework using Agent 1."""
+def generate_framework(topic):
+    """Generate initial investigation framework using Agent 1."""
     try:
         prompt_response = model.generate_content(
             agent1_prompt.format(topic=topic),
             generation_config=genai.types.GenerationConfig(
-                temperature=0.7,  # Increased for more creative strategy
+                temperature=0.7,
                 top_p=0.8,
                 top_k=40,
                 max_output_tokens=2048
             )
         )
         
-        analysis = handle_response(prompt_response)
-        logging.info("Initial analysis framework generated successfully")
-        return analysis
+        framework = handle_response(prompt_response)
+        logging.info("Investigation framework generated successfully")
+        return framework
         
     except Exception as e:
-        logging.error(f"Failed to generate initial analysis: {str(e)}")
+        logging.error(f"Failed to generate framework: {str(e)}")
         return None
 
-def refine_analysis(topic, previous_analysis, current_aspect, iteration):
-    """Refine analysis using Agent 2."""
+def conduct_research(topic, previous_analysis, current_aspect, iteration):
+    """Conduct research and analysis using Agent 2."""
     try:
         prompt_response = model.generate_content(
             agent2_prompt.format(
+                topic=topic,
                 previous_analysis=previous_analysis,
                 current_aspect=current_aspect
             ),
@@ -158,45 +125,45 @@ def refine_analysis(topic, previous_analysis, current_aspect, iteration):
             )
         )
         
-        refined_analysis = handle_response(prompt_response)
-        logging.info(f"Analysis refinement iteration {iteration} completed")
-        return refined_analysis
+        research = handle_response(prompt_response)
+        logging.info(f"Research iteration {iteration} completed")
+        return research
         
     except Exception as e:
-        logging.error(f"Failed to refine analysis: {str(e)}")
+        logging.error(f"Failed to conduct research: {str(e)}")
         return None
 
 # Main Execution
 if st.button("Start Analysis"):
     if topic:
-        with st.spinner("Generating analysis..."):
-            # Agent 1: Generate initial framework
-            initial_analysis = generate_analysis(topic)
+        with st.spinner("Analyzing..."):
+            # Agent 1: Define investigation framework
+            framework = generate_framework(topic)
             
-            if initial_analysis is None:
-                st.error("Failed to generate initial analysis. Please try again.")
+            if framework is None:
+                st.error("Failed to generate investigation framework. Please try again.")
                 st.stop()
             
-            st.markdown("### Initial Analysis Framework")
-            st.markdown(initial_analysis)
+            st.markdown("### Investigation Framework")
+            st.markdown(framework)
             st.markdown("---")
             
-            # Agent 2: Refine analysis through iterations
-            current_analysis = initial_analysis
+            # Agent 2: Conduct research through iterations
+            current_analysis = framework
             for i in range(loops):
-                refined = refine_analysis(topic, current_analysis, f"Iteration {i+1}", i+1)
-                if refined:
-                    current_analysis = refined
-                    st.markdown(f"### Refinement Iteration {i+1}")
-                    st.markdown(refined)
+                research = conduct_research(topic, current_analysis, f"Research Phase {i+1}", i+1)
+                if research:
+                    current_analysis = research
+                    st.markdown(f"### Research Phase {i+1}")
+                    st.markdown(research)
                     st.markdown("---")
             
-            # Agent 3: Generate expert analysis
+            # Agent 3: Present comprehensive analysis
             try:
-                expert_response = model.generate_content(
+                final_response = model.generate_content(
                     agent3_prompt.format(
                         topic=topic,
-                        system_prompt=initial_analysis,
+                        system_prompt=framework,
                         all_aspect_analyses=current_analysis
                     ),
                     generation_config=genai.types.GenerationConfig(
@@ -207,28 +174,9 @@ if st.button("Start Analysis"):
                     )
                 )
                 
-                expert_analysis = handle_response(expert_response)
-                st.markdown("### Expert Analysis")
-                st.markdown(expert_analysis)
-                st.markdown("---")
-                
-                # Agent 4: Generate concise overview
-                overview_response = model.generate_content(
-                    agent4_prompt.format(
-                        topic=topic,
-                        expert_text=expert_analysis
-                    ),
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.2,
-                        top_p=0.7,
-                        top_k=20,
-                        max_output_tokens=2048
-                    )
-                )
-                
-                overview = handle_response(overview_response)
-                st.markdown("### Summary")
-                st.markdown(overview)
+                final_analysis = handle_response(final_response)
+                st.markdown("### Analysis Results")
+                st.markdown(final_analysis)
                 
             except Exception as e:
                 st.error(f"Error in final analysis generation: {str(e)}")
