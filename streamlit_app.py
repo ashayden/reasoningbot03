@@ -60,60 +60,76 @@ IMPORTANT RULES:
 7. Replace all placeholders with actual content about {topic}
 """
 
-agent2_prompt = """As an Analysis Refiner, your task is to provide detailed information and analysis for one specific aspect in the following framework.
+agent2_prompt = """As an Analysis Refiner, analyze the following aspect of {topic}:
 
-User Input: {topic}
+CURRENT ASPECT: {current_aspect}
 
-Framework:
+PREVIOUS ANALYSIS:
+{previous_analysis}
+
+Provide a detailed analysis using the following structure:
+
+[ASPECT TITLE IN CAPS]
+
+• Key Point 1: Detailed explanation with supporting evidence
+• Key Point 2: Detailed explanation with supporting evidence
+• Key Point 3: Detailed explanation with supporting evidence
+
+Each point should:
+- Build upon the previous analysis
+- Add NEW information and insights
+- Include specific data or examples where relevant
+- Connect to the broader implications of {topic}"""
+
+agent3_prompt = """As an Expert Response Generator, synthesize the following analysis into a comprehensive response:
+
+TOPIC: {topic}
+
+FRAMEWORK:
 {system_prompt}
 
-Current Aspect to Refine: {current_aspect}
-
-Previous Analysis for this Aspect: {previous_analysis}
-
-Based on the suggested data points in the framework, provide detailed information, analysis, and relevant data to answer the current aspect. Build upon the previous analysis, adding more detail, nuance, and supporting evidence. Do NOT repeat information already provided. Focus on adding NEW information and insights."""
-
-agent3_prompt = """As an Expert Response Generator, create a comprehensive, Nobel laureate-level response to the following user input, informed by the detailed analysis provided:
-
-User Input: {topic}
-
-Framework:
-{system_prompt}
-
-Detailed Analysis (for each aspect):
+DETAILED ANALYSIS:
 {all_aspect_analyses}
 
+Structure your response as follows:
+
+OVERVIEW
+[2-3 sentences introducing the topic and its significance]
+
+DETAILED ANALYSIS
+[Break down the key aspects using clear headings and bullet points]
+
+IMPLICATIONS AND FUTURE OUTLOOK
+[Discuss the broader implications and future developments]
+
 Your response should:
-1. Provide a clear and authoritative answer to the user's input, directly addressing the question.
-2. Integrate the key insights and explanations from the analysis of each aspect.
-3. Demonstrate a deep understanding of the topic.
-4. Offer nuanced perspectives and potential implications.
+• Maintain a clear, authoritative voice
+• Support claims with specific evidence
+• Connect individual aspects into a cohesive narrative
+• Highlight critical insights and implications"""
 
-Write in a sophisticated and insightful manner, as if you were a leading expert in the field."""
+agent4_prompt = """As a Concise Overview Generator, provide a structured summary of the following expert analysis:
 
-agent4_prompt = """As a Concise Overview Generator, provide a comprehensive yet accessible summary of the following expert response:
+TOPIC: {topic}
 
-User Input: {topic}
-
-Expert Response:
+EXPERT ANALYSIS:
 {expert_text}
 
 Structure your response in TWO parts:
 
-PART 1 - KEY TAKEAWAYS:
-• List 5-7 specific takeaways about {topic}
-• Include concrete details, numbers, and examples where relevant
-• Start each bullet point with an action verb or key concept
-• Focus on the most important insights from the expert response
+KEY TAKEAWAYS:
+• [Action Verb] + [Specific Detail] + [Impact/Significance]
+• Include 5-7 bullet points
+• Focus on concrete facts, numbers, and examples
+• Start each point with a clear action verb
+• Maintain consistent bullet point formatting
 
-PART 2 - EXECUTIVE SUMMARY:
-Write a 1-2 paragraph summary that:
-• Synthesizes the main ideas into a coherent narrative
-• Explains why {topic} matters
-• Highlights the most significant implications
-• Uses clear, professional language accessible to an educated general audience
-
-Remember to maintain accuracy while making complex ideas understandable."""
+EXECUTIVE SUMMARY:
+[Two paragraphs that:
+- Synthesize the main ideas into a coherent narrative
+- Explain why {topic} matters
+- Highlight the most significant implications
+- Use clear, professional language]"""
 
 def clean_json_string(json_string):
     # Remove code block markers if present
@@ -202,10 +218,10 @@ if st.button("Start Analysis"):
             full_analysis = {}
             for aspect, data_points in system_prompt["aspects"].items():
                 previous_analysis = ""
-                with st.expander(f"🔄 Refining Aspect: {aspect}", expanded=True):
-                    st.write(f"Agent 2: Refining analysis of '{aspect}'...")
+                with st.expander(f"🔄 {aspect}", expanded=True):
+                    st.markdown(f"### Analysis of: {aspect}")
                     for i in range(loops):
-                        st.write(f"Iteration {i+1}/{loops}")
+                        st.markdown(f"**Iteration {i+1}/{loops}**")
                         response = model.generate_content(
                             agent2_prompt.format(
                                 topic=topic,
@@ -220,15 +236,15 @@ if st.button("Start Analysis"):
                         else:
                             context = response.text
                         previous_analysis = context
-                        st.write(context)
+                        st.markdown(context)
                 full_analysis[aspect] = previous_analysis
 
             # Agent 3: Expert Response Generator
-            with st.expander("📊 Expert Response", expanded=True):
-                st.write("Agent 3: Generating expert response...")
+            with st.expander("📊 Expert Analysis", expanded=True):
+                st.markdown("### Comprehensive Analysis")
                 analysis_text = ""
                 for aspect, analysis in full_analysis.items():
-                    analysis_text += f"\n\nAnalysis for {aspect}:\n{analysis}"
+                    analysis_text += f"\n\nAspect: {aspect}\n{analysis}"
                 response = model.generate_content(
                     agent3_prompt.format(
                         topic=topic,
@@ -241,11 +257,11 @@ if st.button("Start Analysis"):
                     expert_text = response.parts[0].text
                 else:
                     expert_text = response.text
-                st.write(expert_text)
+                st.markdown(expert_text)
 
             # Agent 4: Concise Overview Generator
-            with st.expander("💡 Simple Explanation", expanded=True):
-                st.write("Agent 4: Providing simplified overview...")
+            with st.expander("💡 Summary", expanded=True):
+                st.markdown("### Key Insights & Summary")
                 response = model.generate_content(
                     agent4_prompt.format(topic=topic, expert_text=expert_text),
                     generation_config=genai.types.GenerationConfig(temperature=0.3)
@@ -254,7 +270,7 @@ if st.button("Start Analysis"):
                     overview_text = response.parts[0].text
                 else:
                     overview_text = response.text
-                st.write(overview_text)
+                st.markdown(overview_text)
 
         except Exception as e:
             st.error(f"⚠️ Error during analysis: {str(e)}")
