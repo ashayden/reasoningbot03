@@ -63,15 +63,14 @@ IMPORTANT RULES:
 agent2_prompt = """As an Analysis Refiner, provide a detailed analysis of the following:
 
 FOCUS AREA: {current_aspect}
-[Rephrase this aspect using natural language, focusing on the core concept]
+# [Rephrase this aspect using natural language, focusing on the core concept]
 
 PREVIOUS INSIGHTS:
 {previous_analysis}
 
 Structure your analysis as follows:
 
-# [MAIN TITLE]
-*[Descriptive subtitle that provides context]*
+*[MAIN TITLE]*
 
 1. [Descriptive Heading]
    Detailed explanation with supporting evidence
@@ -127,7 +126,7 @@ EXPERT ANALYSIS:
 Structure your response in THREE parts:
 
 TL;DR:
-[One sentence that directly answers the core question or summarizes the key finding]
+ [If the user asked a question answer it with"✅ Yes" / "❌ No" / "❓ Uncertain"] + [One sentence that directly answers the core question or summarizes the key finding]
 
 KEY TAKEAWAYS:
 • [Action] + [Specific Detail] + [Impact/Significance]
