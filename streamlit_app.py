@@ -21,7 +21,7 @@ except Exception as e:
 # Configure API with error handling
 try:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("learnlm-1.5-pro-experimental")
+    model = genai.GenerativeModel("gemini-pro")
 except Exception as e:
     logging.error(f"Error configuring Gemini API: {e}")
     st.error(f"⚠️ Error configuring Gemini API: {str(e)}")
@@ -69,34 +69,24 @@ Core Question/Hypothesis
 [Your hypothesis here]
 
 Key Areas Requiring Investigation
+[Numbered list of Key Areas with detailed bullet points beneath each. Ensure that each bullet point is indented to align with the start of the text in the numbered item above it.]
 
 1. [Area Name]:
-   ○ [First point with detailed explanation that may wrap to multiple lines, with proper
-     indentation for wrapped lines]
-   ○ [Second point with similarly detailed explanation, maintaining consistent
-     indentation for wrapped text]
-   ○ [Third point following the same format, ensuring all wrapped lines align
-     with the first line of the point]
-   ○ [Fourth point demonstrating proper formatting for multi-line
-     bullet points]
+   - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
+   - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
+   - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
 
 2. [Area Name]:
-   ○ [First point with detailed explanation that may wrap to multiple lines, with proper
-     indentation for wrapped lines]
-   ○ [Second point with similarly detailed explanation, maintaining consistent
-     indentation for wrapped text]
-   ○ [Third point following the same format, ensuring all wrapped lines align
-     with the first line of the point]
-   ○ [Fourth point demonstrating proper formatting for multi-line
-     bullet points]
+   - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
+   - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
+   - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
 
 Note: 
 - Each numbered item starts with a number followed by a period, space, and area name
 - Bullet points appear on new lines beneath the numbered item
-- Use 3 spaces indentation for bullet points
-- Wrapped lines should align with the start of the text in the bullet point
+- Use consistent indentation for bullet points
 - Add a blank line between numbered items
-- Use circular bullet points (○)'''
+- Use a hyphen (-) for bullet points'''
 
 agent2_prompt = '''Using the refined prompt and the established framework, continue researching and analyzing:
 
@@ -199,16 +189,27 @@ def generate_refined_prompt_and_framework(topic):
             if len(parts) >= 2:
                 # Clean up the refined prompt section
                 refined_prompt = parts[0].replace("Refined Prompt", "").strip()
-                
+
                 # Clean up the framework section
                 framework = parts[1].strip()
                 if framework.startswith("Investigation Framework"):
                     framework = framework[len("Investigation Framework"):].strip()
-                
+
                 # Remove any stray colons from section headers
                 framework = framework.replace("Core Question/Hypothesis:", "Core Question/Hypothesis")
                 framework = framework.replace("Key Areas Requiring Investigation:", "Key Areas Requiring Investigation")
-                
+
+                # Further clean up for framework formatting
+                framework_lines = framework.split('\n')
+                cleaned_framework_lines = []
+                for line in framework_lines:
+                    # Ensure consistent indentation for bullet points
+                    if line.lstrip().startswith("-"):
+                        cleaned_framework_lines.append("   " + line.lstrip())
+                    else:
+                        cleaned_framework_lines.append(line)
+                framework = '\n'.join(cleaned_framework_lines)
+
                 logging.info("Refined prompt and investigation framework generated successfully")
                 return refined_prompt, framework
             else:
@@ -219,6 +220,7 @@ def generate_refined_prompt_and_framework(topic):
     except Exception as e:
         logging.error(f"Failed to generate refined prompt and framework: {e}")
     return None, None
+
 
 
 def conduct_research(refined_prompt, framework, previous_analysis, current_aspect, iteration):
@@ -248,7 +250,7 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
                     skip_next = False
                     continue
                 cleaned_research.append(line)
-            
+
             research = '\n'.join(cleaned_research).strip()
             logging.info(f"Research phase {iteration} completed successfully")
             return research
@@ -282,8 +284,8 @@ if st.button("Start Analysis"):
                 # Extract aspects from the framework
                 if framework:
                     for line in framework.split('\n'):
-                        if line.strip().startswith('-'):
-                            aspects.append(line.strip('- ').strip())
+                        if line.strip().startswith("1.") or line.strip().startswith("2.") or line.strip().startswith("3.") or line.strip().startswith("4."):
+                            aspects.append(line.strip())
 
                 for i in range(loops):
                     # Dynamically select an aspect to focus on
