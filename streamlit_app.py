@@ -28,13 +28,13 @@ topic = st.text_input("What topic should we explore?")
 loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=3, value=2)
 
 # Agent Prompts
-agent1_prompt = """You are a JSON generator. Generate a valid JSON object to analyze this topic: {topic}
+agent1_prompt = """You are a JSON generator. Your ONLY task is to output a JSON object analyzing: {topic}
 
-IMPORTANT: Your entire response must be ONLY the JSON object shown below, with NO additional text or explanation:
+RESPOND WITH EXACTLY THIS JSON STRUCTURE - NO OTHER TEXT, NO EXPLANATION, NO COMMENTARY:
 
-{{
-    "direct_answer": "A clear, direct answer about {topic}",
-    "aspects": {{
+{
+    "direct_answer": "A clear yes/no/uncertain answer followed by one sentence explanation",
+    "aspects": {
         "What are the key components or elements of {topic}?": [
             "First key component with brief explanation",
             "Second key component with brief explanation"
@@ -47,17 +47,16 @@ IMPORTANT: Your entire response must be ONLY the JSON object shown below, with N
             "First future implication or trend",
             "Second future implication or trend"
         ]
-    }}
-}}
+    }
+}
 
-CRITICAL RULES:
-1. Output MUST start with {{ and end with }}
-2. Use ONLY double quotes for ALL keys and values
-3. NO comments, NO explanations, NO additional text
-4. EXACT structure as shown above
-5. ALL text MUST be inside the JSON structure
-6. Replace placeholders with relevant content about {topic}
-7. Keep exactly 2 data points per aspect"""
+CRITICAL:
+- Output ONLY the JSON above
+- Start with { and end with }
+- Use " for all strings
+- No comments or explanation
+- No markdown formatting
+- No extra text before or after"""
 
 agent2_prompt = """As an Analysis Refiner, provide a detailed analysis of the following:
 
@@ -199,20 +198,28 @@ if st.button("Start Analysis"):
                         prompt_response = model.generate_content(
                             agent1_prompt.format(topic=topic),
                             generation_config=genai.types.GenerationConfig(
-                                temperature=0.1,  # Lower temperature for more consistent output
-                                top_p=0.8,
-                                top_k=40
+                                temperature=0.0,  # Set to 0 for most deterministic output
+                                top_p=0.1,
+                                top_k=1,
+                                max_output_tokens=2048,
+                                stop_sequences=["\n\n", "```"]
                             )
                         )
 
                         if hasattr(prompt_response, 'parts'):
-                            raw_response = prompt_response.parts[0].text
+                            raw_response = prompt_response.parts[0].text.strip()
                         else:
-                            raw_response = prompt_response.text
+                            raw_response = prompt_response.text.strip()
 
                         # Clean and parse JSON
                         try:
-                            cleaned_json = clean_json_string(raw_response)
+                            # Remove any text before the first { and after the last }
+                            json_start = raw_response.find('{')
+                            json_end = raw_response.rfind('}') + 1
+                            if json_start == -1 or json_end == 0:
+                                raise ValueError("No JSON object markers found in response")
+                            
+                            cleaned_json = raw_response[json_start:json_end]
                             framework = json.loads(cleaned_json)
                             
                             # Validate structure
