@@ -235,16 +235,21 @@ if st.button("Start Analysis"):
                     # Generate a natural headline based on the aspect
                     if "key components" in aspect.lower():
                         headline = "Key Components of New Orleans' Sea Level Rise Vulnerability"
+                        subheading = "*A Comprehensive Assessment of Climate Vulnerabilities*"
                     elif "impact" in aspect.lower():
                         headline = "The Sinking City: New Orleans' Future and the Impacts of Climate Change"
+                        subheading = "*Analyzing the Cascading Effects of Rising Waters*"
                     elif "future" in aspect.lower():
                         headline = "Future Outlook: Projecting New Orleans' Climate Resilience"
+                        subheading = "*Forecasting Adaptation and Mitigation Strategies*"
                     else:
                         # Fallback: Create a natural headline from the aspect
                         headline = aspect.replace("What are", "").replace("How does", "").replace("What is", "").replace("?", "").strip()
                         headline = headline.title()
+                        subheading = f"*Understanding {headline}*"
                     
                     st.markdown(f"### {headline}")
+                    st.markdown(subheading)
                     
                     # Process multiple iterations but only show final result
                     for i in range(loops):
@@ -265,7 +270,23 @@ if st.button("Start Analysis"):
                         
                         # Only display the content on the final iteration
                         if i == loops - 1:
-                            st.markdown(context)
+                            # Process the context to add HTML styling to headings
+                            context_lines = context.split('\n')
+                            styled_lines = []
+                            for line in context_lines:
+                                if line.strip().startswith(('1.', '2.', '3.', '4.', '5.')):
+                                    # Extract the heading text
+                                    heading_text = line.split(':', 1)[0] if ':' in line else line
+                                    # Add HTML styling for larger, underlined text
+                                    styled_lines.append(f'<div style="font-size: 1.2em; text-decoration: underline; margin-top: 1em; margin-bottom: 0.5em;">{heading_text}</div>')
+                                    # Add the rest of the line if there was a colon
+                                    if ':' in line:
+                                        styled_lines.append(line.split(':', 1)[1])
+                                else:
+                                    styled_lines.append(line)
+                            
+                            styled_context = '\n'.join(styled_lines)
+                            st.markdown(styled_context, unsafe_allow_html=True)
                             
                 full_analysis[aspect] = previous_analysis
 
