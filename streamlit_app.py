@@ -28,19 +28,19 @@ if st.button("Start Analysis"):
     if topic:
         try:
             # Agent 1: Framework Designer
-            # Creates a structured analysis framework for the topic
             with st.expander("🎯 Analysis Framework", expanded=True):
-                st.write("Agent 1: Designing analysis framework...")
+                st.write("Agent 1: Designing framework...")
                 prompt_response = model.generate_content(
-                    f"""As a Framework Designer, create a comprehensive system prompt for analyzing '{topic}'.
+                    f"""As a Framework Designer, your task is to create a structured framework for answering the following user input directly and comprehensively:
+
+                    User Input: {topic}
+
                     Your framework should include:
-                    1. Key aspects to examine
-                    2. Different perspectives to consider
-                    3. Potential implications to explore
-                    4. Interconnected elements to analyze
-                    5. Specific questions to address
-                    
-                    Make the framework clear, structured, and actionable for deep analysis.""",
+                    1. A concise direct answer to the user's input
+                    2. Key aspects or sub-questions that need to be explored to support and justify the answer
+                    3. Relevant perspectives or angles to consider when examining each aspect
+
+                    The framework should be actionable and guide the subsequent analysis.""",
                     generation_config=genai.types.GenerationConfig(
                         temperature=0.3
                     )
@@ -51,23 +51,25 @@ if st.button("Start Analysis"):
                     system_prompt = prompt_response.text
                 st.write(system_prompt)
 
-            # Agent 2: Analysis Executor
-            # Executes the framework through multiple iterations
+            # Agent 2: Analysis Refiner
             full_analysis = []
-            context = topic
+            context = ""
             for i in range(loops):
                 with st.expander(f"🔄 Analysis Iteration {i+1}/{loops}", expanded=True):
-                    st.write(f"Agent 2: Executing iteration {i+1}...")
+                    st.write(f"Agent 2: Refining analysis (iteration {i+1})...")
                     response = model.generate_content(
-                        f"""As an Analysis Executor, your task is to apply the following analytical framework to the topic:
+                        f"""As an Analysis Refiner, your task is to conduct a detailed analysis based on the following framework and previous analysis context:
+
+                        User Input: {topic}
 
                         Framework:
                         {system_prompt}
 
                         Previous Analysis Context: {context}
 
-                        Execute this framework rigorously as if you were a Nobel prize winner in the relevant field, building upon previous insights while maintaining focus on the framework structure. 
-                        Provide novel insights and deep analysis for each point in the framework.""",
+                        For each key aspect (sub-question) in the framework, provide a deep, well-reasoned explanation, considering the suggested perspectives. Build upon the previous analysis context in each iteration. Focus on providing detailed information and insights related to each aspect.
+
+                        Output each aspect with the original question, followed by your analysis.""",
                         generation_config=genai.types.GenerationConfig(
                             temperature=1.0
                         )
@@ -79,63 +81,61 @@ if st.button("Start Analysis"):
                     full_analysis.append(context)
                     st.write(context)
 
-            # Agent 3: Synthesis Expert
-            # Synthesizes insights from all iterations
-            with st.expander("📊 Final Synthesis", expanded=True):
-                st.write("Agent 3: Synthesizing findings...")
-                summary = model.generate_content(
-                    f"""As a Synthesis Expert, analyze and synthesize the findings from {loops} iterations of analysis on '{topic}'.
+            # Agent 3: Expert Response Generator
+            with st.expander("📊 Expert Response", expanded=True):
+                st.write("Agent 3: Generating expert response...")
+                expert_response = model.generate_content(
+                    f"""As an Expert Response Generator, your task is to create a comprehensive, Nobel laureate-level response to the following user input, informed by the detailed analysis provided:
 
-                    Analysis Iterations:
+                    User Input: {topic}
+
+                    Framework:
+                    {system_prompt}
+
+                    Detailed Analysis:
                     {' '.join(full_analysis)}
 
-                    Provide:
-                    1. Key Insights: Bullet point the most significant findings
-                    2. Synthesis: Write a concise paragraph that weaves together the main themes in simple language
-                    3. Evolution of Understanding: How did the analysis deepen or change across iterations
-                    4. Follow-up Questions:
-                       - One question that delves deeper into the most intriguing aspect
-                       - One question that explores a related but unexplored area
-                       - One question that examines unexpected connections discovered
+                    Your response should:
+                    1. Provide a clear and authoritative answer to the user's input, directly addressing the question
+                    2. Integrate the key insights and explanations from the analysis
+                    3. Demonstrate a deep understanding of the topic, as if you were a leading expert in the field
+                    4. Offer nuanced perspectives and potential implications
 
-                    Focus on extracting unique insights and patterns that emerged across iterations.""",
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.1
-                    )
-                )
-                if hasattr(summary, 'parts'):
-                    synthesis_text = summary.parts[0].text
-                else:
-                    synthesis_text = summary.text
-                st.write(synthesis_text)
-
-            # Agent 4: Response Architect
-            # Creates a focused response to the original topic using the synthesis
-            with st.expander("💡 Final Response", expanded=True):
-                st.write("Agent 4: Crafting final response...")
-                final_response = model.generate_content(
-                    f"""As a Response Architect, your task is to provide a clear, authoritative answer about '{topic}' using the comprehensive analysis provided.
-
-                    Synthesis of Analysis:
-                    {synthesis_text}
-
-                    Create a response that:
-                    1. Directly addresses the topic with newfound expertise
-                    2. Integrates the key insights discovered
-                    3. Acknowledges the complexity revealed through analysis
-                    4. Provides practical implications or applications
-                    5. Suggests how this understanding could evolve in the future
-
-                    Write as if you are a world-leading expert explaining this topic to an interested learner. Be clear, engaging, and insightful.""",
+                    Write in a sophisticated and insightful manner.""",
                     generation_config=genai.types.GenerationConfig(
                         temperature=0.7
                     )
                 )
-                if hasattr(final_response, 'parts'):
-                    response_text = final_response.parts[0].text
+                if hasattr(expert_response, 'parts'):
+                    expert_text = expert_response.parts[0].text
                 else:
-                    response_text = final_response.text
-                st.write(response_text)
+                    expert_text = expert_response.text
+                st.write(expert_text)
+
+            # Agent 4: Concise Overview Generator
+            with st.expander("💡 Simple Explanation", expanded=True):
+                st.write("Agent 4: Providing simplified overview...")
+                overview = model.generate_content(
+                    f"""As a Concise Overview Generator, your task is to provide a simplified, easy-to-understand summary of the following expert response:
+
+                    User Input: {topic}
+
+                    Expert Response:
+                    {expert_text}
+
+                    Your summary should:
+                    1. Capture the main points of the expert response
+                    2. Use clear and simple language, avoiding jargon or technical terms
+                    3. Be concise and easy to digest for a general audience""",
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.3
+                    )
+                )
+                if hasattr(overview, 'parts'):
+                    overview_text = overview.parts[0].text
+                else:
+                    overview_text = overview.text
+                st.write(overview_text)
 
         except Exception as e:
             st.error(f"⚠️ Error during analysis: {str(e)}")
