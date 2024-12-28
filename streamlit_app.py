@@ -27,26 +27,8 @@ topic = st.text_input("What topic should we explore?")
 loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=3, value=2)
 
 # Agent Prompts
-agent1_prompt = """You must output ONLY a valid JSON object. Do not include ANY other text.
-The JSON must have this EXACT structure, with your content about {topic}:
-
-{
-    "direct_answer": "A direct answer about the topic",
-    "aspects": {
-        "First key question?": [
-            "Data point 1",
-            "Data point 2"
-        ],
-        "Second key question?": [
-            "Data point 1",
-            "Data point 2"
-        ],
-        "Third key question?": [
-            "Data point 1",
-            "Data point 2"
-        ]
-    }
-}"""
+agent1_prompt = r'''Output a valid JSON object in this exact format (replace example values with content about {topic}):
+{{"direct_answer": "A direct answer about the topic", "aspects": {{"First key question?": ["Data point 1", "Data point 2"], "Second key question?": ["Data point 1", "Data point 2"], "Third key question?": ["Data point 1", "Data point 2"]}}}}'''
 
 agent2_prompt = """As an Analysis Refiner, your task is to provide detailed information and analysis for one specific aspect in the following framework.
 
