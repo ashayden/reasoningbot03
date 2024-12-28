@@ -3,8 +3,11 @@ import google.generativeai as genai
 import time
 import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging with debug level
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 # Get API key from Streamlit secrets
 try:
@@ -30,48 +33,52 @@ topic = st.text_input("What topic should we explore?")
 loops = st.slider("How many reasoning iterations per aspect?", min_value=1, max_value=3, value=2)
 
 # Agent Prompts
-agent1_prompt = """You are an expert analyst. Provide a structured analysis of the topic: {topic}
+agent1_prompt = '''You are an expert analyst. Your task is to analyze this topic: {topic}
 
-EXACTLY follow this format with these EXACT section headings:
-
-Direct Answer:
-- A clear yes/no/uncertain answer followed by one sentence explanation
-
-Key Components or Elements:
-- First key component with brief explanation
-- Second key component with brief explanation
-
-Impact or Influence:
-- First major impact or influence
-- Second major impact or influence
-
-Future Implications or Developments:
-- First future implication or trend
-- Second future implication or trend
-
-Example output for the topic "artificial intelligence":
+YOU MUST USE THESE EXACT SECTION HEADINGS IN THIS EXACT ORDER:
 
 Direct Answer:
-- Yes, artificial intelligence is transforming our world through its ability to automate complex tasks and enhance decision-making processes.
+- Your answer here
 
 Key Components or Elements:
-- Machine Learning algorithms that enable systems to learn and improve from experience
-- Neural Networks designed to process information similar to biological brains
+- Your first point here
+- Your second point here
 
 Impact or Influence:
-- Automation of routine tasks leading to increased efficiency in various industries
-- Enhanced decision-making through data analysis and pattern recognition
+- Your first point here
+- Your second point here
 
 Future Implications or Developments:
-- Integration of AI into healthcare for improved diagnosis and treatment planning
-- Development of more sophisticated autonomous systems for transportation
+- Your first point here
+- Your second point here
 
-CRITICAL REQUIREMENTS:
-- Use EXACTLY these section headings
-- Each section MUST start with the heading followed by a colon
-- Each point MUST start with a hyphen (-)
-- Provide at least one point per section
-- No additional text or explanations outside this format"""
+RULES:
+1. Keep the section headings EXACTLY as shown
+2. Start each section with the heading and a colon
+3. Start each point with a hyphen
+4. Include at least one point per section
+5. Do not add any other text
+
+EXAMPLE OUTPUT:
+
+Direct Answer:
+- Yes, artificial intelligence is transforming our world through its ability to automate complex tasks.
+
+Key Components or Elements:
+- Machine Learning algorithms that enable systems to learn from experience
+- Neural Networks designed to process information like biological brains
+
+Impact or Influence:
+- Automation of routine tasks increasing efficiency across industries
+- Enhanced decision-making through data analysis
+
+Future Implications or Developments:
+- Integration of AI into healthcare for improved diagnosis
+- Development of autonomous transportation systems
+
+END OF EXAMPLE
+
+Remember: Use the EXACT same format for {topic}. Keep the section headings identical.'''
 
 agent2_prompt = """As an Analysis Refiner, provide a detailed analysis of the following:
 
@@ -231,21 +238,31 @@ def generate_analysis(topic):
 
     while retry_count < max_retries and analysis is None:
         try:
+            # Add safety rails to generation parameters
             prompt_response = model.generate_content(
                 agent1_prompt.format(topic=topic),
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.0,
                     top_p=0.1,
                     top_k=1,
-                    max_output_tokens=2048
+                    max_output_tokens=2048,
+                    candidate_count=1,
+                    stop_sequences=["\n\n\n"]
                 )
             )
 
             raw_response = handle_response(prompt_response)
+            
+            # Log the raw response for debugging
+            logging.debug(f"Raw response:\n{raw_response}")
+            
             analysis = parse_structured_text(raw_response)
-
+            
             if analysis is None:
                 raise ValueError("Failed to parse structured text response")
+
+            # Log the parsed sections for debugging
+            logging.debug(f"Parsed sections: {list(analysis.keys())}")
 
             # Validate sections
             required_sections = [
@@ -257,6 +274,8 @@ def generate_analysis(topic):
             
             for section in required_sections:
                 if section not in analysis:
+                    logging.debug(f"Missing section: {section}")
+                    logging.debug(f"Available sections: {list(analysis.keys())}")
                     raise ValueError(f"Missing required section: {section}")
                 if not analysis[section]:
                     raise ValueError(f"No points found in section: {section}")
@@ -268,7 +287,7 @@ def generate_analysis(topic):
             retry_count += 1
             logging.warning(f"Retry {retry_count}/{max_retries}: {str(e)}")
             if raw_response:
-                logging.debug(f"Raw response: {raw_response}")
+                logging.debug(f"Failed response:\n{raw_response}")
             time.sleep(1)
 
     logging.error("Failed to generate valid analysis after retries")
