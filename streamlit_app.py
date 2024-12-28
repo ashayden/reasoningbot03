@@ -70,7 +70,7 @@ PREVIOUS INSIGHTS:
 
 Structure your analysis as follows:
 
-[DESCRIPTIVE TITLE THAT NATURALLY CAPTURES THE FOCUS AREA]
+### __[DESCRIPTIVE TITLE THAT NATURALLY CAPTURES THE FOCUS AREA]__
 
 1. [Descriptive Heading]: Detailed explanation with supporting evidence
 2. [Descriptive Heading]: Detailed explanation with supporting evidence
@@ -118,7 +118,10 @@ SUBJECT:
 EXPERT ANALYSIS:
 {expert_text}
 
-Structure your response in TWO parts:
+Structure your response in THREE parts:
+
+TL;DR:
+[One sentence that directly answers the core question or summarizes the key finding]
 
 KEY TAKEAWAYS:
 • [Action] + [Specific Detail] + [Impact/Significance]
@@ -235,13 +238,14 @@ if st.button("Start Analysis"):
                         headline = headline.title()
                     
                     st.markdown(f"### {headline}")
+                    
+                    # Process multiple iterations but only show final result
                     for i in range(loops):
-                        st.markdown(f"**Iteration {i+1}/{loops}**")
                         response = model.generate_content(
                             agent2_prompt.format(
                                 topic=topic,
                                 system_prompt=system_prompt,
-                                current_aspect=headline,  # Pass the natural headline instead of the question
+                                current_aspect=headline,
                                 previous_analysis=previous_analysis
                             ),
                             generation_config=genai.types.GenerationConfig(temperature=0.7)
@@ -251,7 +255,11 @@ if st.button("Start Analysis"):
                         else:
                             context = response.text
                         previous_analysis = context
-                        st.markdown(context)
+                        
+                        # Only display the content on the final iteration
+                        if i == loops - 1:
+                            st.markdown(context)
+                            
                 full_analysis[aspect] = previous_analysis
 
             # Agent 3: Expert Response Generator
