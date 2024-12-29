@@ -407,41 +407,66 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
 
 
 def create_download_pdf(refined_prompt, framework, current_analysis, final_analysis):
-    """Create a PDF for download."""
-    buffer = io.BytesIO()
-    pdf = FPDF()
-    pdf.add_page()
+    """Create a PDF for download with proper Unicode handling."""
+    try:
+        buffer = io.BytesIO()
+        pdf = FPDF()
+        pdf.add_page()
 
-    # Set font and size for title
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(0, 10, "Advanced Reasoning Bot Report", 0, 1, 'C')
-    pdf.ln(10)
+        # Set font and size for title
+        pdf.set_font('Helvetica', '', 16)
+        pdf.cell(0, 10, "Advanced Reasoning Bot Report", 0, 1, 'C')
+        pdf.ln(10)
 
-    # Set font for content
-    pdf.set_font("Arial", '', 12)
+        # Set font for content
+        pdf.set_font('Helvetica', '', 12)
 
-    # Add framework
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Investigation Framework", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    pdf.multi_cell(0, 10, framework)
-    pdf.ln(5)
+        # Add framework
+        pdf.set_font('Helvetica', 'B', 14)
+        pdf.cell(0, 10, "Investigation Framework", 0, 1)
+        pdf.set_font('Helvetica', '', 12)
+        
+        # Clean and encode text
+        clean_framework = ''.join(char if ord(char) < 128 else '?' for char in framework)
+        pdf.multi_cell(0, 10, clean_framework)
+        pdf.ln(5)
 
-    # Add research phases
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Research Phases", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    pdf.multi_cell(0, 10, current_analysis)
-    pdf.ln(5)
+        # Add research phases
+        pdf.set_font('Helvetica', 'B', 14)
+        pdf.cell(0, 10, "Research Phases", 0, 1)
+        pdf.set_font('Helvetica', '', 12)
+        
+        # Clean and encode text
+        clean_analysis = ''.join(char if ord(char) < 128 else '?' for char in current_analysis)
+        pdf.multi_cell(0, 10, clean_analysis)
+        pdf.ln(5)
 
-    # Add final report
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Final Report", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    pdf.multi_cell(0, 10, final_analysis)
+        # Add final report
+        pdf.set_font('Helvetica', 'B', 14)
+        pdf.cell(0, 10, "Final Report", 0, 1)
+        pdf.set_font('Helvetica', '', 12)
+        
+        # Clean and encode text
+        clean_final = ''.join(char if ord(char) < 128 else '?' for char in final_analysis)
+        pdf.multi_cell(0, 10, clean_final)
 
-    pdf_output = pdf.output(dest='S').encode('latin1')  # Get PDF content as a string
-    return io.BytesIO(pdf_output)
+        pdf_output = pdf.output(dest='S').encode('latin-1')
+        buffer = io.BytesIO(pdf_output)
+        buffer.seek(0)
+        return buffer
+
+    except Exception as e:
+        logging.error(f"Error creating PDF: {e}")
+        # Return a simplified PDF with error message
+        buffer = io.BytesIO()
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font('Helvetica', '', 12)
+        pdf.cell(0, 10, "Error creating PDF report. Some characters could not be encoded.", 0, 1)
+        pdf_output = pdf.output(dest='S').encode('latin-1')
+        buffer = io.BytesIO(pdf_output)
+        buffer.seek(0)
+        return buffer
 
 # Main Execution
 # Create columns for buttons and progress bar
