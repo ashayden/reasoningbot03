@@ -40,74 +40,20 @@ STEPS = [
 
 # DEPTH CONFIGURATION
 DEPTH_MAP = {
-    "Puddle": 1,
+    "Puddle": (1, 2),
     "Lake": (2, 3),
     "Ocean": (4, 6),
     "Mariana Trench": (7, 10)
 }
 
-# DEFAULT PROMPTS
-DEFAULT_PROMPTS = {
-    "agent1": '''You are an expert prompt engineer. Your task is to take the user's topic:
-{topic}
-
-1) Create a more refined prompt
-2) Provide a structured investigation framework
-
-Format exactly:
-Refined Prompt:
-[Your refined prompt here]
----
-[Investigation framework with numbered items]
-''',
-    "agent2": '''Using the following inputs:
-
-REFINED PROMPT:
-{refined_prompt}
-
-FRAMEWORK:
-{framework}
-
-PREVIOUS ANALYSIS:
-{previous_analysis}
-
-CURRENT FOCUS:
-{current_aspect}
-
-Perform additional research and provide new findings. 
-Include any relevant data, references, or analysis points. 
-Begin your response with a short title, then detail your findings.
-''',
-    "agent3": '''Based on all previous research and analysis:
-
-REFINED PROMPT:
-{refined_prompt}
-
-FRAMEWORK:
-{framework}
-
-ALL RESEARCH RESULTS:
-{research_results}
-
-You are an expert in this field. Provide a comprehensive final report covering:
-- Key insights
-- Conclusions
-- Supporting evidence
-- Recommendations
-
-Write in a neutral, authoritative tone.
-'''
-}
-
 ########################################
-# SETUP SESSION STATE
+# STATE MANAGEMENT
 ########################################
 def init_session_state():
     """Initialize all session state variables."""
     if 'state' not in st.session_state:
         st.session_state.state = {
             'current_step': 0,
-            'analysis_complete': False,
             'random_fact': None,
             'tldr_summary': None,
             'refined_prompt': None,
@@ -115,7 +61,7 @@ def init_session_state():
             'research_results': [],
             'final_analysis': None,
             'pdf_buffer': None,
-            'previous_input': ""
+            'previous_topic': ""
         }
     return st.session_state.state
 
@@ -126,7 +72,6 @@ def reset_analysis_state():
     
     st.session_state.state.update({
         'current_step': 0,
-        'analysis_complete': False,
         'random_fact': None,
         'tldr_summary': None,
         'refined_prompt': None,
@@ -135,6 +80,67 @@ def reset_analysis_state():
         'final_analysis': None,
         'pdf_buffer': None
     })
+
+########################################
+# UI COMPONENTS
+########################################
+def render_step_wizard(step: int):
+    """Render the step wizard with current progress."""
+    cols = st.columns([1, 0.15, 1, 0.15, 1, 0.15, 1])
+    
+    for i, (col, label) in enumerate(zip(cols[::2], STEPS)):
+        status = "complete" if i < step else "active" if i == step else "inactive"
+        
+        col.markdown(
+            f'''
+            <div class="step-box {status}">
+                <div class="step-label">{label}</div>
+            </div>
+            ''',
+            unsafe_allow_html=True
+        )
+        
+        if i < len(STEPS) - 1:
+            cols[i*2 + 1].markdown(
+                f'<div class="step-connector {status}"></div>',
+                unsafe_allow_html=True
+            )
+
+def render_ui_components():
+    """Render the main UI components."""
+    st.markdown("<h1 style='text-align:center;'>M.A.R.A.</h1>", unsafe_allow_html=True)
+    
+    topic = st.text_input(
+        "Enter a topic or question:",
+        placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"'
+    )
+    
+    with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
+        agent1_prompt = st.text_area(
+            "Agent 1 Prompt (Prompt Engineer)",
+            "You are an expert prompt engineer...\nRefined Prompt:\n---\n",
+            height=150
+        )
+        agent2_prompt = st.text_area(
+            "Agent 2 Prompt (Researcher)",
+            "Using the refined prompt & framework...\n",
+            height=150
+        )
+        agent3_prompt = st.text_area(
+            "Agent 3 Prompt (Expert Analyst)",
+            "Based on all previous research...\n",
+            height=150
+        )
+    
+    depth = st.select_slider(
+        "How deep should we dive?",
+        options=list(DEPTH_MAP.keys()),
+        value="Lake"
+    )
+    
+    start_button = st.button("🌊 Dive In")
+    
+    return topic, depth, start_button, (agent1_prompt, agent2_prompt, agent3_prompt)
 
 ########################################
 # LLM FUNCTIONS
@@ -184,13 +190,22 @@ def generate_quick_summary(topic: str) -> str:
 
 def generate_refined_prompt_and_framework(topic: str) -> tuple[str, str]:
     """Generate a refined prompt and research framework."""
-    text = DEFAULT_PROMPTS["agent1"].format(topic=topic)
-    result = generate_content(text, "Failed to generate framework")
+    prompt = f"""As an expert prompt engineer, analyze {topic} and create:
+    1. A refined, detailed prompt that will guide the research
+    2. A structured framework for investigation (4-5 key aspects to explore)
     
-    if not result or "---" not in result:
+    Format your response exactly as:
+    
+    Refined Prompt:
+    [Your refined prompt here]
+    ---
+    [Your investigation framework with numbered points]"""
+    
+    text = generate_content(prompt, "Failed to generate framework")
+    if not text or "---" not in text:
         return None, None
         
-    parts = result.split("---")
+    parts = text.split("---")
     refined = parts[0].replace("Refined Prompt:", "").strip()
     framework = parts[1].strip()
     
@@ -198,12 +213,23 @@ def generate_refined_prompt_and_framework(topic: str) -> tuple[str, str]:
 
 def conduct_research(refined_prompt: str, framework: str, prev_analysis: str, aspect: str, iteration: int) -> str:
     """Conduct research on a specific aspect."""
-    prompt = DEFAULT_PROMPTS["agent2"].format(
-        refined_prompt=refined_prompt,
-        framework=framework,
-        previous_analysis=prev_analysis,
-        current_aspect=aspect
-    )
+    prompt = f"""You are a researcher analyzing this aspect:
+    {aspect}
+    
+    Context:
+    - Refined Research Prompt: {refined_prompt}
+    - Research Framework: {framework}
+    - Previous Research: {prev_analysis if prev_analysis else "No previous research yet."}
+    
+    Please provide a detailed analysis of this aspect that:
+    1. Focuses on factual, verifiable information
+    2. Cites sources where possible
+    3. Maintains objectivity
+    4. Connects findings to the overall research goal
+    
+    Format your response with clear headings and structure.
+    Keep the analysis focused and relevant to the specific aspect being investigated."""
+    
     return generate_content(prompt, f"Failed to generate research for iteration {iteration}")
 
 ########################################
@@ -249,143 +275,6 @@ def create_download_pdf(refined_prompt: str, framework: str, research_analysis: 
         return None
 
 ########################################
-# UI COMPONENTS
-########################################
-def render_stepper(current_step: int) -> str:
-    """Render the step wizard with current progress."""
-    current_step = max(0, min(current_step, len(STEPS)))
-    
-    html = """
-        <style>
-        .stepper-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin: 2rem auto;
-            padding: 1rem 2rem;
-            max-width: 700px;
-            background: transparent;
-            position: relative;
-        }
-        .step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            flex: 1;
-            max-width: 140px;
-            margin: 0 0.5rem;
-        }
-        .step-number {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            color: rgba(255, 255, 255, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-bottom: 8px;
-            z-index: 2;
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        .step-label {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.6);
-            text-align: center;
-            max-width: 110px;
-            word-wrap: break-word;
-            position: relative;
-            z-index: 2;
-            line-height: 1.2;
-            margin-top: 4px;
-        }
-        .step-line {
-            position: absolute;
-            top: 18px;
-            left: calc(50% + 25px);
-            right: calc(-50% + 25px);
-            height: 2px;
-            background-color: rgba(255, 255, 255, 0.2);
-            z-index: 1;
-        }
-        .step.active .step-number {
-            border-color: #2439f7;
-            color: #2439f7;
-            background-color: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 0 0 4px rgba(36, 57, 247, 0.1);
-        }
-        .step.active .step-label {
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 500;
-        }
-        .step.complete .step-number {
-            background-color: #28a745;
-            border-color: #28a745;
-            color: white;
-        }
-        .step.complete .step-line {
-            background-color: #28a745;
-        }
-        .step:last-child .step-line {
-            display: none;
-        }
-        </style>
-    """
-    
-    html_parts = [
-        '<div class="stepper-container">',
-        *[f'<div class="step {status}"><div class="step-number">{i + 1}</div><div class="step-label">{label}</div><div class="step-line"></div></div>'
-          for i, label in enumerate(STEPS)
-          for status in ["complete" if i < current_step else "active" if i == current_step else ""]],
-        '</div>'
-    ]
-    
-    return html + ''.join(html_parts)
-
-def render_ui_components():
-    """Render the main UI components."""
-    st.markdown(
-        "<h1 class='main-title' data-title='Multi-Agent Reasoning Assistant'>M.A.R.A.</h1>",
-        unsafe_allow_html=True
-    )
-    
-    topic = st.text_input(
-        "Enter a topic or question:",
-        placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"'
-    )
-    
-    with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
-        agent1_prompt = st.text_area(
-            "Agent 1 Prompt (Prompt Engineer)",
-            DEFAULT_PROMPTS["agent1"],
-            height=250
-        )
-        agent2_prompt = st.text_area(
-            "Agent 2 Prompt (Researcher)",
-            DEFAULT_PROMPTS["agent2"],
-            height=250
-        )
-        agent3_prompt = st.text_area(
-            "Agent 3 Prompt (Expert Analyst)",
-            DEFAULT_PROMPTS["agent3"],
-            height=250
-        )
-    
-    depth = st.select_slider(
-        "How deep should we dive?",
-        options=list(DEPTH_MAP.keys()),
-        value="Lake"
-    )
-    
-    start_button = st.button("🌊 Dive In")
-    
-    return topic, depth, start_button, (agent1_prompt, agent2_prompt, agent3_prompt)
-
-########################################
 # MAIN APP LOGIC
 ########################################
 def main():
@@ -406,7 +295,7 @@ def main():
     
     # Create step wizard container
     step_container = st.empty()
-    step_container.markdown(render_stepper(state['current_step']), unsafe_allow_html=True)
+    step_container.markdown(render_step_wizard(state['current_step']), unsafe_allow_html=True)
     
     if start_button:
         if not topic.strip():
@@ -416,10 +305,7 @@ def main():
         try:
             # Calculate iterations
             depth_range = DEPTH_MAP[depth]
-            loops_num = (
-                depth_range if isinstance(depth_range, int)
-                else random.randint(*depth_range)
-            )
+            loops_num = random.randint(*depth_range)
             
             # Step 1: Initial Analysis
             with st.spinner("Generating initial insights..."):
@@ -437,7 +323,7 @@ def main():
                         st.markdown(tldr_summary)
             
             state['current_step'] = 1
-            step_container.markdown(render_stepper(state['current_step']), unsafe_allow_html=True)
+            step_container.markdown(render_step_wizard(state['current_step']), unsafe_allow_html=True)
             
             # Step 2: Framework Development
             with st.spinner("Developing research framework..."):
@@ -457,7 +343,7 @@ def main():
                     st.markdown(framework)
             
             state['current_step'] = 2
-            step_container.markdown(render_stepper(state['current_step']), unsafe_allow_html=True)
+            step_container.markdown(render_step_wizard(state['current_step']), unsafe_allow_html=True)
             
             # Step 3: Research Phase
             aspects = [line.strip() for line in framework.split("\n") 
@@ -497,16 +383,24 @@ def main():
                 state['research_results'] = research_results
             
             state['current_step'] = 3
-            step_container.markdown(render_stepper(state['current_step']), unsafe_allow_html=True)
+            step_container.markdown(render_step_wizard(state['current_step']), unsafe_allow_html=True)
             
             # Step 4: Final Analysis
             with st.spinner("Generating final analysis..."):
                 combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results)
-                final_prompt = DEFAULT_PROMPTS["agent3"].format(
-                    refined_prompt=refined_prompt,
-                    framework=framework,
-                    research_results=combined_results
-                )
+                final_prompt = f"""Based on all previous research conducted, please provide a comprehensive final analysis of {topic}.
+                
+                Here are the key findings from our research:
+                
+                {combined_results}
+                
+                Please synthesize these findings into a clear, well-organized final report that:
+                1. Summarizes the key insights
+                2. Identifies patterns and connections
+                3. Draws meaningful conclusions
+                4. Suggests potential implications or next steps
+                
+                Format the response in a clear, professional style with appropriate headings and structure."""
                 
                 final_analysis = generate_content(
                     final_prompt,
@@ -542,7 +436,7 @@ def main():
                 'current_step': 4,
                 'analysis_complete': True
             })
-            step_container.markdown(render_stepper(state['current_step']), unsafe_allow_html=True)
+            step_container.markdown(render_step_wizard(state['current_step']), unsafe_allow_html=True)
             
         except Exception as e:
             logging.error(f"Analysis error: {str(e)}")
