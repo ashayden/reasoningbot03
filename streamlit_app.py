@@ -15,46 +15,42 @@ logging.basicConfig(
 # --- Custom CSS for Streamlit ---
 st.markdown("""
 <style>
-/* Overall layout */
+/* More compact spacing */
 .block-container {
-    padding: 2rem 1rem;
+    padding-top: 2rem !important;
+    padding-bottom: 1rem !important;
     max-width: 800px;
-    margin: auto;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Typography */
-body, input, textarea, button {
-    font-family: 'Helvetica Neue', sans-serif;
-    color: #333;
+/* Input field styling */
+.stTextInput > div > div > input {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    border-radius: 0.5rem;
 }
 
 /* Button styling */
 .stButton > button {
     width: 100%;
-    padding: 0.6rem 1.2rem;
+    padding: 0.5rem 1rem;
     font-size: 1rem;
     font-weight: 500;
-    border-radius: 5px;
-    border: none;
-    background-color: #007bff;
-    color: white;
-    transition: background-color 0.3s ease;
-}
-
-.stButton > button:hover {
-    background-color: #0056b3;
+    border-radius: 0.5rem;
+    margin: 0.5rem 0;
+    transition: all 0.2s;
 }
 
 /* Progress bar styling */
 .stProgress > div > div > div > div {
-    background: linear-gradient(90deg, #007bff 0%, #007bff 98%, #007bff 100%);
+    background: linear-gradient(90deg, 
+        #007bff 0%, 
+        #007bff 98%, 
+        #007bff 100%
+    );
     background-size: 200% 100%;
     animation: loading 2s linear infinite;
-    border-radius: 5px;
-    height: 0.4rem !important;
+    border-radius: 0.5rem;
+    height: 0.5rem !important;
 }
 
 @keyframes loading {
@@ -65,7 +61,7 @@ body, input, textarea, button {
 /* Completed progress bar */
 .progress-complete > div > div > div > div {
     background: #28a745 !important;
-    animation: none !important;
+    animation: none;
 }
 
 /* Expander styling */
@@ -73,18 +69,12 @@ body, input, textarea, button {
     font-size: 1rem;
     font-weight: 600;
     padding: 0.75rem 0;
-    border-radius: 5px;
-    background-color: #e9ecef;
-    color: #007bff;
-}
-
-.streamlit-expanderHeader:hover {
-    background-color: #d6d8db;
+    border-radius: 0.5rem;
 }
 
 /* Slider styling */
 .stSlider > div > div > div {
-    height: 0.4rem !important;
+    height: 0.5rem !important;
 }
 
 .stSlider > div > div > div > div {
@@ -95,18 +85,11 @@ body, input, textarea, button {
 /* Download button styling */
 [data-testid="stDownloadButton"] > button {
     width: 100%;
-    padding: 0.6rem 1.2rem;
+    padding: 0.5rem 1rem;
     font-size: 1rem;
     font-weight: 500;
-    border-radius: 5px;
-    border: none;
-    background-color: #28a745;
-    color: white;
-    transition: background-color 0.3s ease;
-}
-
-[data-testid="stDownloadButton"] > button:hover {
-    background-color: #218838;
+    border-radius: 0.5rem;
+    margin: 0.5rem 0;
 }
 
 /* Adjust spacing between sections */
@@ -117,8 +100,8 @@ body, input, textarea, button {
 """, unsafe_allow_html=True)
 
 # Update main title and subheader
-st.markdown("<h1 style='text-align: center; font-size: 2.5rem;'>🤖 AI Analysis Bot</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 1.2rem; color: #666;'>Explore topics with depth and insight using AI-driven analysis.</p>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>🤖</h1>", unsafe_allow_html=True)
+st.markdown("<p class='subheader'>This bot uses multiple AI agents to analyze topics in depth with sophisticated reasoning.</p>", unsafe_allow_html=True)
 
 # Get API key from Streamlit secrets
 try:
