@@ -173,6 +173,21 @@ st.markdown("""
     float: right !important;
 }
 
+/* Target the block container of the expander */
+[data-testid="stExpander"] > .st-emotion-cache-1q1n0ol {
+    background-color: transparent !important;
+}
+
+/* Target the expander content */
+[data-testid="stExpander"] > .st-emotion-cache-1ehh7ok {
+    background-color: transparent !important;
+}
+
+/* Target any div within expander */
+[data-testid="stExpander"] div {
+    background-color: transparent !important;
+}
+
 [data-testid="stExpander"] details {
     border: none !important;
     box-shadow: none !important;
@@ -214,21 +229,12 @@ st.markdown("""
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
 }
 
-/* Additional selectors to ensure no blue background */
-[data-testid="stExpander"] > div {
+/* Target Streamlit's emotion classes */
+.st-emotion-cache-1y4p8pa {
     background-color: transparent !important;
 }
 
-[data-testid="stExpander"] .streamlit-expanderHeader {
-    background-color: transparent !important;
-}
-
-[data-testid="stExpander"] .streamlit-expanderContent > div {
-    background-color: transparent !important;
-}
-
-/* Target any nested elements */
-[data-testid="stExpander"] * {
+.st-emotion-cache-1gulkj3 {
     background-color: transparent !important;
 }
 
