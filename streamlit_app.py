@@ -31,6 +31,7 @@ def render_stepper(current_step: int) -> None:
     # Create the CSS with improved transitions and states
     st.markdown("""
         <style>
+        div[data-testid="stMarkdownContainer"] > div {background: transparent !important;}
         .stepper-container {
             display: flex;
             align-items: center;
@@ -38,7 +39,7 @@ def render_stepper(current_step: int) -> None:
             margin: 1rem auto;
             padding: 0.5rem;
             max-width: 800px;
-            background: transparent;
+            background: transparent !important;
             position: relative;
         }
         .step {
@@ -48,6 +49,7 @@ def render_stepper(current_step: int) -> None:
             position: relative;
             flex: 1;
             padding: 0 1rem;
+            background: transparent !important;
         }
         .step-number {
             width: 32px;
@@ -246,13 +248,16 @@ if st.session_state.analysis_complete:
 # -------------- Step Wizard Container --------------
 def create_step_wizard():
     """Creates and returns a step wizard container."""
-    st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
-    return st.empty()
+    container = st.container()
+    container.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+    return container.empty()
 
 def update_step_wizard(container, step: int):
     """Updates the step wizard with proper error handling."""
     try:
-        container.markdown(render_stepper(step), unsafe_allow_html=True)
+        # Ensure we're using a container for proper rendering
+        with container:
+            render_stepper(step)
     except Exception as e:
         logging.error(f"Error updating step wizard: {e}")
         # Attempt recovery by recreating container
@@ -457,9 +462,11 @@ if start_clicked:
         reset_analysis_state()
     
     try:
-        # Create or get step wizard container
-        step_wizard = create_step_wizard()
-        update_step_wizard(step_wizard, 0)
+        # Create step wizard in its own container
+        step_container = create_step_wizard()
+        
+        # Initial state
+        update_step_wizard(step_container, 0)
 
         # Step 1: Initial Analysis
         st.session_state.random_fact = generate_random_fact(topic)
@@ -475,7 +482,7 @@ if start_clicked:
 
         # Update Step 1
         st.session_state.current_step = 1
-        update_step_wizard(step_wizard, 1)
+        update_step_wizard(step_container, 1)
 
         # Step 2: Framework Development
         refined_prompt, framework = generate_refined_prompt_and_framework(topic)
@@ -493,7 +500,7 @@ if start_clicked:
 
         # Update Step 2
         st.session_state.current_step = 2
-        update_step_wizard(step_wizard, 2)
+        update_step_wizard(step_container, 2)
 
         # Step 3: Research Phase
         aspects = [line.strip() for line in framework.split("\n") 
@@ -530,7 +537,7 @@ if start_clicked:
         
         # Update Step 3
         st.session_state.current_step = 3
-        update_step_wizard(step_wizard, 3)
+        update_step_wizard(step_container, 3)
 
         # Generate final report
         combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results_list)
@@ -566,7 +573,7 @@ if start_clicked:
         # Update final step
         st.session_state.current_step = 4
         st.session_state.analysis_complete = True
-        update_step_wizard(step_wizard, 4)
+        update_step_wizard(step_container, 4)
 
         # Show download button
         st.download_button(
@@ -585,5 +592,5 @@ if start_clicked:
 
 # Show existing step wizard if analysis is in progress
 elif st.session_state.analysis_started:
-    step_wizard = create_step_wizard()
-    update_step_wizard(step_wizard, st.session_state.current_step)
+    step_container = create_step_wizard()
+    update_step_wizard(step_container, st.session_state.current_step)
