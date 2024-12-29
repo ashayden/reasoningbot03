@@ -3,6 +3,8 @@ import google.generativeai as genai
 import time
 import logging
 import random
+import io
+from fpdf import FPDF
 
 # Configure logging with debug level
 logging.basicConfig(
@@ -29,11 +31,10 @@ body {
     background-color: #5D1796; /* Change progress bar color to violet */
 }
 
-/* Style for the main title */
+/* Style for the main title (remove color to use default)*/
 .main-title {
     font-size: 2.5rem;
     font-weight: bold;
-    color: #5D1796;
     margin-bottom: 0.5rem;
 }
 
@@ -71,7 +72,7 @@ except Exception as e:
     st.stop()
 
 # --- Main Title ---
-st.markdown("<h1 class='main-title'>Advanced Reasoning Bot 🤖</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>🤖</h1>", unsafe_allow_html=True)  # Changed title to just the robot emoji
 
 # --- Subheader ---
 st.markdown("<p class='subheader'>This bot uses multiple AI agents to analyze topics in depth with sophisticated reasoning.</p>", unsafe_allow_html=True)
@@ -377,6 +378,49 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
         logging.error(f"Failed to conduct research in phase {iteration}: {e}")
     return None
 
+def create_download_pdf(refined_prompt, framework, current_analysis, final_analysis):
+    """Create a PDF for download."""
+    buffer = io.BytesIO()
+    pdf = FPDF()
+    pdf.add_page()
+
+    # Set font and size for title
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(0, 10, "Advanced Reasoning Bot Report", 0, 1, 'C')
+    pdf.ln(10)
+
+    # Set font for content
+    pdf.set_font("Arial", '', 12)
+
+    # Add refined prompt
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Refined Prompt", 0, 1)
+    pdf.set_font('Arial', '', 12)
+    pdf.multi_cell(0, 10, refined_prompt)
+    pdf.ln(5)
+
+    # Add framework
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Investigation Framework", 0, 1)
+    pdf.set_font('Arial', '', 12)
+    pdf.multi_cell(0, 10, framework)
+    pdf.ln(5)
+
+    # Add research phases
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Research Phases", 0, 1)
+    pdf.set_font('Arial', '', 12)
+    pdf.multi_cell(0, 10, current_analysis)
+    pdf.ln(5)
+
+    # Add final report
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Final Report", 0, 1)
+    pdf.set_font('Arial', '', 12)
+    pdf.multi_cell(0, 10, final_analysis)
+
+    pdf_output = pdf.output(dest='S').encode('latin1')  # Get PDF content as a string
+    return io.BytesIO(pdf_output)
 
 # Main Execution
 if st.button("Start Analysis", key="start_button"):
@@ -400,15 +444,11 @@ if st.button("Start Analysis", key="start_button"):
             tldr_summary = generate_quick_summary(topic)
             progress_states["tldr"]["progress"] = 100
             progress_states["tldr"]["status"] = "complete"
-            
+
             # Update placeholder for TL;DR
             with placeholders["tldr"]:
                 with st.expander(f"**{progress_states['tldr']['label']}**", expanded=True):
-                    if progress_states["tldr"]["status"] == "complete":
-                        st.markdown(tldr_summary)
-                        # st.markdown("✅ Complete")  # Removed checkmark
-                    else:
-                        st.markdown("⏳ In progress...")
+                    st.markdown(tldr_summary)
 
             # Agent 1: Refine prompt and generate framework
             refined_prompt, framework = generate_refined_prompt_and_framework(topic)
@@ -426,19 +466,11 @@ if st.button("Start Analysis", key="start_button"):
                 # Update placeholders with expanders and content
                 with placeholders["refined_prompt"]:
                     with st.expander(f"**{progress_states['refined_prompt']['label']}**", expanded=False):
-                        if progress_states["refined_prompt"]["status"] == "complete":
-                            st.markdown(refined_prompt.lstrip(":\n").strip())
-                            # st.markdown("✅ Complete")  # Removed checkmark
-                        else:
-                            st.markdown("⏳ In progress...")
+                        st.markdown(refined_prompt.lstrip(":\n").strip())
 
                 with placeholders["framework"]:
                     with st.expander(f"**{progress_states['framework']['label']}**", expanded=False):
-                        if progress_states["framework"]["status"] == "complete":
-                            st.markdown(framework.lstrip(": **\n").strip())
-                            # st.markdown("✅ Complete")  # Removed checkmark
-                        else:
-                            st.markdown("⏳ In progress...")
+                        st.markdown(framework.lstrip(": **\n").strip())
 
                 # Agent 2: Conduct research through iterations
                 current_analysis = ""
@@ -477,7 +509,7 @@ if st.button("Start Analysis", key="start_button"):
                             with st.expander(f"**{title}**", expanded=False):
                                 st.markdown("\n".join(research_lines[1:]))
                                 if progress_states["research"]["status"] == "complete":
-                                    pass # Removed checkmark
+                                    pass  # Removed checkmark
                                 else:
                                     st.markdown("⏳ In progress...")
                     else:
@@ -505,11 +537,17 @@ if st.button("Start Analysis", key="start_button"):
 
                         with placeholders["analysis"]:
                             with st.expander(f"**{progress_states['analysis']['label']}**", expanded=False):
-                                if progress_states["analysis"]["status"] == "complete":
-                                    st.markdown(final_analysis)
-                                    # st.markdown("✅ Complete") # Removed checkmark
-                                else:
-                                    st.markdown("⏳ In progress...")
+                                st.markdown(final_analysis)
+                                st.markdown("🥂 Analysis Complete")
+
+                                # Create download button for PDF
+                                pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
+                                st.download_button(
+                                    label="Download Report as PDF",
+                                    data=pdf_buffer,
+                                    file_name=f"{topic}_analysis_report.pdf",
+                                    mime="application/pdf"
+                                )
 
                     except Exception as e:
                         with placeholders["analysis"]:
