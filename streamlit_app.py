@@ -213,6 +213,30 @@ st.markdown("""
     border-radius: 6px !important;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
 }
+
+/* Additional selectors to ensure no blue background */
+[data-testid="stExpander"] > div {
+    background-color: transparent !important;
+}
+
+[data-testid="stExpander"] .streamlit-expanderHeader {
+    background-color: transparent !important;
+}
+
+[data-testid="stExpander"] .streamlit-expanderContent > div {
+    background-color: transparent !important;
+}
+
+/* Target any nested elements */
+[data-testid="stExpander"] * {
+    background-color: transparent !important;
+}
+
+/* Ensure text areas and inputs within expander are white */
+[data-testid="stExpander"] textarea,
+[data-testid="stExpander"] input {
+    background-color: white !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
