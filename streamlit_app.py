@@ -448,8 +448,9 @@ if start_button:
         with st.expander("💡 TL;DR", expanded=True):
             st.markdown(st.session_state.tldr_summary)
 
-    # Update progress without re-rendering
+    # Mark Step 1 complete and update to Step 2 AFTER insights are shown
     st.session_state.current_step = 1
+    render_progress(st.session_state.current_step)
 
     # Step 2: Framework Development
     refined_prompt, framework = generate_refined_prompt_and_framework(topic)
