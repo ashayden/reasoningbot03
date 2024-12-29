@@ -15,7 +15,7 @@ logging.basicConfig(
 
 # STEP LABELS FOR YOUR WIZARD
 STEPS = [
-    "Refining Prompt",
+    "Making a Plan",
     "Developing Framework",
     "Conducting Research",
     "Analysis Complete"
@@ -425,7 +425,7 @@ if start_button:
         st.warning("Please enter a topic.")
         st.stop()
 
-    # Reset states and initialize container
+    # Reset states
     st.session_state.update({
         'analysis_complete': False,
         'research_results': [],
@@ -433,7 +433,7 @@ if start_button:
         'current_step': 0
     })
     
-    # Create progress indicator
+    # Create progress indicator once at the top
     render_progress(st.session_state.current_step)
     
     # Step 1: Initial Analysis
@@ -448,9 +448,8 @@ if start_button:
         with st.expander("💡 TL;DR", expanded=True):
             st.markdown(st.session_state.tldr_summary)
 
-    # Update progress
+    # Update progress without re-rendering
     st.session_state.current_step = 1
-    render_progress(st.session_state.current_step)
 
     # Step 2: Framework Development
     refined_prompt, framework = generate_refined_prompt_and_framework(topic)
@@ -466,9 +465,8 @@ if start_button:
     with st.expander("🗺️ Investigation Framework", expanded=False):
         st.markdown(framework)
 
-    # Update progress
+    # Update progress without re-rendering
     st.session_state.current_step = 2
-    render_progress(st.session_state.current_step)
 
     # Step 3: Research Phase
     aspects = [line.strip() for line in framework.split("\n") 
@@ -500,10 +498,6 @@ if start_button:
 
     st.session_state.research_results = research_results_list
 
-    # Update progress
-    st.session_state.current_step = 3
-    render_progress(st.session_state.current_step)
-
     # Step 4: Final Analysis
     try:
         combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results_list)
@@ -531,7 +525,6 @@ if start_button:
         # Update progress
         st.session_state.current_step = 4
         st.session_state.analysis_complete = True
-        render_progress(st.session_state.current_step)
 
         # Show download button
         st.download_button(
