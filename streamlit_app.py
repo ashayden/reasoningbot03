@@ -422,55 +422,55 @@ if start_clicked:
     
     # Create single step wizard container AFTER the Dive In button
     st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)  # Add spacing
-    step_container = st.empty()  # Use empty container to update in place
-    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+    step_wizard = st.empty()  # Single container for step wizard
+    step_wizard.markdown(render_stepper(0), unsafe_allow_html=True)  # Initial state
 
-    # Step 1: Initial Analysis
-    st.session_state.random_fact = generate_random_fact(topic)
-    st.session_state.tldr_summary = generate_quick_summary(topic)
-
-    if st.session_state.random_fact:
-        with st.expander("🎲 Random Fact", expanded=True):
-            st.markdown(st.session_state.random_fact)
-
-    if st.session_state.tldr_summary:
-        with st.expander("💡 TL;DR", expanded=True):
-            st.markdown(st.session_state.tldr_summary)
-
-    # Mark Step 1 complete
-    st.session_state.current_step = 1
-    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
-
-    # Step 2: Framework Development
-    refined_prompt, framework = generate_refined_prompt_and_framework(topic)
-    if not refined_prompt or not framework:
-        st.error("Could not generate refined prompt and framework. Please try again.")
-        st.stop()
-
-    st.session_state.refined_prompt = refined_prompt
-    st.session_state.framework = framework
-
-    with st.expander("🎯 Refined Prompt", expanded=False):
-        st.markdown(refined_prompt)
-    with st.expander("🗺️ Investigation Framework", expanded=False):
-        st.markdown(framework)
-
-    # Mark Step 2 complete
-    st.session_state.current_step = 2
-    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
-
-    # Step 3: Research Phase
-    aspects = [line.strip() for line in framework.split("\n") 
-              if line.strip().startswith(tuple(f"{x}." for x in range(1,10)))]
-    
-    if not aspects:
-        st.error("No research aspects found in the framework. Please try again.")
-        st.stop()
-
-    current_analysis = ""
-    research_results_list = []
-    
     try:
+        # Step 1: Initial Analysis
+        st.session_state.random_fact = generate_random_fact(topic)
+        st.session_state.tldr_summary = generate_quick_summary(topic)
+
+        if st.session_state.random_fact:
+            with st.expander("🎲 Random Fact", expanded=True):
+                st.markdown(st.session_state.random_fact)
+
+        if st.session_state.tldr_summary:
+            with st.expander("💡 TL;DR", expanded=True):
+                st.markdown(st.session_state.tldr_summary)
+
+        # Update Step 1 complete
+        st.session_state.current_step = 1
+        step_wizard.markdown(render_stepper(1), unsafe_allow_html=True)
+
+        # Step 2: Framework Development
+        refined_prompt, framework = generate_refined_prompt_and_framework(topic)
+        if not refined_prompt or not framework:
+            st.error("Could not generate refined prompt and framework. Please try again.")
+            st.stop()
+
+        st.session_state.refined_prompt = refined_prompt
+        st.session_state.framework = framework
+
+        with st.expander("🎯 Refined Prompt", expanded=False):
+            st.markdown(refined_prompt)
+        with st.expander("🗺️ Investigation Framework", expanded=False):
+            st.markdown(framework)
+
+        # Update Step 2 complete
+        st.session_state.current_step = 2
+        step_wizard.markdown(render_stepper(2), unsafe_allow_html=True)
+
+        # Step 3: Research Phase
+        aspects = [line.strip() for line in framework.split("\n") 
+                if line.strip().startswith(tuple(f"{x}." for x in range(1,10)))]
+        
+        if not aspects:
+            st.error("No research aspects found in the framework. Please try again.")
+            st.stop()
+
+        current_analysis = ""
+        research_results_list = []
+        
         for i in range(loops_num):
             aspect = aspects[i % len(aspects)]
             research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
@@ -493,17 +493,11 @@ if start_clicked:
                 
         st.session_state.research_results = research_results_list
         
-        # Mark Step 3 complete
+        # Update Step 3 complete
         st.session_state.current_step = 3
-        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
-        
-    except Exception as e:
-        logging.error(f"Research phase error: {str(e)}")
-        st.error("An error occurred during the research phase. Please try again.")
-        st.stop()
+        step_wizard.markdown(render_stepper(3), unsafe_allow_html=True)
 
-    # Generate final report
-    try:
+        # Generate final report
         combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results_list)
         final_prompt = f"""Based on all previous research conducted, please provide a comprehensive final analysis of {topic}.
         
@@ -534,10 +528,10 @@ if start_clicked:
         pdf_bytes = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
         st.session_state.pdf_buffer = pdf_bytes
 
-        # Mark analysis complete and update step wizard one final time
+        # Update final step complete
         st.session_state.current_step = 4
         st.session_state.analysis_complete = True
-        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+        step_wizard.markdown(render_stepper(4), unsafe_allow_html=True)
 
         # Show download button
         st.download_button(
@@ -549,6 +543,6 @@ if start_clicked:
         )
 
     except Exception as e:
-        logging.error(f"Final report error: {e}")
-        st.error(f"Error generating final report: {str(e)}")
+        logging.error(f"Error during analysis: {str(e)}")
+        st.error(f"An error occurred: {str(e)}")
         st.stop()
