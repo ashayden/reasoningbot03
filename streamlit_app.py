@@ -160,6 +160,42 @@ st.markdown("""
 .stSlider > div > div > div > div:hover {
     transform: scale(1.2);
 }
+
+/* Advanced prompt customization button styling */
+[data-testid="stExpander"] {
+    border: none !important;
+    box-shadow: none !important;
+    background-color: #2439f7 !important;
+    border-radius: 6px !important;
+    margin-bottom: 1rem !important;
+}
+
+[data-testid="stExpander"] details {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+[data-testid="stExpander"] summary {
+    color: white !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.5px !important;
+    padding: 0.75rem 1.5rem !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+[data-testid="stExpander"] summary:hover {
+    background-color: #1a2bc4 !important;
+    transform: translateY(-1px) !important;
+}
+
+[data-testid="stExpander"] summary:active {
+    transform: translateY(1px) !important;
+}
+
+[data-testid="stExpander"] .streamlit-expanderContent {
+    border: none !important;
+    background-color: transparent !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -231,8 +267,49 @@ if topic != st.session_state.previous_input:
     st.session_state.framework = None
     st.session_state.previous_input = topic
 
-# Add popover trigger button for prompt customization
-with st.popover("☠️ Advanced Prompt Customization ☠️"):
+# Add custom CSS for the advanced prompt customization expander
+st.markdown("""
+<style>
+/* Advanced prompt customization button styling */
+[data-testid="stExpander"] {
+    border: none !important;
+    box-shadow: none !important;
+    background-color: #2439f7 !important;
+    border-radius: 6px !important;
+    margin-bottom: 1rem !important;
+}
+
+[data-testid="stExpander"] details {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+[data-testid="stExpander"] summary {
+    color: white !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.5px !important;
+    padding: 0.75rem 1.5rem !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+[data-testid="stExpander"] summary:hover {
+    background-color: #1a2bc4 !important;
+    transform: translateY(-1px) !important;
+}
+
+[data-testid="stExpander"] summary:active {
+    transform: translateY(1px) !important;
+}
+
+[data-testid="stExpander"] .streamlit-expanderContent {
+    border: none !important;
+    background-color: transparent !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# Add expander for prompt customization
+with st.expander("☠️ Advanced Prompt Customization ☠️"):
     st.markdown("### Customize Agent Prompts")
     
     # Agent 1 Prompt
