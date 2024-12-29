@@ -39,12 +39,40 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
 /* Style for the slider */
 .stSlider {
     width: 100% !important;
+    padding: 20px 0;
+}
+
+.stSlider > div {
+    margin-bottom: 20px;
+}
+
+/* Make the slider track taller */
+.stSlider > div > div > div {
+    height: 24px !important;
+}
+
+/* Style the slider thumb */
+.stSlider > div > div > div > div {
+    height: 24px !important;
+    width: 24px !important;
+    background-color: #007bff !important;
+    border: 2px solid white !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+    transition: all 0.2s ease !important;
+}
+
+.stSlider > div > div > div > div:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3) !important;
 }
 
 /* Style slider value text */
 .stSlider > div > div:nth-child(3) > span {
     font-family: 'Roboto', sans-serif !important;
+    font-size: 1.1rem !important;
+    font-weight: 500 !important;
     color: #007bff !important;
+    margin-top: 8px !important;
 }
 
 /* Add padding to main content */
@@ -164,7 +192,7 @@ if topic != st.session_state.previous_input:
     st.session_state.previous_input = topic
 
 # --- UI/UX - Add expander for prompt details ---
-with st.expander("**Advanced Prompt Customization**"):
+with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
     # Agent Prompts
     agent1_prompt = st.text_area(
         "Agent 1 Prompt (Prompt Engineer)",
@@ -342,6 +370,28 @@ if st.session_state.analysis_complete:
                 use_container_width=True
             )
 
+def generate_random_fact(topic):
+    """Generate a random interesting fact related to the topic."""
+    try:
+        fact_prompt = f"""
+        Generate ONE short, fascinating, and possibly bizarre fact related to this topic: {topic}
+        Make it engaging and fun. Include relevant emojis. Keep it to one or two sentences maximum.
+        Focus on surprising, lesser-known, or unusual aspects of the topic.
+        """
+        response = model.generate_content(
+            fact_prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.9,
+                top_p=0.9,
+                top_k=40,
+                max_output_tokens=100,
+            ),
+        )
+        return handle_response(response)
+    except Exception as e:
+        logging.error(f"Failed to generate random fact: {e}")
+        return None
+
 if start_button_clicked:
     if topic:
         # Reset session state
@@ -361,6 +411,29 @@ if start_button_clicked:
         progress_bar = progress_placeholder.progress(0)
 
         try:
+            # Create placeholder for random facts
+            facts_placeholder = st.empty()
+            
+            # Display initial random fact
+            with facts_placeholder.container():
+                with st.expander("**🎲 Random Fact**", expanded=True):
+                    st.markdown(generate_random_fact(topic))
+            
+            # Start fact update loop in the background
+            def update_fact():
+                time.sleep(8)  # Wait 8 seconds before showing new facts
+                while not st.session_state.analysis_complete:
+                    with facts_placeholder.container():
+                        with st.expander("**🎲 Random Fact**", expanded=True):
+                            st.markdown(generate_random_fact(topic))
+                    time.sleep(12)  # Show new fact every 12 seconds
+            
+            # Start the fact update loop in a separate thread
+            import threading
+            fact_thread = threading.Thread(target=update_fact)
+            fact_thread.daemon = True
+            fact_thread.start()
+
             # Quick Summary (TL;DR)
             tldr_summary = generate_quick_summary(topic)
             if tldr_summary:
