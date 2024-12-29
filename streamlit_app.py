@@ -154,7 +154,7 @@ except Exception as e:
 
 # --- Main Title ---
 st.markdown(
-    "<h1 style='text-align: center;'>M.A.R.A.</h1>",
+    "<h1 class='main-title' data-title='Multi-Agent Reasoning Assistant a003'>M.A.R.A.</h1>",
     unsafe_allow_html=True
 )
 
@@ -178,6 +178,70 @@ loops = st.select_slider(
     options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
     value="Lake",
 )
+
+# --- Advanced Prompt Customization ---
+with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
+    agent1_prompt = st.text_area(
+        "Agent 1 Prompt (Prompt Engineer)",
+        '''You are an expert prompt engineer. Your task is to take the user's topic:
+{topic}
+
+1) Create a more refined prompt
+2) Provide a structured investigation framework
+
+Format exactly:
+Refined Prompt:
+[Your refined prompt here]
+---
+[Investigation framework with numbered items]
+''',
+        height=250
+    )
+    agent2_prompt = st.text_area(
+        "Agent 2 Prompt (Researcher)",
+        '''Using the following inputs:
+
+REFINED PROMPT:
+{refined_prompt}
+
+FRAMEWORK:
+{framework}
+
+PREVIOUS ANALYSIS:
+{previous_analysis}
+
+CURRENT FOCUS:
+{current_aspect}
+
+Perform additional research and provide new findings. 
+Include any relevant data, references, or analysis points. 
+Begin your response with a short title, then detail your findings.
+''',
+        height=250
+    )
+    agent3_prompt = st.text_area(
+        "Agent 3 Prompt (Expert Analyst)",
+        '''Based on all previous research and analysis:
+
+REFINED PROMPT:
+{refined_prompt}
+
+FRAMEWORK:
+{framework}
+
+ALL RESEARCH RESULTS:
+{research_results}
+
+You are an expert in this field. Provide a comprehensive final report covering:
+- Key insights
+- Conclusions
+- Supporting evidence
+- Recommendations
+
+Write in a neutral, authoritative tone.
+''',
+        height=250
+    )
 
 # Button
 start_button = st.button("\U0001F30A Dive In")
