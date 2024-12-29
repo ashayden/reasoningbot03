@@ -243,6 +243,47 @@ st.markdown("""
 [data-testid="stExpander"] input {
     background-color: white !important;
 }
+
+/* Minimal styling for text areas and inputs */
+[data-testid="stExpander"] textarea {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 4px !important;
+    padding: 8px !important;
+    font-family: monospace !important;
+    transition: border-color 0.2s ease-in-out !important;
+}
+
+[data-testid="stExpander"] textarea:focus {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Remove blue backgrounds */
+[data-testid="stExpander"],
+[data-testid="stExpander"] div,
+[data-testid="stExpander"] details,
+.st-emotion-cache-1y4p8pa,
+.st-emotion-cache-1gulkj3,
+.st-emotion-cache-1q1n0ol,
+.st-emotion-cache-1ehh7ok {
+    background-color: transparent !important;
+}
+
+/* Minimal header styling */
+[data-testid="stExpander"] summary {
+    color: #2439f7 !important;
+    font-weight: 500 !important;
+    padding: 0.5rem 1rem !important;
+    transition: all 0.2s ease-in-out !important;
+    font-size: 1.2rem !important;
+    background-color: transparent !important;
+}
+
+[data-testid="stExpander"] summary:hover {
+    background-color: rgba(36, 57, 247, 0.1) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
