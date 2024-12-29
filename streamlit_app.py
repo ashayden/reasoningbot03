@@ -101,18 +101,33 @@ st.markdown("""
     padding-left: 1.25rem;
 }
 
-/* Slider styling with larger handle */
-.stSlider > div > div > div > div {
-    height: 20px !important;
-    width: 20px !important;
-    background-color: #2439f7 !important;
-    border: 2px solid white !important;
-    box-shadow: none !important;
-    transition: transform 0.2s ease-in-out !important;
+/* Slider container and label styling */
+.stSlider {
+    padding: 1rem 0 2rem 0 !important;
 }
 
+/* Slider track styling */
 .stSlider > div > div > div {
     height: 4px !important;
+    background: linear-gradient(to right, 
+        rgba(36, 57, 247, 0.8) 0%, 
+        rgba(36, 57, 247, 0.8) var(--slider-progress), 
+        rgba(36, 57, 247, 0.1) var(--slider-progress), 
+        rgba(36, 57, 247, 0.1) 100%
+    ) !important;
+}
+
+/* Slider handle styling */
+.stSlider > div > div > div > div {
+    height: 24px !important;
+    width: 24px !important;
+    background-color: #2439f7 !important;
+    border: 2px solid white !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    transition: transform 0.2s ease-in-out !important;
+    position: relative !important;
+    top: -10px !important;
+    cursor: grab !important;
 }
 
 /* Slider handle hover effect */
@@ -120,9 +135,41 @@ st.markdown("""
     transform: scale(1.1) !important;
 }
 
-/* Slider track color */
-.stSlider > div > div > div {
-    background-color: rgba(36, 57, 247, 0.2) !important;
+/* Slider handle active effect */
+.stSlider > div > div > div > div:active {
+    cursor: grabbing !important;
+    transform: scale(1.05) !important;
+}
+
+/* Slider value label */
+.stSlider > div > div > div > div::after {
+    content: attr(aria-valuenow);
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(36, 57, 247, 0.9);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* Slider tick marks */
+.stSlider > div > div > div::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 10px;
+    bottom: -15px;
+    background-image: repeating-linear-gradient(
+        to right,
+        rgba(36, 57, 247, 0.3) 0,
+        rgba(36, 57, 247, 0.3) 1px,
+        transparent 1px,
+        transparent calc(100% / 3)
+    );
 }
 
 /* Download button styling */
@@ -296,11 +343,40 @@ if 'random_fact' not in st.session_state:
 # Sidebar Layout for Configuration
 # -------------
 with st.sidebar:
+    # Slider for research depth with descriptive options
+    st.markdown("""
+        <style>
+        .slider-label {
+            color: rgba(49, 51, 63, 0.8);
+            font-size: 0.9rem;
+            position: absolute;
+            bottom: -25px;
+        }
+        .slider-label.start { left: 0; }
+        .slider-label.middle-1 { left: 33%; transform: translateX(-50%); }
+        .slider-label.middle-2 { left: 66%; transform: translateX(-50%); }
+        .slider-label.end { right: 0; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("##### How deep should we dive?")
+    st.markdown("*Select the depth of analysis*")
+
     loops = st.select_slider(
-        "How deep should we dive?",
+        "",  # Empty label since we're using custom markdown above
         options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
         value="Lake",
     )
+
+    # Add labels below slider
+    st.markdown("""
+        <div style="position: relative; height: 30px; margin-top: -10px;">
+            <span class="slider-label start">Quick Overview</span>
+            <span class="slider-label middle-1">Balanced Analysis</span>
+            <span class="slider-label middle-2">Deep Dive</span>
+            <span class="slider-label end">Comprehensive Study</span>
+        </div>
+    """, unsafe_allow_html=True)
 
     # Create a button in the sidebar to start the analysis
     start_button_clicked = st.button("🌊 Dive In", key="start_button")
