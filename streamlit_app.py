@@ -55,10 +55,15 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
 }
 
 .stSlider > div > div:nth-child(3) > span {
-    color: #007bff; /* Or any color that contrasts well with your background */
+    color: #007bff; 
     background-color: transparent !important;
     border: none !important;
     font-family: 'Roboto', sans-serif !important;
+}
+
+/* Style for the download button */
+.stDownloadButton button {
+    width: 200px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -435,10 +440,19 @@ with button_col:
     start_button_clicked = st.button("Start Analysis", key="start_button")
 
 with download_col:
-    download_button_placeholder = st.empty()  # Create a placeholder for the download button
+    # Create a placeholder for the download button
+    download_button_placeholder = st.empty()
+
+# Initialize session state variable for controlling the display of the download button
+if "show_download_button" not in st.session_state:
+    st.session_state.show_download_button = False
 
 if start_button_clicked:
     if topic:
+        # Hide the download button when starting a new analysis
+        st.session_state.show_download_button = False
+        download_button_placeholder.empty()
+
         # Initialize progress indicators
         progress_states = {
             "tldr": {"label": "TL;DR", "progress": 0, "status": "pending"},
@@ -526,6 +540,7 @@ if start_button_clicked:
                         if research_phase_key not in research_placeholders:
                             research_placeholders[research_phase_key] = st.empty()
 
+                        # Use the dedicated placeholder for each research phase
                         with research_placeholders[research_phase_key]:
                             with st.expander(f"**{title}**", expanded=False):
                                 st.markdown("\n".join(research_lines[1:]))
@@ -556,18 +571,8 @@ if start_button_clicked:
                             with st.expander(f"**{progress_states['analysis']['label']}**", expanded=False):
                                 st.markdown(final_analysis)
 
-                                # Create download button for PDF
-                                pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
-                                with download_col:
-                                    st.download_button(
-                                        label="⬇️ Download Report as PDF",
-                                        data=pdf_buffer,
-                                        file_name=f"{topic}_analysis_report.pdf",
-                                        mime="application/pdf"
-                                    )
-
-                                st.session_state.analysis_complete = True  # Set a flag indicating analysis is complete
-                                st.markdown("🥂 Analysis Complete")
+                        # Set the flag to indicate analysis is complete and display download button
+                        st.session_state.show_download_button = True
 
                     except Exception as e:
                         with placeholders["analysis"]:
@@ -581,15 +586,27 @@ if start_button_clicked:
     else:
         st.warning("Please enter a topic to analyze.")
 
-# Enable/disable download button based on analysis completion
-if "analysis_complete" in st.session_state and st.session_state.analysis_complete:
-    download_button_placeholder.empty()  # Clear the placeholder
+# Manage the display of the download button and "Analysis Complete" message based on the session state
+if st.session_state.show_download_button:
+    # Create the download button for PDF in the download_col column
+    pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
+    with download_col:
+        st.download_button(
+            label="⬇️ Download Report as PDF",
+            data=pdf_buffer,
+            file_name=f"{topic}_analysis_report.pdf",
+            mime="application/pdf"
+        )
+
+    # Display "Analysis Complete" message below the expander for final report
+    with placeholders["analysis"]:
+        st.markdown("🥂 Analysis Complete")
 else:
     with download_col:
         st.download_button(
             label="⬇️ Download Report as PDF",
             data=io.BytesIO(),  # Placeholder data
-            file_name="analysis_report.pdf",
+            file_name="report.pdf",
             mime="application/pdf",
-            disabled=True,  # Disable the button
+            disabled=True  # Disable the button
         )
