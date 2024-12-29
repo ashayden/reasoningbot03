@@ -36,10 +36,12 @@ def render_stepper(current_step: int) -> None:
         .stepper-container {
             display: flex;
             align-items: center;
-            justify-content: center;
-            margin: 2rem auto;
-            padding: 0 1rem;
+            justify-content: space-between;
+            margin: 3rem auto;
+            padding: 1rem;
             max-width: 800px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
             position: relative;
         }
         .step {
@@ -48,15 +50,16 @@ def render_stepper(current_step: int) -> None:
             align-items: center;
             position: relative;
             flex: 1;
-            min-width: 100px;
+            min-width: 80px;
+            max-width: 120px;
         }
         .step-number {
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background-color: rgba(240, 242, 246, 0.8);
-            border: 2px solid #ccc;
-            color: #666;
+            background-color: rgba(240, 242, 246, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.6);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -67,10 +70,10 @@ def render_stepper(current_step: int) -> None:
             transition: all 0.3s ease;
         }
         .step-label {
-            font-size: 0.85rem;
-            color: #666;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
             text-align: center;
-            max-width: 120px;
+            max-width: 100px;
             word-wrap: break-word;
             position: relative;
             z-index: 2;
@@ -81,7 +84,7 @@ def render_stepper(current_step: int) -> None:
             left: calc(50% + 20px);
             right: calc(-50% + 20px);
             height: 2px;
-            background-color: #ccc;
+            background-color: rgba(255, 255, 255, 0.2);
             z-index: 1;
         }
         .step.active .step-number {
@@ -91,7 +94,7 @@ def render_stepper(current_step: int) -> None:
             box-shadow: 0 0 0 4px rgba(36, 57, 247, 0.1);
         }
         .step.active .step-label {
-            color: #2439f7;
+            color: rgba(255, 255, 255, 0.9);
             font-weight: 500;
         }
         .step.complete .step-number {
@@ -286,14 +289,23 @@ if topic != st.session_state.previous_input:
 if st.session_state.analysis_complete:
     st.session_state.current_step = 4
 
-# RENDER THE STEPPER
-render_stepper(st.session_state.current_step)
-
 # ---------- EXPANDERS FOR PROMPTS ----------
 with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
     agent1_prompt = st.text_area(
         "Agent 1 Prompt (Prompt Engineer)",
-        '''You are an expert prompt engineer...''',
+        '''You are an expert prompt engineer. Your task is to:
+1. Analyze the given topic
+2. Create a refined, detailed prompt
+3. Develop a structured framework for investigation
+
+Topic: {topic}
+
+Please format your response exactly as follows:
+
+Refined Prompt:
+[Your refined prompt here]
+---
+[Your investigation framework here with numbered points]''',
         height=250
     )
     agent2_prompt = st.text_area(
@@ -457,8 +469,8 @@ if start_button:
         st.session_state.current_step = 0
 
         # STEP 0: "Refining Prompt"
+        st.session_state.current_step = 0
         render_stepper(st.session_state.current_step)
-        st.write("**Step 1**: Refining Prompt: Generating random fact & quick summary...")
 
         # Example calls
         st.session_state.random_fact = generate_random_fact(topic)
@@ -471,15 +483,15 @@ if start_button:
             with st.expander("💡 TL;DR", expanded=True):
                 st.markdown(st.session_state.tldr_summary)
 
-        st.success("Refining prompt step complete.")
-
         # STEP 1: "Developing Framework"
         st.session_state.current_step = 1
         render_stepper(st.session_state.current_step)
-        st.write("**Step 2**: Generating framework (Agent 1)...")
 
-        refined, fw = generate_refined_prompt_and_framework(topic)
-        if refined and fw:
+        try:
+            refined, fw = generate_refined_prompt_and_framework(topic)
+            if not refined or not fw:
+                raise ValueError("Failed to generate refined prompt and framework")
+                
             st.session_state.refined_prompt = refined
             st.session_state.framework = fw
 
@@ -488,15 +500,14 @@ if start_button:
             with st.expander("🗺️ Investigation Framework", expanded=False):
                 st.markdown(fw)
 
-            st.success("Framework developed.")
-        else:
-            st.error("Agent 1 did not return refined prompt & framework.")
+        except Exception as e:
+            logging.error(f"Agent 1 error: {e}")
+            st.error("An error occurred while generating the framework. Please try again.")
             st.stop()
 
         # STEP 2: "Conducting Research"
         st.session_state.current_step = 2
         render_stepper(st.session_state.current_step)
-        st.write("**Step 3**: Conducting research (Agent 2)...")
 
         current_analysis = ""
         aspects = []
