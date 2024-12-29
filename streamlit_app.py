@@ -17,7 +17,6 @@ STEPS = [
     "Refining Prompt",
     "Developing Framework",
     "Conducting Research",
-    "Final Report",
     "Analysis Complete"
 ]
 
@@ -25,21 +24,19 @@ STEPS = [
 # STEP WIZARD RENDERING
 ########################################
 def render_stepper(current_step: int) -> str:
-    """Renders a 5-step wizard with proper styling."""
-    # Clamp current_step
-    current_step = max(0, min(current_step, 4))
+    """Renders a 4-step wizard with proper styling."""
+    # Clamp current_step between 0 and 3
+    current_step = max(0, min(current_step, 3))
     
-    # Create the CSS and HTML
     css = """
         <style>
         .stepper-container {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             margin: 2rem auto;
-            padding: 1rem 2rem;
-            max-width: 700px;
-            background: transparent;
+            padding: 1rem;
+            max-width: 800px;
             position: relative;
         }
         .step {
@@ -48,8 +45,7 @@ def render_stepper(current_step: int) -> str:
             align-items: center;
             position: relative;
             flex: 1;
-            max-width: 140px;
-            margin: 0 0.5rem;
+            padding: 0 1rem;
         }
         .step-number {
             width: 36px;
@@ -61,36 +57,34 @@ def render_stepper(current_step: int) -> str:
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            margin-bottom: 8px;
-            z-index: 2;
+            font-weight: 500;
+            font-size: 0.9rem;
             position: relative;
+            z-index: 2;
             transition: all 0.3s ease;
         }
         .step-label {
             font-size: 0.85rem;
             color: rgba(255, 255, 255, 0.6);
             text-align: center;
-            max-width: 110px;
-            word-wrap: break-word;
+            margin-top: 0.5rem;
+            font-weight: 400;
             position: relative;
             z-index: 2;
-            line-height: 1.2;
-            margin-top: 4px;
         }
         .step-line {
             position: absolute;
             top: 18px;
-            left: calc(50% + 25px);
-            right: calc(-50% + 25px);
+            left: calc(50% + 18px);
+            right: calc(-50% + 18px);
             height: 2px;
-            background-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.2);
             z-index: 1;
         }
         .step.active .step-number {
+            background-color: rgba(255, 255, 255, 0.9);
             border-color: #2439f7;
             color: #2439f7;
-            background-color: rgba(255, 255, 255, 0.9);
             box-shadow: 0 0 0 4px rgba(36, 57, 247, 0.1);
         }
         .step.active .step-label {
@@ -111,17 +105,22 @@ def render_stepper(current_step: int) -> str:
         </style>
     """
     
-    # Create the HTML with minimal whitespace
-    html = '<div class="stepper-container">'
+    html = ['<div class="stepper-container">']
     
     for i, label in enumerate(STEPS):
         status = "complete" if i < current_step else "active" if i == current_step else ""
-        html += f'<div class="step {status}"><div class="step-number">{i + 1}</div><div class="step-label">{label}</div><div class="step-line"></div></div>'
+        step = f'''
+            <div class="step {status}">
+                <div class="step-number">{i + 1}</div>
+                <div class="step-label">{label}</div>
+                <div class="step-line"></div>
+            </div>
+        '''
+        html.append(step)
     
-    html += '</div>'
+    html.append('</div>')
     
-    # Return the complete HTML
-    return css + html
+    return css + ''.join(html)
 
 ########################################
 # MAIN APP + LLM CODE
