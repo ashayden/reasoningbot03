@@ -26,7 +26,7 @@ body {
 
 /* Style for progress bar */
 .stProgress > div > div > div > div {
-    background-color: #5D1796;
+    background-color: #5D1796; /* Change progress bar color to violet */
 }
 
 /* Style for the main title */
@@ -42,6 +42,11 @@ body {
     font-size: 1.2rem;
     color: #6c757d;
     margin-bottom: 1.5rem;
+}
+
+/* Style for the slider */
+.stSlider > div[data-baseweb="slider"] > div > div:nth-of-type(2) {
+    background-color: #ADD8E6 !important; /* Light blue color for slider */
 }
 </style>
 """, unsafe_allow_html=True)
@@ -187,7 +192,7 @@ You are a leading expert in fields relevant to the topic. Provide an in-depth an
 
 Write a comprehensive report addressing the topic and/or answering the user's question. Include relevant statistics. Present the report in a neutral, objective, and informative tone, befitting an expert in the field.
 
-### Analysis Results
+### Final Report
 
 [Title of Analysis]
 
@@ -257,6 +262,26 @@ agent3_config = genai.types.GenerationConfig(
     temperature=0.3, top_p=0.7, top_k=20, max_output_tokens=4096
 )
 
+def generate_quick_summary(topic):
+    """Generate a quick summary (TL;DR) using the model."""
+    try:
+        quick_summary_prompt = f"""
+        Provide a very brief, one to two-sentence TL;DR (Too Long; Didn't Read) overview of the following topic, incorporating emojis where relevant:
+        {topic}
+        """
+        response = model.generate_content(
+            quick_summary_prompt,
+            generation_config=default_generation_config,
+        )
+        summary = handle_response(response)
+        # Ensure summary is within 1-2 sentences
+        sentences = summary.split('.')
+        if len(sentences) > 2:
+            summary = '. '.join(sentences[:2]) + '.' if sentences[0] else ''
+        return summary.strip()
+    except Exception as e:
+        logging.error(f"Failed to generate quick summary: {e}")
+        return ""
 
 def generate_refined_prompt_and_framework(topic):
     """Generate a refined prompt and investigation framework using Agent 1."""
@@ -358,10 +383,11 @@ if st.button("Start Analysis", key="start_button"):
     if topic:
         # Initialize progress indicators
         progress_states = {
+            "tldr": {"label": "TL;DR", "progress": 0, "status": "pending"},
             "refined_prompt": {"label": "Refined Prompt", "progress": 0, "status": "pending"},
             "framework": {"label": "Investigation Framework", "progress": 0, "status": "pending"},
             "research": {"label": "Research Phases", "progress": 0, "status": "pending"},
-            "analysis": {"label": "Analysis Results", "progress": 0, "status": "pending"},
+            "analysis": {"label": "Final Report", "progress": 0, "status": "pending"},
         }
 
         # Create placeholders for each section
@@ -370,6 +396,20 @@ if st.button("Start Analysis", key="start_button"):
             placeholders[section] = st.empty()
 
         with st.spinner("Analyzing..."):
+            # Quick Summary (TL;DR)
+            tldr_summary = generate_quick_summary(topic)
+            progress_states["tldr"]["progress"] = 100
+            progress_states["tldr"]["status"] = "complete"
+            
+            # Update placeholder for TL;DR
+            with placeholders["tldr"]:
+                with st.expander(f"**{progress_states['tldr']['label']}**", expanded=True):
+                    if progress_states["tldr"]["status"] == "complete":
+                        st.markdown(tldr_summary)
+                        # st.markdown("✅ Complete")  # Removed checkmark
+                    else:
+                        st.markdown("⏳ In progress...")
+
             # Agent 1: Refine prompt and generate framework
             refined_prompt, framework = generate_refined_prompt_and_framework(topic)
             progress_states["refined_prompt"]["progress"] = 100
@@ -388,7 +428,7 @@ if st.button("Start Analysis", key="start_button"):
                     with st.expander(f"**{progress_states['refined_prompt']['label']}**", expanded=False):
                         if progress_states["refined_prompt"]["status"] == "complete":
                             st.markdown(refined_prompt.lstrip(":\n").strip())
-                            st.markdown("✅ Complete")  # Indicate completion
+                            # st.markdown("✅ Complete")  # Removed checkmark
                         else:
                             st.markdown("⏳ In progress...")
 
@@ -396,7 +436,7 @@ if st.button("Start Analysis", key="start_button"):
                     with st.expander(f"**{progress_states['framework']['label']}**", expanded=False):
                         if progress_states["framework"]["status"] == "complete":
                             st.markdown(framework.lstrip(": **\n").strip())
-                            st.markdown("✅ Complete")  # Indicate completion
+                            # st.markdown("✅ Complete")  # Removed checkmark
                         else:
                             st.markdown("⏳ In progress...")
 
@@ -437,7 +477,7 @@ if st.button("Start Analysis", key="start_button"):
                             with st.expander(f"**{title}**", expanded=False):
                                 st.markdown("\n".join(research_lines[1:]))
                                 if progress_states["research"]["status"] == "complete":
-                                    st.markdown("✅ Complete")  # Indicate completion
+                                    pass # Removed checkmark
                                 else:
                                     st.markdown("⏳ In progress...")
                     else:
@@ -467,7 +507,7 @@ if st.button("Start Analysis", key="start_button"):
                             with st.expander(f"**{progress_states['analysis']['label']}**", expanded=False):
                                 if progress_states["analysis"]["status"] == "complete":
                                     st.markdown(final_analysis)
-                                    st.markdown("✅ Complete")  # Indicate completion
+                                    # st.markdown("✅ Complete") # Removed checkmark
                                 else:
                                     st.markdown("⏳ In progress...")
 
