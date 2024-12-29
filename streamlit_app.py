@@ -160,6 +160,45 @@ st.markdown("""
 .stSlider > div > div > div > div:hover {
     transform: scale(1.2);
 }
+
+/* Tile button styling */
+.stExpander {
+    border: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+}
+
+.streamlit-expanderHeader {
+    background-color: #2439f7 !important;
+    color: white !important;
+    border-radius: 6px !important;
+    padding: 0.75rem 1.5rem !important;
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease-in-out !important;
+    margin: 0.5rem 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    text-align: center !important;
+    width: 100% !important;
+}
+
+.streamlit-expanderHeader:hover {
+    background-color: #1a2bc4 !important;
+    transform: translateY(-1px) !important;
+    padding-left: 1.5rem !important;
+}
+
+.streamlit-expanderHeader:active {
+    transform: translateY(1px) !important;
+}
+
+.streamlit-expanderContent {
+    border: none !important;
+    box-shadow: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -231,12 +270,15 @@ if topic != st.session_state.previous_input:
     st.session_state.framework = None
     st.session_state.previous_input = topic
 
-# --- UI/UX - Add expander for prompt details ---
-with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
-    # Agent Prompts
-    agent1_prompt = st.text_area(
-        "Agent 1 Prompt (Prompt Engineer)",
-        '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
+# Create columns for buttons
+prompt_col, button_col = st.columns([1, 1])
+
+with prompt_col:
+    with st.expander("☠️ Advanced Prompt Customization ☠️"):
+        # Agent Prompts
+        agent1_prompt = st.text_area(
+            "Agent 1 Prompt (Prompt Engineer)",
+            '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
 
 USER'S TOPIC/QUESTION: {topic}
 
@@ -289,13 +331,13 @@ Note:
 - Use consistent indentation for bullet points
 - Add a blank line between numbered items
 - Use a hyphen (-) for bullet points''',
-        key="agent1_prompt",
-        height=300,
-    )
+            key="agent1_prompt",
+            height=300,
+        )
 
-    agent2_prompt = st.text_area(
-        "Agent 2 Prompt (Researcher)",
-        '''Using the refined prompt and the established framework, continue researching and analyzing:
+        agent2_prompt = st.text_area(
+            "Agent 2 Prompt (Researcher)",
+            '''Using the refined prompt and the established framework, continue researching and analyzing:
 
 REFINED PROMPT:
 {refined_prompt}
@@ -320,13 +362,13 @@ Then present your findings by:
 5. Noting any emerging implications
 
 Structure your response with the descriptive title on the first line, followed by your analysis.''',
-        key="agent2_prompt",
-        height=300,
-    )
+            key="agent2_prompt",
+            height=300,
+        )
 
-    agent3_prompt = st.text_area(
-        "Agent 3 Prompt (Expert Analyst)",
-        '''Based on the completed analysis of the topic:
+        agent3_prompt = st.text_area(
+            "Agent 3 Prompt (Expert Analyst)",
+            '''Based on the completed analysis of the topic:
 
 REFINED PROMPT:
 {refined_prompt}
@@ -355,9 +397,9 @@ I. [First Major Section]:
 
 Recommendations:
 [List specific, actionable recommendations based on the analysis]''',
-        key="agent3_prompt",
-        height=300,
-    )
+            key="agent3_prompt",
+            height=300,
+        )
 
 # Slider for research depth with descriptive options
 loops = st.select_slider(
@@ -365,9 +407,6 @@ loops = st.select_slider(
     options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
     value="Lake",
 )
-
-# Create columns for button
-_, _, button_col = st.columns([1, 1, 1])
 
 with button_col:
     start_button_clicked = st.button("🌊 Dive In", key="start_button") or st.session_state.get("start_button_clicked", False)
