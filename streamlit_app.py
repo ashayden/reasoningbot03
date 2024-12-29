@@ -107,7 +107,7 @@ st.markdown("<p class='subheader'>This bot uses multiple AI agents to analyze to
 # Input section
 topic = st.text_input(
     "Enter a topic or question:",
-    placeholder="e.g., 'What are the impacts of AI on the economy?'",
+    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
 )
 
 # --- UI/UX - Add expander for prompt details ---
@@ -595,22 +595,33 @@ if start_button_clicked:
                         title = next((line for line in research_lines if line.strip()), current_aspect)
                         research_content = "\n".join(research_lines[1:])
                         # Add research emoji based on content
-                        if "economic" in title.lower() or "finance" in title.lower():
+                        title_lower = title.lower()
+                        if any(word in title_lower for word in ["extinct", "survival", "species", "wildlife", "bird", "animal", "habitat"]):
+                            emoji = "🦅"
+                        elif any(word in title_lower for word in ["economic", "finance", "market", "cost", "price", "value"]):
                             emoji = "📊"
-                        elif "environment" in title.lower() or "climate" in title.lower():
+                        elif any(word in title_lower for word in ["environment", "climate", "ecosystem", "nature", "conservation"]):
                             emoji = "🌍"
-                        elif "culture" in title.lower() or "social" in title.lower():
+                        elif any(word in title_lower for word in ["culture", "social", "community", "tradition", "heritage"]):
                             emoji = "🎭"
-                        elif "history" in title.lower() or "heritage" in title.lower():
+                        elif any(word in title_lower for word in ["history", "historical", "past", "timeline", "archive"]):
                             emoji = "📜"
-                        elif "technology" in title.lower() or "innovation" in title.lower():
+                        elif any(word in title_lower for word in ["technology", "innovation", "digital", "software", "data"]):
                             emoji = "💻"
-                        elif "education" in title.lower() or "learning" in title.lower():
+                        elif any(word in title_lower for word in ["education", "learning", "teaching", "study", "research"]):
                             emoji = "📚"
-                        elif "health" in title.lower() or "medical" in title.lower():
+                        elif any(word in title_lower for word in ["health", "medical", "disease", "treatment", "care"]):
                             emoji = "🏥"
-                        else:
+                        elif any(word in title_lower for word in ["evidence", "sighting", "observation", "search", "investigation"]):
                             emoji = "🔍"
+                        elif any(word in title_lower for word in ["methodology", "approach", "technique", "method"]):
+                            emoji = "🔬"
+                        elif any(word in title_lower for word in ["debate", "controversy", "argument", "discussion"]):
+                            emoji = "💭"
+                        elif any(word in title_lower for word in ["future", "prediction", "forecast", "prospect"]):
+                            emoji = "🔮"
+                        else:
+                            emoji = "📝"
                         research_expanders.append((f"{emoji} {title}", research_content))
                         progress_bar.progress(40 + int((i + 1) / loops_num * 40))
                     else:
