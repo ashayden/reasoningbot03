@@ -34,30 +34,34 @@ st.markdown("""
     box-shadow: 0 0 0 1px #2439f7;
 }
 
-/* Button styling & base */
+/* Button styling for a flat, minimal design */
 .stButton > button, [data-testid="stDownloadButton"] > button {
     width: 100%;
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
     font-weight: 500;
-    border-radius: 6px;
+    border-radius: 4px;
     border: none;
     background-color: #2439f7;
     color: white;
     transition: all 0.2s ease-in-out;
-    box-shadow: none;
+    box-shadow: none !important;
     margin: 0.5rem 0;
     text-transform: none;
     letter-spacing: 0.5px;
 }
+
 /* Button hover effects */
 .stButton > button:hover, [data-testid="stDownloadButton"] > button:hover {
     background-color: #1a2bc4;
-    transform: translateY(-1px);
+    transform: none;
+    box-shadow: none !important;
 }
+
 /* Button active effects */
 .stButton > button:active, [data-testid="stDownloadButton"] > button:active {
-    transform: translateY(1px);
+    transform: none;
+    box-shadow: none !important;
 }
 
 /* Progress bar styling */
@@ -97,17 +101,28 @@ st.markdown("""
     padding-left: 1.25rem;
 }
 
-/* Slider styling */
-.stSlider > div > div > div {
-    height: 0.5rem !important;
-}
+/* Slider styling with larger handle */
 .stSlider > div > div > div > div {
-    height: 1rem !important;
-    width: 1rem !important;
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    height: 20px !important;
+    width: 20px !important;
+    background-color: #2439f7 !important;
+    border: 2px solid white !important;
+    box-shadow: none !important;
+    transition: transform 0.2s ease-in-out !important;
 }
+
+.stSlider > div > div > div {
+    height: 4px !important;
+}
+
+/* Slider handle hover effect */
 .stSlider > div > div > div > div:hover {
-    transform: scale(1.2);
+    transform: scale(1.1) !important;
+}
+
+/* Slider track color */
+.stSlider > div > div > div {
+    background-color: rgba(36, 57, 247, 0.2) !important;
 }
 
 /* Download button styling */
@@ -202,6 +217,21 @@ st.markdown("""
 .st-emotion-cache-1ehh7ok {
     background-color: transparent !important;
 }
+
+/* Advanced settings expander in sidebar */
+.sidebar .streamlit-expanderHeader {
+    font-size: 1rem !important;
+    color: rgba(49, 51, 63, 0.8) !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0.5rem 0 !important;
+    margin-top: 1rem !important;
+}
+
+.sidebar .streamlit-expanderContent {
+    border: none !important;
+    padding: 0.5rem 0 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -277,39 +307,15 @@ with st.sidebar:
     if start_button_clicked:
         st.session_state.start_button_clicked = True
 
-# -------------
-# Main Input Section
-# -------------
-topic = st.text_input(
-    "Enter a topic or question:",
-    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
-    key="topic_input",
-    on_change=lambda: st.session_state.update({"start_button_clicked": True}) 
-        if st.session_state.topic_input else None,
-)
+    # Advanced settings in sidebar
+    with st.expander("☠️ Advanced Settings"):
+        st.markdown("### Customize Agent Prompts")
 
-# If topic changes, reset relevant session states
-if topic != st.session_state.previous_input:
-    st.session_state.analysis_complete = False
-    st.session_state.pdf_buffer = None
-    st.session_state.final_analysis = None
-    st.session_state.research_results = []
-    st.session_state.tldr_summary = None
-    st.session_state.refined_prompt = None
-    st.session_state.framework = None
-    st.session_state.previous_input = topic
-
-# -------------
-# Advanced Prompt Customization
-# -------------
-with st.expander("                                                                                                                                                                                                ☠️"):
-    st.markdown("### Customize Agent Prompts")
-
-    # Agent 1 Prompt
-    st.markdown("#### Agent 1: Prompt Engineer")
-    agent1_prompt = st.text_area(
-        "Prompt for refining user input and generating investigation framework",
-        '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
+        # Agent 1 Prompt
+        st.markdown("#### Agent 1: Prompt Engineer")
+        agent1_prompt = st.text_area(
+            "Prompt for refining user input and generating investigation framework",
+            '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
 
 USER'S TOPIC/QUESTION: {topic}
 
@@ -362,14 +368,14 @@ Note:
 - Use consistent indentation for bullet points
 - Add a blank line between numbered items
 - Use a hyphen (-) for bullet points''',
-        height=300,
-    )
+            height=300,
+        )
 
-    # Agent 2 Prompt
-    st.markdown("#### Agent 2: Researcher")
-    agent2_prompt = st.text_area(
-        "Prompt for conducting research and analysis",
-        '''Using the refined prompt and the established framework, continue researching and analyzing:
+        # Agent 2 Prompt
+        st.markdown("#### Agent 2: Researcher")
+        agent2_prompt = st.text_area(
+            "Prompt for conducting research and analysis",
+            '''Using the refined prompt and the established framework, continue researching and analyzing:
 
 REFINED PROMPT:
 {refined_prompt}
@@ -394,14 +400,14 @@ Then present your findings by:
 5. Noting any emerging implications
 
 Structure your response with the descriptive title on the first line, followed by your analysis.''',
-        height=300,
-    )
+            height=300,
+        )
 
-    # Agent 3 Prompt
-    st.markdown("#### Agent 3: Expert Analyst")
-    agent3_prompt = st.text_area(
-        "Prompt for final analysis and synthesis",
-        '''Based on the completed analysis of the topic:
+        # Agent 3 Prompt
+        st.markdown("#### Agent 3: Expert Analyst")
+        agent3_prompt = st.text_area(
+            "Prompt for final analysis and synthesis",
+            '''Based on the completed analysis of the topic:
 
 REFINED PROMPT:
 {refined_prompt}
@@ -430,8 +436,30 @@ I. [First Major Section]:
 
 Recommendations:
 [List specific, actionable recommendations based on the analysis]''',
-        height=300,
-    )
+            height=300,
+        )
+
+# -------------
+# Main Input Section
+# -------------
+topic = st.text_input(
+    "Enter a topic or question:",
+    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
+    key="topic_input",
+    on_change=lambda: st.session_state.update({"start_button_clicked": True}) 
+        if st.session_state.topic_input else None,
+)
+
+# If topic changes, reset relevant session states
+if topic != st.session_state.previous_input:
+    st.session_state.analysis_complete = False
+    st.session_state.pdf_buffer = None
+    st.session_state.final_analysis = None
+    st.session_state.research_results = []
+    st.session_state.tldr_summary = None
+    st.session_state.refined_prompt = None
+    st.session_state.framework = None
+    st.session_state.previous_input = topic
 
 # -------------
 # Define Helper Functions
