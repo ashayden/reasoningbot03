@@ -25,9 +25,20 @@ STEPS = [
 ########################################
 def render_step_wizard(step: int):
     """Renders a single step wizard instance."""
+    # Create container for step wizard
+    st.markdown("""
+        <style>
+        div[data-testid="stHorizontalBlock"] {
+            background: transparent !important;
+            gap: 0.5rem;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # Use columns for layout
     cols = st.columns([1, 0.2, 1, 0.2, 1, 0.2, 1])
     
-    # Define styles as CSS classes in the main CSS block
+    # Render each step
     for i, (col, label) in enumerate(zip(cols[::2], STEPS)):
         # Determine step state
         if i < step:
@@ -37,7 +48,7 @@ def render_step_wizard(step: int):
         else:
             status = "inactive"
         
-        # Render step without number
+        # Render step
         col.markdown(
             f'''
             <div class="step-box {status}">
@@ -54,15 +65,20 @@ def render_step_wizard(step: int):
                 unsafe_allow_html=True
             )
 
-# Update the main logic to handle step wizard display
-def display_step_wizard():
-    """Display step wizard in a container."""
-    wizard_container = st.empty()
-    with wizard_container:
+# Initialize step wizard container
+def initialize_wizard():
+    """Initialize the step wizard container in session state."""
+    if 'wizard_container' not in st.session_state:
+        st.session_state.wizard_container = st.container()
+
+# Update step wizard
+def update_wizard_step(step: int):
+    """Update the step wizard display."""
+    initialize_wizard()
+    with st.session_state.wizard_container:
         st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
-        render_step_wizard(st.session_state.state['current_step'])
+        render_step_wizard(step)
         st.markdown('</div>', unsafe_allow_html=True)
-    return wizard_container
 
 ########################################
 # MAIN APP + LLM CODE
@@ -435,18 +451,9 @@ if start_clicked:
     if not st.session_state.state['analysis_started']:
         st.session_state.state['analysis_started'] = True
         reset_analysis_state()
+        initialize_wizard()
     
     try:
-        # Create step wizard container at the very top
-        wizard_placeholder = st.empty()
-        
-        def update_wizard_step(step: int):
-            """Update the wizard step in the placeholder."""
-            with wizard_placeholder:
-                st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
-                render_step_wizard(step)
-                st.markdown('</div>', unsafe_allow_html=True)
-        
         # Initial step
         update_wizard_step(0)
 
@@ -574,8 +581,4 @@ if start_clicked:
 
 # Show existing step wizard if analysis is in progress
 elif st.session_state.state['analysis_started']:
-    wizard_placeholder = st.empty()
-    with wizard_placeholder:
-        st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
-        render_step_wizard(st.session_state.state['current_step'])
-        st.markdown('</div>', unsafe_allow_html=True)
+    update_wizard_step(st.session_state.state['current_step'])
