@@ -43,14 +43,15 @@ st.markdown("""
 /* Progress bar styling */
 .stProgress > div > div > div > div {
     background: linear-gradient(90deg, 
-        #007bff 0%, 
-        #007bff 98%, 
-        #007bff 100%
-    );
+        #2439f7 0%, 
+        #2439f7 98%, 
+        #2439f7 100%
+    ) !important;
     background-size: 200% 100%;
     animation: loading 2s linear infinite;
     border-radius: 0.5rem;
     height: 0.5rem !important;
+    transition: background-color 0.3s ease-in-out;
 }
 
 @keyframes loading {
@@ -61,7 +62,7 @@ st.markdown("""
 /* Completed progress bar */
 .progress-complete > div > div > div > div {
     background: #28a745 !important;
-    animation: none;
+    animation: none !important;
 }
 
 /* Expander styling */
@@ -96,6 +97,32 @@ st.markdown("""
 .element-container {
     margin-bottom: 1rem;
 }
+
+/* Main title with hover effect */
+.main-title {
+    font-size: 2.5rem !important;
+    color: rgba(49, 51, 63, 0.9) !important;
+    text-align: center !important;
+    margin-bottom: 2rem !important;
+    font-weight: 700 !important;
+    position: relative !important;
+    cursor: help !important;
+}
+
+.main-title:hover::after {
+    content: attr(data-title);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -30px;
+    background: rgba(36, 57, 247, 0.9);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    z-index: 1000;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -127,33 +154,18 @@ except Exception as e:
     st.stop()
 
 # --- Main Title ---
-st.markdown("<h1 class='main-title'>🤖</h1>", unsafe_allow_html=True)  # Changed title to just the robot emoji
+st.markdown(
+    "<h1 class='main-title' data-title='Multi-Agent Reasoning Assistant a003'>M.A.R.A.</h1>",
+    unsafe_allow_html=True
+)
 
-# --- Subheader ---
-st.markdown("<p class='subheader'>This bot uses multiple AI agents to analyze topics in depth with sophisticated reasoning.</p>", unsafe_allow_html=True)
-
-# Initialize session state for storing analysis results and previous input
-if 'analysis_complete' not in st.session_state:
-    st.session_state.analysis_complete = False
-if 'pdf_buffer' not in st.session_state:
-    st.session_state.pdf_buffer = None
-if 'final_analysis' not in st.session_state:
-    st.session_state.final_analysis = None
-if 'research_results' not in st.session_state:
-    st.session_state.research_results = []
-if 'tldr_summary' not in st.session_state:
-    st.session_state.tldr_summary = None
-if 'refined_prompt' not in st.session_state:
-    st.session_state.refined_prompt = None
-if 'framework' not in st.session_state:
-    st.session_state.framework = None
-if 'previous_input' not in st.session_state:
-    st.session_state.previous_input = ""
-
-# Input section
+# Input section with Enter key handling
 topic = st.text_input(
     "Enter a topic or question:",
     placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
+    key="topic_input",
+    on_change=lambda: st.session_state.update({"start_button_clicked": True}) 
+        if st.session_state.topic_input else None,
 )
 
 # Reset session state if input changes
@@ -743,6 +755,7 @@ if start_button_clicked:
                         <style>
                         .stProgress > div > div > div > div {
                             background-color: #28a745 !important;
+                            animation: none !important;
                         }
                         </style>
                         """,
