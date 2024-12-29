@@ -404,13 +404,6 @@ def create_download_pdf(refined_prompt, framework, current_analysis, final_analy
     # Set font for content
     pdf.set_font("Arial", '', 12)
 
-    # Add refined prompt
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Refined Prompt", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    pdf.multi_cell(0, 10, refined_prompt)
-    pdf.ln(5)
-
     # Add framework
     pdf.set_font('Arial', 'B', 14)
     pdf.cell(0, 10, "Investigation Framework", 0, 1)
@@ -435,7 +428,16 @@ def create_download_pdf(refined_prompt, framework, current_analysis, final_analy
     return io.BytesIO(pdf_output)
 
 # Main Execution
-if st.button("Start Analysis", key="start_button"):
+# Create columns for buttons
+button_col, download_col = st.columns([1, 1])
+
+with button_col:
+    start_button_clicked = st.button("Start Analysis", key="start_button")
+
+with download_col:
+    download_button_placeholder = st.empty()  # Create a placeholder for the download button
+
+if start_button_clicked:
     if topic:
         # Initialize progress indicators
         progress_states = {
@@ -527,8 +529,6 @@ if st.button("Start Analysis", key="start_button"):
                         with research_placeholders[research_phase_key]:
                             with st.expander(f"**{title}**", expanded=False):
                                 st.markdown("\n".join(research_lines[1:]))
-                                if progress_states["research"]["status"] != "complete":
-                                    st.markdown("⏳ In progress...")
                     else:
                         with placeholders["research"]:
                             st.error(
@@ -555,16 +555,19 @@ if st.button("Start Analysis", key="start_button"):
                         with placeholders["analysis"]:
                             with st.expander(f"**{progress_states['analysis']['label']}**", expanded=False):
                                 st.markdown(final_analysis)
-                                st.markdown("🥂 Analysis Complete")
 
                                 # Create download button for PDF
                                 pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
-                                st.download_button(
-                                    label="⬇️ Download Report as PDF",
-                                    data=pdf_buffer,
-                                    file_name=f"{topic}_analysis_report.pdf",
-                                    mime="application/pdf"
-                                )
+                                with download_col:
+                                    st.download_button(
+                                        label="⬇️ Download Report as PDF",
+                                        data=pdf_buffer,
+                                        file_name=f"{topic}_analysis_report.pdf",
+                                        mime="application/pdf"
+                                    )
+
+                                st.session_state.analysis_complete = True  # Set a flag indicating analysis is complete
+                                st.markdown("🥂 Analysis Complete")
 
                     except Exception as e:
                         with placeholders["analysis"]:
@@ -577,3 +580,16 @@ if st.button("Start Analysis", key="start_button"):
 
     else:
         st.warning("Please enter a topic to analyze.")
+
+# Enable/disable download button based on analysis completion
+if "analysis_complete" in st.session_state and st.session_state.analysis_complete:
+    download_button_placeholder.empty()  # Clear the placeholder
+else:
+    with download_col:
+        st.download_button(
+            label="⬇️ Download Report as PDF",
+            data=io.BytesIO(),  # Placeholder data
+            file_name="analysis_report.pdf",
+            mime="application/pdf",
+            disabled=True,  # Disable the button
+        )
