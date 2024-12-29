@@ -23,7 +23,7 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
 /* Style for progress bar */
 .stProgress {
     width: 100% !important;
-    margin: 30px 0;
+    margin: 10px 0;
     background-color: rgba(0, 123, 255, 0.1);
     border-radius: 20px;
     padding: 0;
@@ -32,18 +32,19 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
 .stProgress > div > div > div > div {
     background: linear-gradient(90deg, #007bff 0%, #007bff var(--progress), #28a745 var(--progress), #28a745 100%);
     border-radius: 20px;
-    height: 12px;
+    height: 24px !important;
     transition: all 0.3s ease;
 }
 
 /* Style for the slider */
 .stSlider {
     width: 100% !important;
-    padding: 20px 0;
+    padding: 10px 0;
+    margin-bottom: 10px;
 }
 
 .stSlider > div {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 /* Make the slider track taller */
@@ -83,7 +84,7 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
 /* Style for buttons */
 .stButton > button {
     float: right;
-    margin-bottom: 20px;
+    margin: 0 0 20px 0;
 }
 
 /* Style for expander headers */
@@ -390,6 +391,32 @@ def generate_random_fact(topic):
         return handle_response(response)
     except Exception as e:
         logging.error(f"Failed to generate random fact: {e}")
+        return None
+
+def generate_quick_summary(topic):
+    """Generate a quick summary (TL;DR) using the model."""
+    try:
+        quick_summary_prompt = f"""
+        Provide a very brief, one to two-sentence TL;DR (Too Long; Didn't Read) overview of the following topic, incorporating emojis where relevant:
+        {topic}
+        """
+        response = model.generate_content(
+            quick_summary_prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.7,
+                top_p=0.8,
+                top_k=40,
+                max_output_tokens=2048,
+            ),
+        )
+        summary = handle_response(response)
+        # Ensure summary is within 1-2 sentences
+        sentences = summary.split('.')
+        if len(sentences) > 2:
+            summary = '. '.join(sentences[:2]) + '.' if sentences[0] else ''
+        return summary.strip()
+    except Exception as e:
+        logging.error(f"Failed to generate quick summary: {e}")
         return None
 
 if start_button_clicked:
