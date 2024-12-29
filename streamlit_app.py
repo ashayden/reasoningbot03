@@ -274,16 +274,27 @@ topic = st.text_input(
     on_change=lambda: setattr(st.session_state, 'start_button_clicked', True) if st.session_state.topic_input else None
 )
 
-# If topic changes, reset states
+# Add a complete reset function
+def reset_all_states():
+    """Reset all session states to their initial values."""
+    st.session_state.update({
+        'analysis_complete': False,
+        'current_step': 0,
+        'pdf_buffer': None,
+        'final_analysis': None,
+        'research_results': [],
+        'tldr_summary': None,
+        'refined_prompt': None,
+        'framework': None,
+        'random_fact': None,
+        'start_button_clicked': False
+    })
+
+# Update the topic change handler
 if topic != st.session_state.previous_input:
     st.session_state.previous_input = topic
-    st.session_state.analysis_complete = False
-    st.session_state.current_step = 0
-    st.session_state.final_analysis = None
-    st.session_state.research_results = []
-    st.session_state.tldr_summary = None
-    st.session_state.refined_prompt = None
-    st.session_state.framework = None
+    reset_all_states()
+    st.experimental_rerun()
 
 # If analysis is done, show step #5
 if st.session_state.analysis_complete:
@@ -576,19 +587,14 @@ if start_button or st.session_state.get('start_button_clicked', False):
     if not topic.strip():
         st.warning("Please enter a topic.")
         st.stop()
-        
-    # Reset states and initialize container
-    st.session_state.update({
-        'analysis_complete': False,
-        'research_results': [],
-        'random_fact': None,
-        'current_step': 0
-    })
     
-    # Create persistent step wizard container
+    # Complete reset before starting new analysis
+    reset_all_states()
+    
+    # Create progress indicator
     step_container = st.empty()
     step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
-
+    
     # Step 1: Initial Analysis
     st.session_state.random_fact = generate_random_fact(topic)
     st.session_state.tldr_summary = generate_quick_summary(topic)
