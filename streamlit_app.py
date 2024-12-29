@@ -326,7 +326,7 @@ if st.session_state.analysis_complete:
             st.markdown(st.session_state.refined_prompt)
     
     if st.session_state.framework:
-        with st.expander(f"**🗺️ Investigation Framework**", expanded=False):
+        with st.expander(f"🗺️ Investigation Framework", expanded=False):
             st.markdown(st.session_state.framework)
     
     for title, content in st.session_state.research_results:
@@ -334,7 +334,7 @@ if st.session_state.analysis_complete:
             st.markdown(content)
     
     if st.session_state.final_analysis:
-        with st.expander(f"**📋 Final Report**", expanded=False):
+        with st.expander(f"📋 Final Report", expanded=False):
             st.markdown(st.session_state.final_analysis)
         
         # Create columns for download button only
@@ -349,6 +349,54 @@ if st.session_state.analysis_complete:
                 help="Download the complete analysis report as a PDF file",
                 use_container_width=True
             )
+
+def generate_random_fact(topic):
+    """Generate a random interesting fact related to the topic."""
+    try:
+        fact_prompt = f"""
+        Generate ONE short, fascinating, and possibly bizarre fact related to this topic: {topic}
+        Make it engaging and fun. Include relevant emojis. Keep it to one or two sentences maximum.
+        Focus on surprising, lesser-known, or unusual aspects of the topic.
+        """
+        response = model.generate_content(
+            fact_prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.9,
+                top_p=0.9,
+                top_k=40,
+                max_output_tokens=100,
+            ),
+        )
+        return handle_response(response)
+    except Exception as e:
+        logging.error(f"Failed to generate random fact: {e}")
+        return None
+
+def generate_quick_summary(topic):
+    """Generate a quick summary (TL;DR) using the model."""
+    try:
+        quick_summary_prompt = f"""
+        Provide a very brief, one to two-sentence TL;DR (Too Long; Didn't Read) overview of the following topic, incorporating emojis where relevant:
+        {topic}
+        """
+        response = model.generate_content(
+            quick_summary_prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.7,
+                top_p=0.8,
+                top_k=40,
+                max_output_tokens=2048,
+            ),
+        )
+        summary = handle_response(response)
+        # Ensure summary is within 1-2 sentences
+        sentences = summary.split('.')
+        if len(sentences) > 2:
+            summary = '. '.join(sentences[:2]) + '.' if sentences[0] else ''
+        return summary.strip()
+    except Exception as e:
+        logging.error(f"Failed to generate quick summary: {e}")
+        return None
 
 def handle_response(response):
     """Handle model response and extract text with more specific error handling."""
@@ -526,54 +574,6 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
         logging.error(f"Failed to conduct research in phase {iteration}: {e}")
     return None
 
-def generate_random_fact(topic):
-    """Generate a random interesting fact related to the topic."""
-    try:
-        fact_prompt = f"""
-        Generate ONE short, fascinating, and possibly bizarre fact related to this topic: {topic}
-        Make it engaging and fun. Include relevant emojis. Keep it to one or two sentences maximum.
-        Focus on surprising, lesser-known, or unusual aspects of the topic.
-        """
-        response = model.generate_content(
-            fact_prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.9,
-                top_p=0.9,
-                top_k=40,
-                max_output_tokens=100,
-            ),
-        )
-        return handle_response(response)
-    except Exception as e:
-        logging.error(f"Failed to generate random fact: {e}")
-        return None
-
-def generate_quick_summary(topic):
-    """Generate a quick summary (TL;DR) using the model."""
-    try:
-        quick_summary_prompt = f"""
-        Provide a very brief, one to two-sentence TL;DR (Too Long; Didn't Read) overview of the following topic, incorporating emojis where relevant:
-        {topic}
-        """
-        response = model.generate_content(
-            quick_summary_prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.7,
-                top_p=0.8,
-                top_k=40,
-                max_output_tokens=2048,
-            ),
-        )
-        summary = handle_response(response)
-        # Ensure summary is within 1-2 sentences
-        sentences = summary.split('.')
-        if len(sentences) > 2:
-            summary = '. '.join(sentences[:2]) + '.' if sentences[0] else ''
-        return summary.strip()
-    except Exception as e:
-        logging.error(f"Failed to generate quick summary: {e}")
-        return None
-
 # Convert the depth selection to a numerical value
 if loops == "Puddle":
     loops_num = 1
@@ -618,11 +618,11 @@ if start_button_clicked:
                 st.session_state.framework = framework.lstrip(": **\n").strip()
                 
                 # Display refined prompt
-                with st.expander(f"**🎯 Refined Prompt**", expanded=False):
+                with st.expander(f"🎯 Refined Prompt", expanded=False):
                     st.markdown(st.session_state.refined_prompt)
                 
                 # Display framework
-                with st.expander(f"**🗺️ Investigation Framework**", expanded=False):
+                with st.expander(f"🗺️ Investigation Framework", expanded=False):
                     st.markdown(st.session_state.framework)
                 progress_bar.progress(40)
 
@@ -712,7 +712,7 @@ if start_button_clicked:
                 st.session_state.analysis_complete = True
 
                 # Display final report last
-                with st.expander(f"**📋 Final Report**", expanded=False):
+                with st.expander(f"📋 Final Report", expanded=False):
                     st.markdown(final_analysis)
 
                 progress_bar.progress(100)
