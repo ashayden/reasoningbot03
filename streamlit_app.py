@@ -522,30 +522,26 @@ if start_button:
         st.session_state.random_fact = None
         st.session_state.current_step = 0
 
-        # STEP 0: Show step wizard
+        # Show step wizard once at the start
         render_stepper(st.session_state.current_step)
-        st.subheader("Step 1: Refining Prompt (Random Fact & TL;DR)")
 
-        # Random Fact
+        # STEP 0: Random Fact & TL;DR
         st.session_state.random_fact = generate_random_fact(topic)
         if st.session_state.random_fact:
             with st.expander("🎲 Random Fact", expanded=True):
                 st.markdown(st.session_state.random_fact)
 
-        # TL;DR
         st.session_state.tldr_summary = generate_quick_summary(topic)
         if st.session_state.tldr_summary:
             with st.expander("💡 TL;DR", expanded=True):
                 st.markdown(st.session_state.tldr_summary)
 
-        # Move to next step
+        # STEP 1: Framework Development
         st.session_state.current_step = 1
-        render_stepper(st.session_state.current_step)
-        st.subheader("Step 2: Developing Framework (Agent 1)")
 
         refined_prompt, framework = generate_refined_prompt_and_framework(topic)
         if not refined_prompt or not framework:
-            st.error("Could not generate refined prompt and framework. Stopping.")
+            st.error("Could not generate refined prompt and framework. Please try again.")
             st.stop()
 
         st.session_state.refined_prompt = refined_prompt
@@ -557,22 +553,20 @@ if start_button:
         with st.expander("🗺️ Investigation Framework", expanded=False):
             st.markdown(framework)
 
-        # Move to next step
+        # STEP 2: Research
         st.session_state.current_step = 2
-        render_stepper(st.session_state.current_step)
-        st.subheader("Step 3: Conducting Research (Agent 2)")
 
         current_analysis = ""
         aspects = []
         research_results_list = []
 
-        # Extract lines starting with "1.", "2.", etc. for aspects
+        # Extract aspects from framework
         for line in framework.split("\n"):
             if line.strip().startswith(tuple(f"{x}." for x in range(1,10))):
                 aspects.append(line.strip())
 
         if not aspects:
-            st.warning("No aspects found in the framework. Stopping.")
+            st.error("No research aspects found in the framework. Please try again.")
             st.stop()
 
         for i in range(loops_num):
@@ -585,29 +579,26 @@ if start_button:
                 i+1
             )
             if research_text:
-                # Append new research
                 current_analysis += "\n\n" + research_text
                 lines = research_text.split("\n")
                 first_line = lines[0].strip() if lines else aspect
                 remainder = "\n".join(lines[1:]) if len(lines) > 1 else ""
                 research_results_list.append((first_line, remainder))
             else:
-                st.error(f"Research iteration {i+1} returned no content. Stopping.")
+                st.error("Research analysis failed. Please try again.")
                 st.stop()
 
-        # Display research
+        # Display research results
         for title, content in research_results_list:
             with st.expander(title, expanded=False):
                 st.markdown(content)
 
         st.session_state.research_results = research_results_list
 
-        # Move to next step
+        # STEP 3: Final Report
         st.session_state.current_step = 3
-        render_stepper(st.session_state.current_step)
-        st.subheader("Step 4: Final Report (Agent 3)")
 
-        # Build final prompt for Agent 3
+        # Generate final report
         combined_results = "\n\n".join(f"### {t}\n{c}" for t,c in research_results_list)
         final_agent3_prompt = agent3_prompt.format(
             refined_prompt=refined_prompt,
@@ -619,13 +610,13 @@ if start_button:
             resp = model.generate_content(final_agent3_prompt, generation_config=agent3_config)
             final_analysis = handle_response(resp)
             if not final_analysis:
-                st.error("No final analysis generated. Stopping.")
+                st.error("Could not generate final report. Please try again.")
                 st.stop()
             st.session_state.final_analysis = final_analysis
             with st.expander("📋 Final Report", expanded=True):
                 st.markdown(final_analysis)
         except Exception as e:
-            st.error(f"Error generating final report: {e}")
+            st.error("Error generating final report. Please try again.")
             st.stop()
 
         # Create PDF
@@ -637,11 +628,9 @@ if start_button:
         )
         st.session_state.pdf_buffer = pdf_bytes
 
-        # Move to final step
+        # Complete
         st.session_state.current_step = 4
         st.session_state.analysis_complete = True
-        render_stepper(st.session_state.current_step)
-        st.success("Analysis Complete!")
 
         st.download_button(
             label="⬇️ Download Report as PDF",
