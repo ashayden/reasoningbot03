@@ -4,7 +4,6 @@ import time
 import logging
 import random
 from streamlit_extras.app_logo import add_logo
-from streamlit_extras.mention import mention
 from streamlit_extras.colored_header import colored_header
 
 # Configure logging with debug level
@@ -14,21 +13,7 @@ logging.basicConfig(
 )
 
 # --- Add Logo to Sidebar ---
-add_logo("https://viso.ai/wp-content/uploads/2023/08/viso-logo-drop.svg", height=5)
-
-# --- UI/UX - Add mention ---
-mention(
-    label="Learn About Viso Suite",
-    icon="https://viso.ai/wp-content/uploads/2023/08/viso-logo-drop.svg",
-    url="https://viso.ai/end-to-end-computer-vision/",
-)
-
-# --- UI/UX - Add colored header ---
-colored_header(
-    label="Advanced Reasoning Bot 🤖",
-    description="This bot uses multiple AI agents to analyze topics in depth with sophisticated reasoning.",
-    color_name="violet-70",
-)
+# add_logo("https://viso.ai/wp-content/uploads/2023/08/viso-logo-drop.svg", height=5) # Removed as requested
 
 # Get API key from Streamlit secrets
 try:
@@ -49,27 +34,38 @@ except Exception as e:
     st.error(f"⚠️ Error configuring Gemini API: {str(e)}")
     st.stop()
 
+# --- UI/UX - Add colored header ---
+colored_header(
+    label="Advanced Reasoning Bot 🤖",
+    description="This bot uses multiple AI agents to analyze topics in depth with sophisticated reasoning.",
+    color_name="violet-70",
+)
+
 # Input section with UI/UX enhancements
 with st.container():
-    topic = st.text_input(
-        "Enter a topic or question:",
-        placeholder="e.g., 'What are the impacts of AI on the economy?'",
-        key="topic_input",
-    )
-    loops = st.slider(
-        "How many research iterations per aspect?",
-        min_value=1,
-        max_value=10,
-        value=2,
-        key="loops_slider",
-    )
+    # Create columns for the topic input and the settings cog
+    topic_col, settings_col = st.columns([0.8, 0.2])
 
-# --- UI/UX - Add expander for prompt details ---
-with st.expander("Advanced Prompt Customization"):
-    # Agent Prompts
-    agent1_prompt = st.text_area(
-        "Agent 1 Prompt (Prompt Engineer)",
-        '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
+    with topic_col:
+        topic = st.text_input(
+            "Enter a topic or question:",
+            placeholder="e.g., 'What are the impacts of AI on the economy?'",
+            key="topic_input",
+            label_visibility="visible"  # Make sure the label is visible
+        )
+
+    with settings_col:
+        # Add a settings cog icon that triggers the expander
+        st.write("")  # Placeholder for vertical alignment
+        if st.button("⚙️", key="settings_button"):
+            pass  # Use pass to avoid any action, the expander state is handled below
+
+    # Expander for Advanced Prompt Customization
+    with st.expander("Advanced Prompt Customization", expanded=False):
+        # Agent Prompts
+        agent1_prompt = st.text_area(
+            "Agent 1 Prompt (Prompt Engineer)",
+            '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
 
     USER'S TOPIC/QUESTION: {topic}
 
@@ -122,13 +118,13 @@ with st.expander("Advanced Prompt Customization"):
     - Use consistent indentation for bullet points
     - Add a blank line between numbered items
     - Use a hyphen (-) for bullet points''',
-        key="agent1_prompt",
-        height=300,
-    )
+            key="agent1_prompt",
+            height=300,
+        )
 
-    agent2_prompt = st.text_area(
-        "Agent 2 Prompt (Researcher)",
-        '''Using the refined prompt and the established framework, continue researching and analyzing:
+        agent2_prompt = st.text_area(
+            "Agent 2 Prompt (Researcher)",
+            '''Using the refined prompt and the established framework, continue researching and analyzing:
 
     REFINED PROMPT:
     {refined_prompt}
@@ -153,13 +149,13 @@ with st.expander("Advanced Prompt Customization"):
     5. Noting any emerging implications
 
     Structure your response with the descriptive title on the first line, followed by your analysis.''',
-        key="agent2_prompt",
-        height=300,
-    )
+            key="agent2_prompt",
+            height=300,
+        )
 
-    agent3_prompt = st.text_area(
-        "Agent 3 Prompt (Expert Analyst)",
-        '''Based on the completed analysis of the topic:
+        agent3_prompt = st.text_area(
+            "Agent 3 Prompt (Expert Analyst)",
+            '''Based on the completed analysis of the topic:
 
     REFINED PROMPT:
     {refined_prompt}
@@ -188,8 +184,40 @@ with st.expander("Advanced Prompt Customization"):
 
     Recommendations:
     [List specific, actionable recommendations based on the analysis]''',
-        key="agent3_prompt",
-        height=300,
+            key="agent3_prompt",
+            height=300,
+        )
+
+    # Move the slider outside the expander
+    loops = st.select_slider(
+        "How deep should we dive?",
+        options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
+        value="Lake",
+        key="loops_slider",
+        format_func=lambda x: {
+            "Puddle": "1",
+            "Lake": "2-3",
+            "Ocean": "4-6",
+            "Mariana Trench": "7-10",
+        }[x],
+    )
+
+    # Convert the depth selection to a numerical value
+    if loops == "Puddle":
+        loops_num = 1
+    elif loops == "Lake":
+        loops_num = random.randint(2, 3)
+    elif loops == "Ocean":
+        loops_num = random.randint(4, 6)
+    elif loops == "Mariana Trench":
+        loops_num = random.randint(7, 10)
+    else:
+        loops_num = 2  # Default value
+
+# Update the button to expand the prompt customization section
+if st.session_state.settings_button:
+    st.session_state.agent1_prompt_expander = not st.session_state.get(
+        "agent1_prompt_expander", False
     )
 
 
@@ -356,9 +384,9 @@ if st.button("Start Analysis", key="start_button"):  # Added a key for the butto
                         ):
                             aspects.append(line.strip())
 
-                for i in range(loops):
+                for i in range(loops_num):
                     progress_bar.progress(
-                        25 + int((i / loops) * 50), f"Research phase {i+1} in progress..."
+                        25 + int((i / loops_num) * 50), f"Research phase {i+1} in progress..."
                     )
 
                     if aspects:
