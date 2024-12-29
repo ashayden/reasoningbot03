@@ -212,10 +212,12 @@ if 'framework' not in st.session_state:
 if 'previous_input' not in st.session_state:
     st.session_state.previous_input = ""
 
-# Input section
+# Input section with Enter key handling
 topic = st.text_input(
     "Enter a topic or question:",
     placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
+    key="topic_input",
+    on_change=lambda: st.session_state.update({"start_button_clicked": True}) if st.session_state.topic_input else None,
 )
 
 # Reset session state if input changes
@@ -368,7 +370,10 @@ loops = st.select_slider(
 _, _, button_col = st.columns([1, 1, 1])
 
 with button_col:
-    start_button_clicked = st.button("🌊 Dive In", key="start_button")
+    start_button_clicked = st.button("🌊 Dive In", key="start_button") or st.session_state.get("start_button_clicked", False)
+    # Reset the button state after processing
+    if st.session_state.get("start_button_clicked"):
+        st.session_state.start_button_clicked = False
 
 # Add progress bar placeholder before TL;DR
 progress_placeholder = st.empty()
