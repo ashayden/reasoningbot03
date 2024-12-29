@@ -269,7 +269,9 @@ st.markdown(
 # ============ USER INPUT TOPIC ============
 topic = st.text_input(
     "Enter a topic or question:",
-    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"'
+    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
+    key="topic_input",
+    on_change=lambda: setattr(st.session_state, 'start_button_clicked', True) if st.session_state.topic_input else None
 )
 
 # If topic changes, reset states
@@ -567,11 +569,14 @@ else:
 ########################################
 # MAIN LOGIC WHEN USER CLICKS BUTTON
 ########################################
-if start_button:
+if start_button or st.session_state.get('start_button_clicked', False):
+    # Reset the enter key trigger
+    st.session_state.start_button_clicked = False
+    
     if not topic.strip():
         st.warning("Please enter a topic.")
         st.stop()
-
+        
     # Reset states and initialize container
     st.session_state.update({
         'analysis_complete': False,
