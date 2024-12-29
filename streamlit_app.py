@@ -23,85 +23,38 @@ STEPS = [
 ########################################
 # STEP WIZARD RENDERING
 ########################################
-def render_stepper(current_step: int) -> None:
-    """Renders a 4-step wizard using Streamlit native components."""
-    # Create columns for each step
+def render_step_wizard(step: int):
+    """Renders a single step wizard instance."""
     cols = st.columns([1, 0.2, 1, 0.2, 1, 0.2, 1])
     
-    # Style definitions
-    active_style = """
-        <div style="
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 2px solid #2439f7;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            text-align: center;
-            font-size: 0.9rem;
-            font-weight: 500;
-        ">
-    """
-    complete_style = """
-        <div style="
-            background-color: #28a745;
-            border: 2px solid #28a745;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            text-align: center;
-            font-size: 0.9rem;
-            font-weight: 500;
-        ">
-    """
-    inactive_style = """
-        <div style="
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            color: rgba(255, 255, 255, 0.6);
-            padding: 8px 16px;
-            border-radius: 20px;
-            text-align: center;
-            font-size: 0.9rem;
-            font-weight: 400;
-        ">
-    """
-    connector_complete = """
-        <div style="
-            height: 2px;
-            background-color: #28a745;
-            margin-top: 20px;
-        "></div>
-    """
-    connector_incomplete = """
-        <div style="
-            height: 2px;
-            background-color: rgba(255, 255, 255, 0.2);
-            margin-top: 20px;
-        "></div>
-    """
-    
-    # Render each step
+    # Define styles as CSS classes in the main CSS block
     for i, (col, label) in enumerate(zip(cols[::2], STEPS)):
-        # Determine step style
-        if i < current_step:
-            style = complete_style
-        elif i == current_step:
-            style = active_style
+        # Determine step state
+        if i < step:
+            status = "complete"
+            color = "#28a745"  # Green
+        elif i == step:
+            status = "active"
+            color = "#2439f7"  # Blue
         else:
-            style = inactive_style
-            
+            status = "inactive"
+            color = "rgba(255, 255, 255, 0.2)"  # Light gray
+        
         # Render step
-        col.markdown(f"""
-            {style}
-                <div style="margin-bottom: 4px;">{i + 1}</div>
-                <div style="font-size: 0.8rem;">{label}</div>
+        col.markdown(
+            f'''
+            <div class="step-box {status}">
+                <div class="step-number">{i + 1}</div>
+                <div class="step-label">{label}</div>
             </div>
-        """, unsafe_allow_html=True)
+            ''',
+            unsafe_allow_html=True
+        )
         
         # Render connector (except for last step)
         if i < len(STEPS) - 1:
             cols[i*2 + 1].markdown(
-                connector_complete if i < current_step else connector_incomplete,
+                f'<div class="step-connector {status}"></div>',
                 unsafe_allow_html=True
             )
 
@@ -142,6 +95,56 @@ st.markdown("""
 .step-wizard-container {
   margin-top: 20px;
   margin-bottom: 20px;
+}
+/* Step Wizard Styles */
+.step-box {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.6);
+    padding: 8px 16px;
+    border-radius: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.step-box.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: #2439f7;
+    color: white;
+}
+
+.step-box.complete {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+.step-number {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.step-label {
+    font-size: 0.8rem;
+    font-weight: 400;
+}
+
+.step-connector {
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.2);
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+}
+
+.step-connector.complete {
+    background-color: #28a745;
+}
+
+/* Container for step wizard */
+.step-wizard-wrapper {
+    margin: 20px 0;
+    padding: 10px 0;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -214,42 +217,40 @@ if st.session_state.state['analysis_complete']:
     st.session_state.state['current_step'] = 4
 
 # -------------- Step Wizard Container --------------
-def create_step_wizard():
-    """Creates a step wizard using native Streamlit components."""
-    return st.container()
-
-def update_step_wizard(container, step: int):
-    """Updates the step wizard using native Streamlit components."""
-    with container:
-        st.markdown('<div class="step-wizard-container">', unsafe_allow_html=True)
-        render_stepper(step)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-# Expanders for advanced customization
-with st.expander("**Advanced Prompt Customization**"):
-    agent1_prompt = st.text_area(
-        "Agent 1 Prompt (Prompt Engineer)",
-        "You are an expert prompt engineer...\nRefined Prompt:\n---\n",
-        height=150
-    )
-    agent2_prompt = st.text_area(
-        "Agent 2 Prompt (Researcher)",
-        "Using the refined prompt & framework...\n",
-        height=150
-    )
-    agent3_prompt = st.text_area(
-        "Agent 3 Prompt (Expert Analyst)",
-        "Based on all previous research...\n",
-        height=150
-    )
-
-# Depth slider
-depth = st.select_slider("How deep should we dive?", 
-                         ["Puddle", "Lake", "Ocean", "Mariana Trench"], 
-                         "Lake")
-
-# Start button
-start_clicked = st.button("🌊 Dive In")
+def render_step_wizard(step: int):
+    """Renders a single step wizard instance."""
+    cols = st.columns([1, 0.2, 1, 0.2, 1, 0.2, 1])
+    
+    # Define styles as CSS classes in the main CSS block
+    for i, (col, label) in enumerate(zip(cols[::2], STEPS)):
+        # Determine step state
+        if i < step:
+            status = "complete"
+            color = "#28a745"  # Green
+        elif i == step:
+            status = "active"
+            color = "#2439f7"  # Blue
+        else:
+            status = "inactive"
+            color = "rgba(255, 255, 255, 0.2)"  # Light gray
+        
+        # Render step
+        col.markdown(
+            f'''
+            <div class="step-box {status}">
+                <div class="step-number">{i + 1}</div>
+                <div class="step-label">{label}</div>
+            </div>
+            ''',
+            unsafe_allow_html=True
+        )
+        
+        # Render connector (except for last step)
+        if i < len(STEPS) - 1:
+            cols[i*2 + 1].markdown(
+                f'<div class="step-connector {status}"></div>',
+                unsafe_allow_html=True
+            )
 
 # -------------- Utility Functions --------------
 def handle_response(response):
@@ -424,9 +425,10 @@ if start_clicked:
         reset_analysis_state()
     
     try:
-        # Create step wizard
-        step_container = create_step_wizard()
-        update_step_wizard(step_container, 0)
+        # Create single step wizard container
+        st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
+        render_step_wizard(0)
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # Step 1: Initial Analysis
         st.session_state.state['random_fact'] = generate_random_fact(topic)
@@ -442,7 +444,7 @@ if start_clicked:
 
         # Update Step 1
         st.session_state.state['current_step'] = 1
-        update_step_wizard(step_container, 1)
+        render_step_wizard(1)
 
         # Step 2: Framework Development
         refined_prompt, framework = generate_refined_prompt_and_framework(topic)
@@ -460,7 +462,7 @@ if start_clicked:
 
         # Update Step 2
         st.session_state.state['current_step'] = 2
-        update_step_wizard(step_container, 2)
+        render_step_wizard(2)
 
         # Step 3: Research Phase
         aspects = [line.strip() for line in framework.split("\n") 
@@ -497,7 +499,7 @@ if start_clicked:
         
         # Update Step 3
         st.session_state.state['current_step'] = 3
-        update_step_wizard(step_container, 3)
+        render_step_wizard(3)
 
         # Generate final report
         combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results_list)
@@ -533,7 +535,7 @@ if start_clicked:
         # Update final step
         st.session_state.state['current_step'] = 4
         st.session_state.state['analysis_complete'] = True
-        update_step_wizard(step_container, 4)
+        render_step_wizard(4)
 
         # Show download button
         st.download_button(
@@ -552,5 +554,6 @@ if start_clicked:
 
 # Show existing step wizard if analysis is in progress
 elif st.session_state.state['analysis_started']:
-    step_container = create_step_wizard()
-    update_step_wizard(step_container, st.session_state.state['current_step'])
+    st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
+    render_step_wizard(st.session_state.state['current_step'])
+    st.markdown('</div>', unsafe_allow_html=True)
