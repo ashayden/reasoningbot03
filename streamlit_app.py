@@ -313,8 +313,12 @@ progress_placeholder = st.empty()
 
 # Display previous results if they exist
 if st.session_state.analysis_complete:
+    # Display random fact first
+    with st.expander("**🎲 Random Fact**", expanded=True):
+        st.markdown(generate_random_fact(topic))
+    
     if st.session_state.tldr_summary:
-        with st.expander(f"**💡 TL;DR**", expanded=True):
+        with st.expander("**💡 TL;DR**", expanded=True):
             st.markdown(st.session_state.tldr_summary)
     
     if st.session_state.refined_prompt:
@@ -592,6 +596,13 @@ if start_button_clicked:
         progress_bar = st.progress(0)
         
         try:
+            # Display random fact first
+            random_fact = generate_random_fact(topic)
+            if random_fact:
+                with st.expander("🎲 Random Fact", expanded=True):
+                    st.markdown(random_fact)
+                progress_bar.progress(10)
+            
             # Quick Summary (TL;DR)
             tldr_summary = generate_quick_summary(topic)
             if tldr_summary:
