@@ -560,24 +560,32 @@ if start_button_clicked:
 
                     final_analysis = handle_response(final_response)
 
+                    # Create PDF buffer before displaying final analysis
+                    pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
+
+                    # Display final analysis last
                     with placeholders["analysis"]:
                         with st.expander(f"**{progress_states['analysis']['label']}**", expanded=False):
                             st.markdown(final_analysis)
 
-                    # PDF download and "Analysis Complete" outside the expander
-                    pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
+                    # Create two columns for completion message and download button
+                    msg_col, download_col = st.columns([1, 2])
                     
-                    # Check if "analysis" section is complete before adding the message
-                    if progress_states["analysis"]["status"] == "complete":
+                    # Add completion message in left column
+                    with msg_col:
                         st.markdown("🥂 Analysis Complete")
-
-                    # Provide the download button for the PDF
-                    st.download_button(
-                        label="⬇️ Download Report as PDF",
-                        data=pdf_buffer,
-                        file_name=f"{topic}_analysis_report.pdf",
-                        mime="application/pdf"
-                    )
+                    
+                    # Add download button in right column, aligned to the right
+                    with download_col:
+                        st.download_button(
+                            label="⬇️ Download Report as PDF",
+                            data=pdf_buffer,
+                            file_name=f"{topic}_analysis_report.pdf",
+                            mime="application/pdf",
+                            key="download_button",
+                            help="Download the complete analysis report as a PDF file",
+                            use_container_width=True,
+                        )
 
                 except Exception as e:
                     st.error(
