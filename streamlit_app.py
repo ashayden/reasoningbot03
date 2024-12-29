@@ -3,8 +3,6 @@ import google.generativeai as genai
 import time
 import logging
 import random
-from streamlit_extras.app_logo import add_logo
-from streamlit_extras.colored_header import colored_header
 
 # Configure logging with debug level
 logging.basicConfig(
@@ -12,12 +10,41 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# --- UI/UX - Add colored header ---
-colored_header(
-    label="Advanced Reasoning Bot 🤖",
-    description="This bot uses multiple AI agents to analyze topics in depth with sophisticated reasoning.",
-    color_name="violet-70",
-)
+# --- Custom CSS for Streamlit ---
+st.markdown("""
+<style>
+/* Set font family for entire app */
+body {
+    font-family: 'Roboto', sans-serif;
+}
+
+/* Style for expander headers */
+.streamlit-expanderHeader {
+    font-weight: bold;
+    font-size: 1.2rem; 
+}
+
+/* Style for progress bar */
+.stProgress > div > div > div > div {
+    background-color: #5D1796;
+}
+
+/* Style for the main title */
+.main-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #5D1796;
+    margin-bottom: 0.5rem;
+}
+
+/* Style for the subheader */
+.subheader {
+    font-size: 1.2rem;
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # Get API key from Streamlit secrets
 try:
@@ -38,6 +65,12 @@ except Exception as e:
     st.error(f"⚠️ Error configuring Gemini API: {str(e)}")
     st.stop()
 
+# --- Main Title ---
+st.markdown("<h1 class='main-title'>Advanced Reasoning Bot 🤖</h1>", unsafe_allow_html=True)
+
+# --- Subheader ---
+st.markdown("<p class='subheader'>This bot uses multiple AI agents to analyze topics in depth with sophisticated reasoning.</p>", unsafe_allow_html=True)
+
 # Input section
 topic = st.text_input(
     "Enter a topic or question:",
@@ -45,7 +78,7 @@ topic = st.text_input(
 )
 
 # --- UI/UX - Add expander for prompt details ---
-with st.expander("Advanced Prompt Customization"):
+with st.expander("**Advanced Prompt Customization**"):
     # Agent Prompts
     agent1_prompt = st.text_area(
         "Agent 1 Prompt (Prompt Engineer)",
@@ -323,22 +356,49 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
 # Main Execution
 if st.button("Start Analysis", key="start_button"):
     if topic:
-        progress_bar = st.progress(0, "Starting analysis...")
+        # Initialize progress indicators
+        progress_states = {
+            "refined_prompt": {"label": "Refined Prompt", "progress": 0, "status": "pending"},
+            "framework": {"label": "Investigation Framework", "progress": 0, "status": "pending"},
+            "research": {"label": "Research Phases", "progress": 0, "status": "pending"},
+            "analysis": {"label": "Analysis Results", "progress": 0, "status": "pending"},
+        }
+
+        # Create placeholders for each section
+        placeholders = {}
+        for section in progress_states:
+            placeholders[section] = st.empty()
 
         with st.spinner("Analyzing..."):
             # Agent 1: Refine prompt and generate framework
             refined_prompt, framework = generate_refined_prompt_and_framework(topic)
-            progress_bar.progress(25, "Prompt refined and framework generated.")
+            progress_states["refined_prompt"]["progress"] = 100
+            progress_states["refined_prompt"]["status"] = "complete"
 
             if refined_prompt is None or framework is None:
                 st.error(
                     "Failed to generate refined prompt and investigation framework. Please check the logs for details and try again."
                 )
             else:
-                with st.expander("Refined Prompt", expanded=True):
-                    st.markdown(refined_prompt.lstrip(":\n").strip())
-                with st.expander("Investigation Framework", expanded=True):
-                    st.markdown(framework.lstrip(": **\n").strip())
+                progress_states["framework"]["progress"] = 100
+                progress_states["framework"]["status"] = "complete"
+
+                # Update placeholders with expanders and content
+                with placeholders["refined_prompt"]:
+                    with st.expander(f"**{progress_states['refined_prompt']['label']}**", expanded=False):
+                        if progress_states["refined_prompt"]["status"] == "complete":
+                            st.markdown(refined_prompt.lstrip(":\n").strip())
+                            st.markdown("✅ Complete")  # Indicate completion
+                        else:
+                            st.markdown("⏳ In progress...")
+
+                with placeholders["framework"]:
+                    with st.expander(f"**{progress_states['framework']['label']}**", expanded=False):
+                        if progress_states["framework"]["status"] == "complete":
+                            st.markdown(framework.lstrip(": **\n").strip())
+                            st.markdown("✅ Complete")  # Indicate completion
+                        else:
+                            st.markdown("⏳ In progress...")
 
                 # Agent 2: Conduct research through iterations
                 current_analysis = ""
@@ -355,9 +415,8 @@ if st.button("Start Analysis", key="start_button"):
                             aspects.append(line.strip())
 
                 for i in range(loops_num):
-                    progress_bar.progress(
-                        25 + int((i / loops_num) * 50), f"Research phase {i+1} in progress..."
-                    )
+                    progress_states["research"]["progress"] = int(((i + 1) / loops_num) * 100)
+                    progress_states["research"]["status"] = "complete" if i == loops_num - 1 else "in progress"
 
                     if aspects:
                         current_aspect = random.choice(aspects)
@@ -374,17 +433,24 @@ if st.button("Start Analysis", key="start_button"):
                             (line for line in research_lines if line.strip()),
                             current_aspect,
                         )
-                        with st.expander(f"{title}", expanded=True):
-                            st.markdown("\n".join(research_lines[1:]))
+                        with placeholders["research"]:
+                            with st.expander(f"**{title}**", expanded=False):
+                                st.markdown("\n".join(research_lines[1:]))
+                                if progress_states["research"]["status"] == "complete":
+                                    st.markdown("✅ Complete")  # Indicate completion
+                                else:
+                                    st.markdown("⏳ In progress...")
                     else:
-                        st.error(
-                            f"Failed during research phase {i + 1}. Please check the logs for details and try again."
-                        )
-                        break
+                        with placeholders["research"]:
+                            st.error(
+                                f"Failed during research phase {i + 1}. Please check the logs for details and try again."
+                            )
+                            break
 
                 # Agent 3: Present comprehensive analysis
                 if research:
-                    progress_bar.progress(75, "Generating final analysis...")
+                    progress_states["analysis"]["progress"] = 100
+                    progress_states["analysis"]["status"] = "complete"
                     try:
                         final_response = model.generate_content(
                             agent3_prompt.format(
@@ -397,16 +463,22 @@ if st.button("Start Analysis", key="start_button"):
 
                         final_analysis = handle_response(final_response)
 
-                        with st.expander("Analysis Results", expanded=True):
-                            st.markdown(final_analysis)
-                        progress_bar.progress(100, "Analysis complete!")
+                        with placeholders["analysis"]:
+                            with st.expander(f"**{progress_states['analysis']['label']}**", expanded=False):
+                                if progress_states["analysis"]["status"] == "complete":
+                                    st.markdown(final_analysis)
+                                    st.markdown("✅ Complete")  # Indicate completion
+                                else:
+                                    st.markdown("⏳ In progress...")
 
                     except Exception as e:
-                        st.error(
-                            f"Error in final analysis generation: {str(e)}. Please check the logs for details and try again."
-                        )
+                        with placeholders["analysis"]:
+                            st.error(
+                                f"Error in final analysis generation: {str(e)}. Please check the logs for details and try again."
+                            )
                 else:
-                    progress_bar.progress(100, "Analysis complete.")
+                    progress_states["analysis"]["progress"] = 100
+                    progress_states["analysis"]["status"] = "complete"
 
     else:
         st.warning("Please enter a topic to analyze.")
