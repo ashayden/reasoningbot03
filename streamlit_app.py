@@ -22,108 +22,32 @@ STEPS = [
 ]
 
 ########################################
-# FUNCTION: RENDER STEPPER
+# FUNCTION: RENDER PROGRESS
 ########################################
-def render_stepper(current_step: int) -> str:
-    """Renders a 5-step wizard with proper styling."""
-    # Clamp current_step
-    current_step = max(0, min(current_step, 4))
+def render_progress(current_step: int) -> None:
+    """Renders a simple progress indicator using Streamlit components."""
+    cols = st.columns(len(STEPS))
     
-    # Create the CSS and HTML
-    html = """
-        <style>
-        .stepper-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin: 2rem auto;
-            padding: 1rem 2rem;
-            max-width: 700px;
-            background: transparent;
-            position: relative;
-        }
-        .step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            flex: 1;
-            max-width: 140px;
-            margin: 0 0.5rem;
-        }
-        .step-number {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            color: rgba(255, 255, 255, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 500;
-            font-size: 0.9rem;
-            margin-bottom: 12px;
-            z-index: 2;
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        .step-label {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.6);
-            text-align: center;
-            max-width: 110px;
-            word-wrap: break-word;
-            position: relative;
-            z-index: 2;
-            line-height: 1.2;
-            margin-top: 0;
-        }
-        .step-line {
-            position: absolute;
-            top: 16px;
-            left: calc(50% + 20px);
-            right: calc(-50% + 20px);
-            height: 2px;
-            background-color: rgba(255, 255, 255, 0.2);
-            z-index: 1;
-        }
-        .step.active .step-number {
-            border-color: #2439f7;
-            color: #2439f7;
-            background-color: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 0 0 4px rgba(36, 57, 247, 0.1);
-        }
-        .step.active .step-label {
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 500;
-        }
-        .step.complete .step-number {
-            background-color: #28a745;
-            border-color: #28a745;
-            color: white;
-        }
-        .step.complete .step-line {
-            background-color: #28a745;
-        }
-        .step:last-child .step-line {
-            display: none;
-        }
-        </style>
-    """
-    
-    # Create the HTML with minimal whitespace
-    html_parts = [
-        '<div class="stepper-container">',
-        *[f'<div class="step {status}"><div class="step-number">{i + 1}</div><div class="step-label">{label}</div><div class="step-line"></div></div>'
-          for i, label in enumerate(STEPS)
-          for status in ["complete" if i < current_step else "active" if i == current_step else ""]],
-        '</div>'
-    ]
-    
-    # Return the complete HTML
-    return html + ''.join(html_parts)
-
+    for idx, (col, step) in enumerate(zip(cols, STEPS)):
+        # Determine status
+        if idx < current_step:
+            status = "✅"
+            color = "green"
+        elif idx == current_step:
+            status = "🔄"
+            color = "blue"
+        else:
+            status = "⭕"
+            color = "gray"
+            
+        # Center-align the content
+        col.markdown(
+            f"<div style='text-align: center;'>"
+            f"<div style='color: {color}; font-size: 20px; margin-bottom: 5px;'>{status}</div>"
+            f"<div style='color: {color}; font-size: 14px; line-height: 1.2;'>{step}</div>"
+            "</div>",
+            unsafe_allow_html=True
+        )
 
 ########################################
 # ORIGINAL STREAMLIT + LLM CODE
@@ -509,10 +433,9 @@ if start_button:
         'current_step': 0
     })
     
-    # Create persistent step wizard container
-    step_container = st.empty()
-    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
-
+    # Create progress indicator
+    render_progress(st.session_state.current_step)
+    
     # Step 1: Initial Analysis
     st.session_state.random_fact = generate_random_fact(topic)
     st.session_state.tldr_summary = generate_quick_summary(topic)
@@ -525,9 +448,9 @@ if start_button:
         with st.expander("💡 TL;DR", expanded=True):
             st.markdown(st.session_state.tldr_summary)
 
-    # Mark Step 1 complete
+    # Update progress
     st.session_state.current_step = 1
-    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+    render_progress(st.session_state.current_step)
 
     # Step 2: Framework Development
     refined_prompt, framework = generate_refined_prompt_and_framework(topic)
@@ -543,9 +466,9 @@ if start_button:
     with st.expander("🗺️ Investigation Framework", expanded=False):
         st.markdown(framework)
 
-    # Mark Step 2 complete
+    # Update progress
     st.session_state.current_step = 2
-    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+    render_progress(st.session_state.current_step)
 
     # Step 3: Research Phase
     aspects = [line.strip() for line in framework.split("\n") 
@@ -577,9 +500,9 @@ if start_button:
 
     st.session_state.research_results = research_results_list
 
-    # Mark Step 3 complete
+    # Update progress
     st.session_state.current_step = 3
-    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+    render_progress(st.session_state.current_step)
 
     # Step 4: Final Analysis
     try:
@@ -605,10 +528,10 @@ if start_button:
         pdf_bytes = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
         st.session_state.pdf_buffer = pdf_bytes
 
-        # Mark analysis complete
+        # Update progress
         st.session_state.current_step = 4
         st.session_state.analysis_complete = True
-        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+        render_progress(st.session_state.current_step)
 
         # Show download button
         st.download_button(
