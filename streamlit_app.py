@@ -165,7 +165,7 @@ st.markdown("""
 [data-testid="stExpander"] {
     border: none !important;
     box-shadow: none !important;
-    background-color: #2439f7 !important;
+    background-color: transparent !important;
     border-radius: 6px !important;
     margin-bottom: 1rem !important;
     width: auto !important;
@@ -179,7 +179,7 @@ st.markdown("""
 }
 
 [data-testid="stExpander"] summary {
-    color: white !important;
+    color: #2439f7 !important;
     font-weight: 500 !important;
     letter-spacing: 0.5px !important;
     padding: 0.5rem 1rem !important;
@@ -191,7 +191,7 @@ st.markdown("""
 }
 
 [data-testid="stExpander"] summary:hover {
-    background-color: #1a2bc4 !important;
+    background-color: rgba(36, 57, 247, 0.1) !important;
     transform: translateY(-1px) !important;
 }
 
