@@ -3,6 +3,9 @@ import google.generativeai as genai
 import time
 import logging
 import random
+from streamlit_extras.app_logo import add_logo
+from streamlit_extras.mention import mention
+from streamlit_extras.colored_header import colored_header
 
 # Configure logging with debug level
 logging.basicConfig(
@@ -10,12 +13,31 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+# --- Add Logo to Sidebar ---
+add_logo("https://viso.ai/wp-content/uploads/2023/08/viso-logo-drop.svg", height=5)
+
+# --- UI/UX - Add mention ---
+mention(
+    label="Learn About Viso Suite",
+    icon="https://viso.ai/wp-content/uploads/2023/08/viso-logo-drop.svg",
+    url="https://viso.ai/end-to-end-computer-vision/",
+)
+
+# --- UI/UX - Add colored header ---
+colored_header(
+    label="Advanced Reasoning Bot 🤖",
+    description="This bot uses multiple AI agents to analyze topics in depth with sophisticated reasoning.",
+    color_name="violet-70",
+)
+
 # Get API key from Streamlit secrets
 try:
     api_key = st.secrets["GOOGLE_API_KEY"]
 except Exception as e:
     logging.error(f"GOOGLE_API_KEY not found in Streamlit secrets: {e}")
-    st.error("⚠️ GOOGLE_API_KEY not found in Streamlit secrets! Make sure to add it in the Streamlit Cloud dashboard.")
+    st.error(
+        "⚠️ GOOGLE_API_KEY not found in Streamlit secrets! Make sure to add it in the Streamlit Cloud dashboard."
+    )
     st.stop()
 
 # Configure API with error handling
@@ -27,135 +49,161 @@ except Exception as e:
     st.error(f"⚠️ Error configuring Gemini API: {str(e)}")
     st.stop()
 
-# Streamlit UI
-st.title("🤔 Advanced Reasoning Bot")
-st.write("This bot uses multiple AI agents to analyze topics in depth with sophisticated reasoning.")
+# Input section with UI/UX enhancements
+with st.container():
+    topic = st.text_input(
+        "Enter a topic or question:",
+        placeholder="e.g., 'What are the impacts of AI on the economy?'",
+        key="topic_input",
+    )
+    loops = st.slider(
+        "How many research iterations per aspect?",
+        min_value=1,
+        max_value=10,
+        value=2,
+        key="loops_slider",
+    )
 
-# Input section
-topic = st.text_input("Enter a topic or question:")
-loops = st.slider("How many research iterations per aspect?", min_value=1, max_value=10, value=2)
+# --- UI/UX - Add expander for prompt details ---
+with st.expander("Advanced Prompt Customization"):
+    # Agent Prompts
+    agent1_prompt = st.text_area(
+        "Agent 1 Prompt (Prompt Engineer)",
+        '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
 
-# Agent Prompts
-agent1_prompt = '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
+    USER'S TOPIC/QUESTION: {topic}
 
-USER'S TOPIC/QUESTION: {topic}
+    1.  **Prompt Refinement**
+        *   Analyze the user's input and identify areas where you can add more detail, specificity, and context.
+        *   Consider what background information or assumptions might be helpful to include.
+        *   Reformulate the user's input into a more comprehensive and well-defined prompt.
 
-1.  **Prompt Refinement**
-    *   Analyze the user's input and identify areas where you can add more detail, specificity, and context.
-    *   Consider what background information or assumptions might be helpful to include.
-    *   Reformulate the user's input into a more comprehensive and well-defined prompt.
+    2.  **Investigation Framework**
+        *   Based on your **refined prompt**, define a structured approach for investigating the topic.
+        *   Outline:
+            -   Core Question/Hypothesis
+            -   Key Areas Requiring Investigation
+            -   Critical Factors to Examine
+            -   Required Data and Information Sources
+            -   Potential Challenges or Limitations
 
-2.  **Investigation Framework**
-    *   Based on your **refined prompt**, define a structured approach for investigating the topic.
-    *   Outline:
-        -   Core Question/Hypothesis
-        -   Key Areas Requiring Investigation
-        -   Critical Factors to Examine
-        -   Required Data and Information Sources
-        -   Potential Challenges or Limitations
+        *   Present this as a clear investigation framework that will guide further research and analysis.
 
-    *   Present this as a clear investigation framework that will guide further research and analysis.
+    Format your response with appropriate spacing between sections:
 
-Format your response with appropriate spacing between sections:
+    Refined Prompt
+    [Your refined prompt here]
 
-Refined Prompt
-[Your refined prompt here]
+    ---
 
----
+    Investigation Framework
 
-Investigation Framework
+    Core Question/Hypothesis
 
-Core Question/Hypothesis
+    [Your hypothesis here, which may wrap to multiple lines while maintaining proper alignment]
 
-[Your hypothesis here, which may wrap to multiple lines while maintaining proper alignment]
+    Key Areas Requiring Investigation
 
-Key Areas Requiring Investigation
+    1. [Area Name]:
+    - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
+    - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
+    - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
 
-1. [Area Name]:
-   - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
-   - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
-   - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
+    2. [Area Name]:
+    - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
+    - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
+    - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
 
-2. [Area Name]:
-   - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
-   - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
-   - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
+    Note: 
+    - Each section header should be on its own line
+    - Leave a blank line between the header and its content
+    - Each numbered item starts with a number followed by a period, space, and area name
+    - Bullet points appear on new lines beneath the numbered item
+    - Use consistent indentation for bullet points
+    - Add a blank line between numbered items
+    - Use a hyphen (-) for bullet points''',
+        key="agent1_prompt",
+        height=300,
+    )
 
-Note: 
-- Each section header should be on its own line
-- Leave a blank line between the header and its content
-- Each numbered item starts with a number followed by a period, space, and area name
-- Bullet points appear on new lines beneath the numbered item
-- Use consistent indentation for bullet points
-- Add a blank line between numbered items
-- Use a hyphen (-) for bullet points'''
+    agent2_prompt = st.text_area(
+        "Agent 2 Prompt (Researcher)",
+        '''Using the refined prompt and the established framework, continue researching and analyzing:
 
-agent2_prompt = '''Using the refined prompt and the established framework, continue researching and analyzing:
+    REFINED PROMPT:
+    {refined_prompt}
 
-REFINED PROMPT:
-{refined_prompt}
+    FRAMEWORK:
+    {framework}
 
-FRAMEWORK:
-{framework}
+    PREVIOUS ANALYSIS:
+    {previous_analysis}
 
-PREVIOUS ANALYSIS:
-{previous_analysis}
+    CURRENT FOCUS:
+    {current_aspect}
 
-CURRENT FOCUS:
-{current_aspect}
+    Begin your response with a descriptive title that summarizes the focus area and its relation to the main topic.
+    For example: "Economic Factors: Impact on Regional Development Trends"
 
-Begin your response with a descriptive title that summarizes the focus area and its relation to the main topic.
-For example: "Economic Factors: Impact on Regional Development Trends"
+    Then present your findings by:
+    1. Gathering relevant data and evidence
+    2. Analyzing new findings
+    3. Identifying connections and patterns
+    4. Updating conclusions based on new information
+    5. Noting any emerging implications
 
-Then present your findings by:
-1. Gathering relevant data and evidence
-2. Analyzing new findings
-3. Identifying connections and patterns
-4. Updating conclusions based on new information
-5. Noting any emerging implications
+    Structure your response with the descriptive title on the first line, followed by your analysis.''',
+        key="agent2_prompt",
+        height=300,
+    )
 
-Structure your response with the descriptive title on the first line, followed by your analysis.'''
+    agent3_prompt = st.text_area(
+        "Agent 3 Prompt (Expert Analyst)",
+        '''Based on the completed analysis of the topic:
 
-agent3_prompt = '''Based on the completed analysis of the topic:
+    REFINED PROMPT:
+    {refined_prompt}
 
-REFINED PROMPT:
-{refined_prompt}
+    FRAMEWORK:
+    {system_prompt}
 
-FRAMEWORK:
-{system_prompt}
+    ANALYSIS:
+    {all_aspect_analyses}
 
-ANALYSIS:
-{all_aspect_analyses}
+    You are a leading expert in fields relevant to the topic. Provide an in-depth analysis as a recognized authority on this topic. Offer insights and conclusions based on your extensive knowledge and experience.
 
-You are a leading expert in fields relevant to the topic. Provide an in-depth analysis as a recognized authority on this topic. Offer insights and conclusions based on your extensive knowledge and experience.
+    Write a comprehensive report addressing the topic and/or answering the user's question. Include relevant statistics. Present the report in a neutral, objective, and informative tone, befitting an expert in the field.
 
-Write a comprehensive report addressing the topic and/or answering the user's question. Include relevant statistics. Present the report in a neutral, objective, and informative tone, befitting an expert in the field.
+    ### Analysis Results
 
-### Analysis Results
+    [Title of Analysis]
 
-[Title of Analysis]
+    Executive Summary:
+    [Provide a comprehensive overview of the key findings, challenges, and recommendations]
 
-Executive Summary:
-[Provide a comprehensive overview of the key findings, challenges, and recommendations]
+    I. [First Major Section]:
+    [Detailed analysis with supporting evidence and data]
 
-I. [First Major Section]:
-[Detailed analysis with supporting evidence and data]
+    [Continue with subsequent sections as needed]
 
-[Continue with subsequent sections as needed]
-
-Recommendations:
-[List specific, actionable recommendations based on the analysis]'''
+    Recommendations:
+    [List specific, actionable recommendations based on the analysis]''',
+        key="agent3_prompt",
+        height=300,
+    )
 
 
 def handle_response(response):
     """Handle model response and extract text with more specific error handling."""
     try:
-        if hasattr(response, 'parts') and response.parts:
-            if text_part := next((part.text for part in response.parts if part.text), None):
+        if hasattr(response, "parts") and response.parts:
+            if text_part := next(
+                (part.text for part in response.parts if part.text), None
+            ):
                 return text_part.strip()
             else:
                 logging.warning("Response parts exist, but no text part found.")
-        elif hasattr(response, 'text'):
+        elif hasattr(response, "text"):
             return response.text.strip()
         else:
             logging.warning("Response does not contain expected structure for text extraction.")
@@ -166,25 +214,16 @@ def handle_response(response):
 
 # Define default generation config
 default_generation_config = genai.types.GenerationConfig(
-    temperature=0.7,
-    top_p=0.8,
-    top_k=40,
-    max_output_tokens=2048
+    temperature=0.7, top_p=0.8, top_k=40, max_output_tokens=2048
 )
 
 # Create new GenerationConfig objects for other agents:
 agent2_config = genai.types.GenerationConfig(
-    temperature=0.5,
-    top_p=0.7,
-    top_k=40,  # Add top_k or other parameters as needed
-    max_output_tokens=2048
+    temperature=0.5, top_p=0.7, top_k=40, max_output_tokens=2048  # Increased max_output_tokens
 )
 
 agent3_config = genai.types.GenerationConfig(
-    temperature=0.3,
-    top_p=0.7,
-    top_k=20,
-    max_output_tokens=2048
+    temperature=0.3, top_p=0.7, top_k=20, max_output_tokens=4096  # Increased max_output_tokens
 )
 
 
@@ -193,7 +232,7 @@ def generate_refined_prompt_and_framework(topic):
     try:
         prompt_response = model.generate_content(
             agent1_prompt.format(topic=topic),
-            generation_config=default_generation_config
+            generation_config=default_generation_config,
         )
 
         agent1_response = handle_response(prompt_response)
@@ -208,14 +247,18 @@ def generate_refined_prompt_and_framework(topic):
                 # Clean up the framework section
                 framework = parts[1].strip()
                 if framework.startswith("Investigation Framework"):
-                    framework = framework[len("Investigation Framework"):].strip()
+                    framework = framework[len("Investigation Framework") :].strip()
 
                 # Remove any stray colons from section headers
-                framework = framework.replace("Core Question/Hypothesis:", "Core Question/Hypothesis")
-                framework = framework.replace("Key Areas Requiring Investigation:", "Key Areas Requiring Investigation")
+                framework = framework.replace(
+                    "Core Question/Hypothesis:", "Core Question/Hypothesis"
+                )
+                framework = framework.replace(
+                    "Key Areas Requiring Investigation:", "Key Areas Requiring Investigation"
+                )
 
                 # Further clean up for framework formatting
-                framework_lines = framework.split('\n')
+                framework_lines = framework.split("\n")
                 cleaned_framework_lines = []
                 for line in framework_lines:
                     # Ensure consistent indentation for bullet points
@@ -223,19 +266,22 @@ def generate_refined_prompt_and_framework(topic):
                         cleaned_framework_lines.append("   " + line.lstrip())
                     else:
                         cleaned_framework_lines.append(line)
-                framework = '\n'.join(cleaned_framework_lines)
+                framework = "\n".join(cleaned_framework_lines)
 
-                logging.info("Refined prompt and investigation framework generated successfully")
+                logging.info(
+                    "Refined prompt and investigation framework generated successfully"
+                )
                 return refined_prompt, framework
             else:
-                logging.warning("Could not properly split the response from Agent 1 into refined prompt and framework.")
+                logging.warning(
+                    "Could not properly split the response from Agent 1 into refined prompt and framework."
+                )
         else:
             logging.warning("Agent 1 response was empty or invalid.")
 
     except Exception as e:
         logging.error(f"Failed to generate refined prompt and framework: {e}")
     return None, None
-
 
 
 def conduct_research(refined_prompt, framework, previous_analysis, current_aspect, iteration):
@@ -248,13 +294,13 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
                 previous_analysis=previous_analysis,
                 current_aspect=current_aspect
             ),
-            generation_config=agent2_config
+            generation_config=agent2_config,
         )
 
         research = handle_response(prompt_response)
         if research:
             # Remove any iteration focus headers if they exist
-            research_lines = research.split('\n')
+            research_lines = research.split("\n")
             cleaned_research = []
             skip_next = False
             for line in research_lines:
@@ -266,7 +312,7 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
                     continue
                 cleaned_research.append(line)
 
-            research = '\n'.join(cleaned_research).strip()
+            research = "\n".join(cleaned_research).strip()
             logging.info(f"Research phase {iteration} completed successfully")
             return research
         else:
@@ -277,72 +323,92 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
 
 
 # Main Execution
-if st.button("Start Analysis"):
+if st.button("Start Analysis", key="start_button"):  # Added a key for the button
     if topic:
+        progress_bar = st.progress(0, "Starting analysis...")  # Initialize progress bar
+
         with st.spinner("Analyzing..."):
             # Agent 1: Refine prompt and generate framework
             refined_prompt, framework = generate_refined_prompt_and_framework(topic)
+            progress_bar.progress(25, "Prompt refined and framework generated.")
 
             if refined_prompt is None or framework is None:
-                st.error("Failed to generate refined prompt and investigation framework. Please check the logs for details and try again.")
+                st.error(
+                    "Failed to generate refined prompt and investigation framework. Please check the logs for details and try again."
+                )
             else:
-                st.markdown("### Refined Prompt")
-                st.markdown(refined_prompt.lstrip(':\n').strip())  # Remove leading colon and newlines
-                st.markdown("---")
-                st.markdown("### Investigation Framework")
-                st.markdown(framework.lstrip(':**\n').strip())  # Remove leading asterisks, colon, and newlines
-                st.markdown("---")
+                with st.expander("Refined Prompt", expanded=True):
+                    st.markdown(refined_prompt.lstrip(":\n").strip())
+                with st.expander("Investigation Framework", expanded=True):
+                    st.markdown(framework.lstrip(": **\n").strip())
 
                 # Agent 2: Conduct research through iterations
-                current_analysis = ""  # Start with an empty string for the first iteration
+                current_analysis = ""
                 aspects = []
-                # Extract aspects from the framework
+
                 if framework:
-                    for line in framework.split('\n'):
-                        if line.strip().startswith("1.") or line.strip().startswith("2.") or line.strip().startswith("3.") or line.strip().startswith("4."):
+                    for line in framework.split("\n"):
+                        if (
+                            line.strip().startswith("1.")
+                            or line.strip().startswith("2.")
+                            or line.strip().startswith("3.")
+                            or line.strip().startswith("4.")
+                        ):
                             aspects.append(line.strip())
 
                 for i in range(loops):
-                    # Dynamically select an aspect to focus on
+                    progress_bar.progress(
+                        25 + int((i / loops) * 50), f"Research phase {i+1} in progress..."
+                    )
+
                     if aspects:
                         current_aspect = random.choice(aspects)
                     else:
                         current_aspect = "Current State and Trends"
 
-                    research = conduct_research(refined_prompt, framework, current_analysis, current_aspect, i + 1)
+                    research = conduct_research(
+                        refined_prompt, framework, current_analysis, current_aspect, i + 1
+                    )
                     if research:
-                        current_analysis += "\n\n" + research  # Append to the ongoing analysis
-                        # Extract the first line of research as the descriptive title
-                        research_lines = research.split('\n')
-                        title = next((line for line in research_lines if line.strip()), current_aspect)
-                        st.markdown(f"### {title}")
-                        # Display the rest of the research content
-                        st.markdown('\n'.join(research_lines[1:]))
-                        st.markdown("---")
+                        current_analysis += "\n\n" + research
+                        research_lines = research.split("\n")
+                        title = next(
+                            (line for line in research_lines if line.strip()),
+                            current_aspect,
+                        )
+                        with st.expander(f"{title}", expanded=True):
+                            st.markdown("\n".join(research_lines[1:]))
                     else:
                         st.error(
-                            f"Failed during research phase {i + 1}. Please check the logs for details and try again.")
-                        break  # Stop further iterations if one fails
+                            f"Failed during research phase {i + 1}. Please check the logs for details and try again."
+                        )
+                        break
 
                 # Agent 3: Present comprehensive analysis
-                # Proceed to Agent 3 only if Agent 2 was successful
                 if research:
+                    progress_bar.progress(75, "Generating final analysis...")
                     try:
                         final_response = model.generate_content(
                             agent3_prompt.format(
                                 refined_prompt=refined_prompt,
                                 system_prompt=framework,
-                                all_aspect_analyses=current_analysis
+                                all_aspect_analyses=current_analysis,
                             ),
-                            generation_config=agent3_config
+                            generation_config=agent3_config,
                         )
 
                         final_analysis = handle_response(final_response)
-                        st.markdown("### Analysis Results")
-                        st.markdown(final_analysis)
+
+                        with st.expander("Analysis Results", expanded=True):
+                            st.markdown(final_analysis)
+                        progress_bar.progress(100, "Analysis complete!")
 
                     except Exception as e:
                         st.error(
-                            f"Error in final analysis generation: {str(e)}. Please check the logs for details and try again.")
+                            f"Error in final analysis generation: {str(e)}. Please check the logs for details and try again."
+                        )
+                else:
+                    progress_bar.progress(100, "Analysis complete.")
+
     else:
         st.warning("Please enter a topic to analyze.")
