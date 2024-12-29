@@ -308,13 +308,21 @@ with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
 {topic}
 
 1) Create a more refined prompt
-2) Provide a structured investigation framework
+2) Provide an initial structured investigation framework
+3) Review and enhance the framework by adding depth and complexity to each point
 
 Format exactly:
 Refined Prompt:
 [Your refined prompt here]
 ---
-[Investigation framework with numbered items]
+[Your enhanced investigation framework with numbered points, each containing multiple sub-aspects and considerations]
+
+Guidelines for framework enhancement:
+- Each main point should have 2-3 sub-aspects to explore
+- Consider interconnections between points
+- Add specific areas of investigation under each point
+- Include both obvious and non-obvious angles
+- Ensure comprehensive coverage while maintaining focus
 ''',
         height=250
     )
@@ -464,19 +472,57 @@ def generate_quick_summary(topic):
     return None
 
 def generate_refined_prompt_and_framework(topic):
-    """Call Agent 1 to refine prompt + framework."""
+    """Call Agent 1 to create and refine prompt + framework."""
     try:
-        text = agent1_prompt.format(topic=topic)
-        resp = model.generate_content(text)
-        ans = handle_response(resp)
-        if ans and "---" in ans:
-            parts = ans.split("---")
-            refined_prompt = parts[0].replace("Refined Prompt:", "").strip()
-            framework = parts[1].strip()
-            return refined_prompt, framework
+        # Initial framework generation
+        initial_prompt = f'''As an expert prompt engineer, analyze this topic and create:
+1. A refined, detailed prompt
+2. An initial structured framework for investigation
+
+Topic: {topic}
+
+Format your response exactly as:
+Refined Prompt:
+[Your refined prompt here]
+---
+[Your investigation framework with numbered points]'''
+
+        initial_resp = model.generate_content(initial_prompt)
+        initial_result = handle_response(initial_resp)
+        
+        if not initial_result or "---" not in initial_result:
+            return None, None
+            
+        parts = initial_result.split("---")
+        refined_prompt = parts[0].replace("Refined Prompt:", "").strip()
+        initial_framework = parts[1].strip()
+        
+        # Framework refinement
+        refinement_prompt = f'''As an expert analyst, review and enhance this investigation framework by adding depth and complexity to each point.
+
+Original Framework:
+{initial_framework}
+
+Guidelines:
+1. Add 2-3 specific sub-aspects under each main point
+2. Include both obvious and non-obvious angles
+3. Consider interconnections between points
+4. Ensure comprehensive coverage while maintaining focus
+5. Add specific areas of investigation under each point
+
+Provide the enhanced framework maintaining the same overall structure but with added depth and detail.'''
+
+        refinement_resp = model.generate_content(refinement_prompt)
+        enhanced_framework = handle_response(refinement_resp)
+        
+        if not enhanced_framework:
+            return refined_prompt, initial_framework
+            
+        return refined_prompt, enhanced_framework
+        
     except Exception as e:
-        logging.error(e)
-    return None, None
+        logging.error(f"Framework generation error: {str(e)}")
+        return None, None
 
 def conduct_research(refined_prompt, framework, prev_analysis, aspect, iteration):
     """Call Agent 2 to conduct deeper research."""
