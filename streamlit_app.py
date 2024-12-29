@@ -111,23 +111,27 @@ st.markdown("""
     border-radius: 20px;
     text-align: center;
     transition: all 0.3s ease;
+    margin: 0 5px;
 }
 
 .step-box.active {
     background-color: rgba(255, 255, 255, 0.1);
     border-color: #2439f7;
     color: white;
+    box-shadow: 0 0 10px rgba(36, 57, 247, 0.3);
 }
 
 .step-box.complete {
     background-color: #28a745;
     border-color: #28a745;
     color: white;
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
 }
 
 .step-label {
     font-size: 0.9rem;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .step-connector {
@@ -139,12 +143,15 @@ st.markdown("""
 
 .step-connector.complete {
     background-color: #28a745;
+    box-shadow: 0 0 5px rgba(40, 167, 69, 0.3);
 }
 
 /* Container for step wizard */
 .step-wizard-wrapper {
     margin: 30px 0;
-    padding: 10px 0;
+    padding: 20px 0;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -411,15 +418,19 @@ if start_clicked:
         st.warning("Please enter a topic.")
         st.stop()
     
-    # Start new analysis
+    # Start new analysis and create step wizard container
     if not st.session_state.state['analysis_started']:
         st.session_state.state['analysis_started'] = True
         reset_analysis_state()
     
+    # Create step wizard container FIRST
+    wizard_container = st.container()
+    with wizard_container:
+        st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
+        render_step_wizard(st.session_state.state['current_step'])
+        st.markdown('</div>', unsafe_allow_html=True)
+    
     try:
-        # Create single step wizard container
-        wizard_container = display_step_wizard()
-
         # Step 1: Initial Analysis
         st.session_state.state['random_fact'] = generate_random_fact(topic)
         st.session_state.state['tldr_summary'] = generate_quick_summary(topic)
@@ -434,7 +445,10 @@ if start_clicked:
 
         # Update Step 1
         st.session_state.state['current_step'] = 1
-        display_step_wizard()
+        with wizard_container:
+            st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
+            render_step_wizard(1)
+            st.markdown('</div>', unsafe_allow_html=True)
 
         # Step 2: Framework Development
         refined_prompt, framework = generate_refined_prompt_and_framework(topic)
@@ -452,7 +466,10 @@ if start_clicked:
 
         # Update Step 2
         st.session_state.state['current_step'] = 2
-        display_step_wizard()
+        with wizard_container:
+            st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
+            render_step_wizard(2)
+            st.markdown('</div>', unsafe_allow_html=True)
 
         # Step 3: Research Phase
         aspects = [line.strip() for line in framework.split("\n") 
@@ -489,7 +506,10 @@ if start_clicked:
         
         # Update Step 3
         st.session_state.state['current_step'] = 3
-        display_step_wizard()
+        with wizard_container:
+            st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
+            render_step_wizard(3)
+            st.markdown('</div>', unsafe_allow_html=True)
 
         # Generate final report
         combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results_list)
@@ -525,7 +545,10 @@ if start_clicked:
         # Update final step
         st.session_state.state['current_step'] = 4
         st.session_state.state['analysis_complete'] = True
-        display_step_wizard()
+        with wizard_container:
+            st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
+            render_step_wizard(4)
+            st.markdown('</div>', unsafe_allow_html=True)
 
         # Show download button
         st.download_button(
@@ -544,4 +567,8 @@ if start_clicked:
 
 # Show existing step wizard if analysis is in progress
 elif st.session_state.state['analysis_started']:
-    display_step_wizard()
+    wizard_container = st.container()
+    with wizard_container:
+        st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
+        render_step_wizard(st.session_state.state['current_step'])
+        st.markdown('</div>', unsafe_allow_html=True)
