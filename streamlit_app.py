@@ -15,126 +15,86 @@ logging.basicConfig(
 # --- Custom CSS for Streamlit ---
 st.markdown("""
 <style>
-/* Set font family for entire app */
-body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-ef, .st-eg, .st-eh, .st-ei, .st-ej, .st-ek, .st-el, .st-em, .st-en, .st-eo, .st-ep, .st-eq, .st-er, .st-es, .st-et, .st-eu, .st-ev, .st-ew, .st-ex, .st-ey, .st-ez, .st-fa, .st-fb, .st-fc, .st-fd, .st-fe, .st-ff, .st-fg, .st-fh, .st-fi, .st-fj, .st-fk, .st-fl, .st-fm, .st-fn, .st-fo, .st-fp, .st-fq, .st-fr, .st-fs, .st-ft, .st-fu, .st-fv, .st-fw, .st-fx, .st-fy, .st-fz, .st-g0, .st-g1, .st-g2, .st-g3, .st-g4, .st-g5, .st-g6, .st-g7, .st-g8, .st-g9, .st-ga, .st-gb, .st-gc, .st-gd, .st-ge, .st-gf, .st-gg, .st-gh, .st-gi, .st-gj, .st-gk, .st-gl, .st-gm, .st-gn, .st-go, .st-gp, .st-gq, .st-gr, .st-gs, .st-gt, .st-gu, .st-gv, .st-gw, .st-gx, .st-gy, .st-gz, .st-h0, .st-h1, .st-h2, .st-h3, .st-h4, .st-h5, .st-h6, .st-h7, .st-h8, .st-h9, .st-ha, .st-hb, .st-hc, .st-hd, .st-he, .st-hf, .st-hg, .st-hh, .st-hi, .st-hj, .st-hk, .st-hl, .st-hm, .st-hn, .st-ho, .st-hp, .st-hq, .st-hr, .st-hs, .st-ht, .st-hu, .st-hv, .st-hw, .st-hx, .st-hy, .st-hz, .st-i0, .st-i1, .st-i2, .st-i3, .st-i4, .st-i5, .st-i6, .st-i7, .st-i8, .st-i9, .st-ia, .st-ib, .st-ic, .st-id, .st-ie, .st-if, .st-ig, .st-ih, .st-ii, .st-ij, .st-ik, .st-il, .st-im, .st-in, .st-io, .st-ip, .st-iq, .st-ir, .st-is, .st-it, .st-iu, .st-iv, .st-iw, .st-ix, .st-iy, .st-iz, .st-j0, .st-j1, .st-j2, .st-j3, .st-j4, .st-j5, .st-j6, .st-j7, .st-j8, .st-j9, .st-ja, .st-jb, .st-jc, .st-jd, .st-je, .st-jf, .st-jg, .st-jh, .st-ji, .st-jj, .st-jk, .st-jl, .st-jm, .st-jn, .st-jo, .st-jp, .st-jq, .st-jr, .st-js, .st-jt, .st-ju, .st-jv, .st-jw, .st-jx, .st-jy, .st-jz {
-    font-family: 'Roboto', sans-serif;
+/* More compact spacing */
+.block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 1rem !important;
+    max-width: 800px;
 }
 
-/* Style for progress bar */
-.stProgress {
-    width: 100% !important;
-    margin: 10px 0;
-    border-radius: 20px;
-    padding: 0;
+/* Input field styling */
+.stTextInput > div > div > input {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    border-radius: 0.5rem;
 }
 
-.stProgress > div > div > div > div {
-    background: linear-gradient(90deg, #007bff 0%, #007bff var(--progress), #28a745 var(--progress), #28a745 100%);
-    border-radius: 20px;
-    height: 24px !important;
-    transition: all 0.3s ease;
-}
-
-.stProgress > div {
-    height: 24px;
-}
-
-.stProgress {
-    height: 24px;
-}
-
-/* Style for the slider */
-.stSlider {
-    width: 100% !important;
-    padding: 10px 0;
-    margin-bottom: 10px;
-}
-
-.stSlider > div {
-    margin-bottom: 10px;
-}
-
-/* Make the slider track taller */
-.stSlider > div > div > div {
-    height: 24px !important;
-}
-
-/* Style the slider thumb */
-.stSlider > div > div > div > div {
-    height: 24px !important;
-    width: 24px !important;
-    background-color: #007bff !important;
-    border: 2px solid white !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
-    transition: all 0.2s ease !important;
-}
-
-.stSlider > div > div > div > div:hover {
-    transform: scale(1.1);
-    box-shadow: 0 3px 6px rgba(0,0,0,0.3) !important;
-}
-
-/* Style slider value text */
-.stSlider > div > div:nth-child(3) > span {
-    font-family: 'Roboto', sans-serif !important;
-    font-size: 1.1rem !important;
-    font-weight: 500 !important;
-    color: #007bff !important;
-    margin-top: 8px !important;
-}
-
-/* Add padding to main content */
-.main .block-container {
-    padding: 3rem 3rem 1rem !important;
-}
-
-/* Style for buttons */
+/* Button styling */
 .stButton > button {
-    float: right;
-    margin: 0 0 20px 0;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    margin: 0.5rem 0;
+    transition: all 0.2s;
 }
 
-/* Style for expander headers */
+/* Progress bar styling */
+.stProgress > div > div > div > div {
+    background: linear-gradient(90deg, 
+        #007bff 0%, 
+        #007bff 98%, 
+        #007bff 100%
+    );
+    background-size: 200% 100%;
+    animation: loading 2s linear infinite;
+    border-radius: 0.5rem;
+    height: 0.5rem !important;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Completed progress bar */
+.progress-complete > div > div > div > div {
+    background: #28a745 !important;
+    animation: none;
+}
+
+/* Expander styling */
 .streamlit-expanderHeader {
-    font-weight: bold;
-    font-size: 1.2rem;
-    padding: 10px 0;
-    border-radius: 5px;
-    transition: all 0.2s ease;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 0.75rem 0;
+    border-radius: 0.5rem;
 }
 
-.streamlit-expanderHeader:hover {
-    background-color: rgba(0, 123, 255, 0.1);
+/* Slider styling */
+.stSlider > div > div > div {
+    height: 0.5rem !important;
 }
 
-/* Style for the main title (remove color to use default)*/
-.main-title {
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin-bottom: 0.5rem;
+.stSlider > div > div > div > div {
+    height: 1rem !important;
+    width: 1rem !important;
 }
 
-/* Style for the subheader */
-.subheader {
-    font-size: 1.2rem;
-    color: #6c757d;
-    margin-bottom: 1.5rem;
+/* Download button styling */
+[data-testid="stDownloadButton"] > button {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    margin: 0.5rem 0;
 }
 
-/* Style for the slider - remove background and change font*/
-.stSlider > div > div {
-    font-family: 'Roboto', sans-serif !important;
-}
-
-.stSlider > div > div:nth-child(3) {
-    background-color: transparent !important;
-}
-
-.stSlider > div > div:nth-child(3) > span {
-    color: #007bff; 
-    background-color: transparent !important;
-    border: none !important;
-    font-family: 'Roboto', sans-serif !important;
+/* Adjust spacing between sections */
+.element-container {
+    margin-bottom: 1rem;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -633,10 +593,10 @@ if start_button_clicked:
             # Quick Summary (TL;DR)
             tldr_summary = generate_quick_summary(topic)
             if tldr_summary:
-                st.session_state.tldr_summary = tldr_summary
-                with st.expander(f"**💡 TL;DR**", expanded=True):
-                    st.markdown(tldr_summary)
                 progress_bar.progress(20)
+                st.session_state.tldr_summary = tldr_summary
+                with st.expander("💡 TL;DR", expanded=True):
+                    st.markdown(tldr_summary)
 
             # Agent 1: Refine prompt and generate framework
             refined_prompt, framework = generate_refined_prompt_and_framework(topic)
