@@ -207,6 +207,42 @@ st.markdown("<h1 style='text-align:center;'>M.A.R.A.</h1>", unsafe_allow_html=Tr
 topic = st.text_input("Enter a topic or question:", 
                       placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"')
 
+# Advanced customization expander
+with st.expander("Advanced Prompt Customization"):
+    agent1_prompt = st.text_area(
+        "Agent 1 Prompt (Prompt Engineer)",
+        "You are an expert prompt engineer...\nRefined Prompt:\n---\n",
+        height=150
+    )
+    agent2_prompt = st.text_area(
+        "Agent 2 Prompt (Researcher)",
+        "Using the refined prompt & framework...\n",
+        height=150
+    )
+    agent3_prompt = st.text_area(
+        "Agent 3 Prompt (Expert Analyst)",
+        "Based on all previous research...\n",
+        height=150
+    )
+
+# Depth slider
+depth = st.select_slider(
+    "How deep should we dive?", 
+    ["Puddle", "Lake", "Ocean", "Mariana Trench"], 
+    "Lake"
+)
+
+# Calculate loops based on depth
+loops_num = {
+    "Puddle": 2,
+    "Lake": 3,
+    "Ocean": 4,
+    "Mariana Trench": 5
+}.get(depth, 3)  # Default to 3 if depth not found
+
+# Start button
+start_clicked = st.button("🌊 Dive In")
+
 # If topic changes, reset
 if topic != st.session_state.state['previous_topic']:
     reset_analysis_state()
@@ -398,14 +434,6 @@ def conduct_research(refined_prompt: str, framework: str, current_analysis: str,
     except Exception as e:
         logging.error(f"Error in research iteration {iteration}: {str(e)}")
         return None
-
-# Add loops_num variable
-loops_num = {
-    "Puddle": 2,
-    "Lake": 3,
-    "Ocean": 4,
-    "Mariana Trench": 5
-}.get(depth, 3)  # Default to 3 if depth not found
 
 # -------------- MAIN LOGIC --------------
 # Topic change handling (only once at the top)
