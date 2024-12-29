@@ -35,6 +35,14 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
     transition: all 0.3s ease;
 }
 
+.stProgress > div {
+    height: 24px;
+}
+
+.stProgress {
+    height: 24px;
+}
+
 /* Style for the slider */
 .stSlider {
     width: 100% !important;
@@ -437,12 +445,8 @@ def create_download_pdf(refined_prompt, framework, research_analysis, final_anal
         pdf.set_font("Helvetica", size=12)
         pdf.multi_cell(0, 10, final_analysis)
         
-        # Save PDF to buffer
-        pdf_buffer = io.BytesIO()
-        pdf.output(pdf_buffer)
-        pdf_buffer.seek(0)
-        
-        return pdf_buffer.getvalue()
+        # Return PDF as bytes
+        return pdf.output(dest='S').encode('latin-1')
         
     except Exception as e:
         logging.error(f"Failed to create PDF: {e}")
@@ -451,10 +455,7 @@ def create_download_pdf(refined_prompt, framework, research_analysis, final_anal
         pdf.add_page()
         pdf.set_font("Helvetica", size=12)
         pdf.cell(0, 10, "Error creating PDF report. Please try again.", ln=True)
-        pdf_buffer = io.BytesIO()
-        pdf.output(pdf_buffer)
-        pdf_buffer.seek(0)
-        return pdf_buffer.getvalue()
+        return pdf.output(dest='S').encode('latin-1')
 
 def generate_refined_prompt_and_framework(topic):
     """Generate a refined prompt and investigation framework using Agent 1."""
@@ -625,47 +626,15 @@ if start_button_clicked:
         st.session_state.analysis_complete = False
         st.session_state.research_results = []
         
-        # Initialize progress indicators
-        progress_states = {
-            "tldr": {"label": "TL;DR", "progress": 0, "status": "pending"},
-            "refined_prompt": {"label": "Refined Prompt", "progress": 0, "status": "pending"},
-            "framework": {"label": "Investigation Framework", "progress": 0, "status": "pending"},
-            "research": {"label": "Research Phases", "progress": 0, "status": "pending"},
-            "analysis": {"label": "Final Report", "progress": 0, "status": "pending"},
-        }
-
-        # Initialize overall progress bar
-        progress_bar = progress_placeholder.progress(0)
-
+        # Initialize progress bar
+        progress_bar = st.progress(0)
+        
         try:
-            # Create placeholder for random facts
-            facts_placeholder = st.empty()
-            
-            # Display initial random fact
-            with facts_placeholder.container():
-                with st.expander("**🎲 Random Fact**", expanded=True):
-                    st.markdown(generate_random_fact(topic))
-            
-            # Start fact update loop in the background
-            def update_fact():
-                time.sleep(8)  # Wait 8 seconds before showing new facts
-                while not st.session_state.analysis_complete:
-                    with facts_placeholder.container():
-                        with st.expander("**🎲 Random Fact**", expanded=True):
-                            st.markdown(generate_random_fact(topic))
-                    time.sleep(12)  # Show new fact every 12 seconds
-            
-            # Start the fact update loop in a separate thread
-            import threading
-            fact_thread = threading.Thread(target=update_fact)
-            fact_thread.daemon = True
-            fact_thread.start()
-
             # Quick Summary (TL;DR)
             tldr_summary = generate_quick_summary(topic)
             if tldr_summary:
                 st.session_state.tldr_summary = tldr_summary
-                with st.expander(f"**💡 {progress_states['tldr']['label']}**", expanded=True):
+                with st.expander(f"**💡 TL;DR**", expanded=True):
                     st.markdown(tldr_summary)
                 progress_bar.progress(20)
 
@@ -676,11 +645,11 @@ if start_button_clicked:
                 st.session_state.framework = framework.lstrip(": **\n").strip()
                 
                 # Display refined prompt
-                with st.expander(f"**🎯 {progress_states['refined_prompt']['label']}**", expanded=False):
+                with st.expander(f"**🎯 Refined Prompt**", expanded=False):
                     st.markdown(st.session_state.refined_prompt)
                 
                 # Display framework
-                with st.expander(f"**🗺️ {progress_states['framework']['label']}**", expanded=False):
+                with st.expander(f"**🗺️ Investigation Framework**", expanded=False):
                     st.markdown(st.session_state.framework)
                 progress_bar.progress(40)
 
@@ -770,28 +739,23 @@ if start_button_clicked:
                 st.session_state.analysis_complete = True
 
                 # Display final report last
-                with st.expander(f"**📋 {progress_states['analysis']['label']}**", expanded=False):
+                with st.expander(f"**📋 Final Report**", expanded=False):
                     st.markdown(final_analysis)
 
                 progress_bar.progress(100)
 
-                # Update progress bar color based on progress
-                progress_bar = progress_placeholder.progress(0)
-                st.markdown(
-                    f"""
-                    <style>
-                    .stProgress > div > div > div > div {{
-                        background: linear-gradient(90deg, 
-                            #007bff 0%, 
-                            #007bff {min(progress_bar.progress, 100)}%, 
-                            {('#28a745' if progress_bar.progress == 100 else '#007bff')} {min(progress_bar.progress, 100)}%, 
-                            {('#28a745' if progress_bar.progress == 100 else '#007bff')} 100%
-                        );
-                    }}
-                    </style>
-                    """,
-                    unsafe_allow_html=True
-                )
+                # Update progress bar color when complete
+                if st.session_state.analysis_complete:
+                    st.markdown(
+                        """
+                        <style>
+                        .stProgress > div > div > div > div {
+                            background-color: #28a745 !important;
+                        }
+                        </style>
+                        """,
+                        unsafe_allow_html=True
+                    )
 
                 # Create columns for download button only
                 _, download_col = st.columns([1, 2])
