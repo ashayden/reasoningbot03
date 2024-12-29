@@ -439,9 +439,6 @@ with progress_col:
 
 if start_button_clicked:
     if topic:
-        # Initialize overall progress bar
-        progress_bar = progress_placeholder.progress(0)
-        
         # Initialize progress indicators
         progress_states = {
             "tldr": {"label": "TL;DR", "progress": 0, "status": "pending"},
@@ -451,146 +448,103 @@ if start_button_clicked:
             "analysis": {"label": "Final Report", "progress": 0, "status": "pending"},
         }
 
-        # Create placeholders for each section in order
-        placeholders = {
-            "tldr": st.empty(),
-            "refined_prompt": st.empty(),
-            "framework": st.empty(),
-            "research": st.empty(),
-            "analysis": st.empty(),
-        }
+        # Initialize overall progress bar
+        progress_bar = progress_placeholder.progress(0)
 
-        # Quick Summary (TL;DR)
-        tldr_summary = generate_quick_summary(topic)
-        progress_states["tldr"]["progress"] = 100
-        progress_states["tldr"]["status"] = "complete"
-        progress_bar.progress(20)
+        try:
+            # Quick Summary (TL;DR)
+            tldr_summary = generate_quick_summary(topic)
+            if tldr_summary:
+                with st.expander(f"**{progress_states['tldr']['label']}**", expanded=True):
+                    st.markdown(tldr_summary)
+                progress_bar.progress(20)
 
-        # Update placeholder for TL;DR
-        with placeholders["tldr"]:
-            with st.expander(f"**{progress_states['tldr']['label']}**", expanded=True):
-                st.markdown(tldr_summary)
-
-        # Agent 1: Refine prompt and generate framework
-        refined_prompt, framework = generate_refined_prompt_and_framework(topic)
-        progress_states["refined_prompt"]["progress"] = 100
-        progress_states["refined_prompt"]["status"] = "complete"
-        progress_bar.progress(40)
-
-        if refined_prompt is None or framework is None:
-            st.error(
-                "Failed to generate refined prompt and investigation framework. Please check the logs for details and try again."
-            )
-        else:
-            progress_states["framework"]["progress"] = 100
-            progress_states["framework"]["status"] = "complete"
-
-            # Update placeholders with expanders and content
-            with placeholders["refined_prompt"]:
+            # Agent 1: Refine prompt and generate framework
+            refined_prompt, framework = generate_refined_prompt_and_framework(topic)
+            if refined_prompt and framework:
+                # Display refined prompt
                 with st.expander(f"**{progress_states['refined_prompt']['label']}**", expanded=False):
                     st.markdown(refined_prompt.lstrip(":\n").strip())
-
-            with placeholders["framework"]:
+                
+                # Display framework
                 with st.expander(f"**{progress_states['framework']['label']}**", expanded=False):
                     st.markdown(framework.lstrip(": **\n").strip())
+                progress_bar.progress(40)
 
-            # Agent 2: Conduct research through iterations
-            current_analysis = ""
-            aspects = []
-            research_expanders = []  # Store research expanders in order
+                # Agent 2: Conduct research through iterations
+                current_analysis = ""
+                aspects = []
+                research_expanders = []
 
-            if framework:
-                for line in framework.split("\n"):
-                    if (
-                        line.strip().startswith("1.")
-                        or line.strip().startswith("2.")
-                        or line.strip().startswith("3.")
-                        or line.strip().startswith("4.")
-                    ):
-                        aspects.append(line.strip())
+                # Extract aspects from framework
+                if framework:
+                    for line in framework.split("\n"):
+                        if line.strip().startswith(("1.", "2.", "3.", "4.")):
+                            aspects.append(line.strip())
 
-            for i in range(loops_num):
-                progress_states["research"]["progress"] = int(((i + 1) / loops_num) * 100)
-                progress_states["research"]["status"] = "complete" if i == loops_num - 1 else "in progress"
-                progress_bar.progress(40 + int((i + 1) / loops_num * 40))  # Progress from 40% to 80%
+                # Conduct research phases
+                for i in range(loops_num):
+                    current_aspect = random.choice(aspects) if aspects else "Current State and Trends"
+                    research = conduct_research(refined_prompt, framework, current_analysis, current_aspect, i + 1)
+                    
+                    if research:
+                        current_analysis += "\n\n" + research
+                        research_lines = research.split("\n")
+                        title = next((line for line in research_lines if line.strip()), current_aspect)
+                        research_content = "\n".join(research_lines[1:])
+                        research_expanders.append((title, research_content))
+                        progress_bar.progress(40 + int((i + 1) / loops_num * 40))
+                    else:
+                        raise Exception(f"Research phase {i + 1} failed")
 
-                if aspects:
-                    current_aspect = random.choice(aspects)
-                else:
-                    current_aspect = "Current State and Trends"
+                # Display research phases
+                for title, content in research_expanders:
+                    with st.expander(f"**{title}**", expanded=False):
+                        st.markdown(content)
 
-                research = conduct_research(
-                    refined_prompt, framework, current_analysis, current_aspect, i + 1
+                # Agent 3: Generate final analysis
+                final_response = model.generate_content(
+                    agent3_prompt.format(
+                        refined_prompt=refined_prompt,
+                        system_prompt=framework,
+                        all_aspect_analyses=current_analysis,
+                    ),
+                    generation_config=agent3_config,
                 )
-                if research:
-                    current_analysis += "\n\n" + research
-                    research_lines = research.split("\n")
-                    title = next(
-                        (line for line in research_lines if line.strip()),
-                        current_aspect,
-                    )
-                    research_content = "\n".join(research_lines[1:])
-                    research_expanders.append((title, research_content))
-                else:
-                    st.error(
-                        f"Failed during research phase {i + 1}. Please check the logs for details and try again."
-                    )
-                    break
+                final_analysis = handle_response(final_response)
 
-            # Display research phases in order
-            for title, content in research_expanders:
-                with st.expander(f"**{title}**", expanded=False):
-                    st.markdown(content)
+                # Create PDF buffer
+                pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
 
-            # Agent 3: Present comprehensive analysis
-            if research:
-                progress_states["analysis"]["progress"] = 100
-                progress_states["analysis"]["status"] = "complete"
-                progress_bar.progress(100)  # Complete the progress bar
-                
-                try:
-                    final_response = model.generate_content(
-                        agent3_prompt.format(
-                            refined_prompt=refined_prompt,
-                            system_prompt=framework,
-                            all_aspect_analyses=current_analysis,
-                        ),
-                        generation_config=agent3_config,
+                # Display research phases first
+                for title, content in research_expanders:
+                    with st.expander(f"**{title}**", expanded=False):
+                        st.markdown(content)
+
+                # Display final report last
+                with st.expander(f"**{progress_states['analysis']['label']}**", expanded=False):
+                    st.markdown(final_analysis)
+
+                progress_bar.progress(100)
+
+                # Create columns for completion message and download button
+                msg_col, download_col = st.columns([1, 2])
+                with msg_col:
+                    st.markdown("🥂 Analysis Complete")
+                with download_col:
+                    st.download_button(
+                        label="⬇️ Download Report as PDF",
+                        data=pdf_buffer,
+                        file_name=f"{topic}_analysis_report.pdf",
+                        mime="application/pdf",
+                        key="download_button",
+                        help="Download the complete analysis report as a PDF file",
+                        use_container_width=True,
                     )
 
-                    final_analysis = handle_response(final_response)
-
-                    # Create PDF buffer before displaying final analysis
-                    pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
-
-                    # Display final analysis last
-                    with placeholders["analysis"]:
-                        with st.expander(f"**{progress_states['analysis']['label']}**", expanded=False):
-                            st.markdown(final_analysis)
-
-                    # Create two columns for completion message and download button
-                    msg_col, download_col = st.columns([1, 2])
-                    
-                    # Add completion message in left column
-                    with msg_col:
-                        st.markdown("🥂 Analysis Complete")
-                    
-                    # Add download button in right column, aligned to the right
-                    with download_col:
-                        st.download_button(
-                            label="⬇️ Download Report as PDF",
-                            data=pdf_buffer,
-                            file_name=f"{topic}_analysis_report.pdf",
-                            mime="application/pdf",
-                            key="download_button",
-                            help="Download the complete analysis report as a PDF file",
-                            use_container_width=True,
-                        )
-
-                except Exception as e:
-                    st.error(
-                        f"Error in final analysis generation: {str(e)}. Please check the logs for details and try again."
-                    )
+        except Exception as e:
+            st.error(f"Analysis failed: {str(e)}. Please try again.")
+            logging.error(f"Analysis failed: {e}")
 
     else:
         st.warning("Please enter a topic to analyze.")
