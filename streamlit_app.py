@@ -66,10 +66,10 @@ Refined Prompt
 Investigation Framework
 
 Core Question/Hypothesis
-[Your hypothesis here]
+
+[Your hypothesis here, which may wrap to multiple lines while maintaining proper alignment]
 
 Key Areas Requiring Investigation
-[Numbered list of Key Areas with detailed bullet points beneath each. Ensure that each bullet point is indented to align with the start of the text in the numbered item above it.]
 
 1. [Area Name]:
    - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
@@ -82,6 +82,8 @@ Key Areas Requiring Investigation
    - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
 
 Note: 
+- Each section header should be on its own line
+- Leave a blank line between the header and its content
 - Each numbered item starts with a number followed by a period, space, and area name
 - Bullet points appear on new lines beneath the numbered item
 - Use consistent indentation for bullet points
@@ -129,7 +131,20 @@ You are a leading expert in fields relevant to the topic. Provide an in-depth an
 
 Write a comprehensive report addressing the topic and/or answering the user's question. Include relevant statistics. Present the report in a neutral, objective, and informative tone, befitting an expert in the field.
 
-### Comprehensive Report'''
+### Analysis Results
+
+[Title of Analysis]
+
+Executive Summary:
+[Provide a comprehensive overview of the key findings, challenges, and recommendations]
+
+I. [First Major Section]:
+[Detailed analysis with supporting evidence and data]
+
+[Continue with subsequent sections as needed]
+
+Recommendations:
+[List specific, actionable recommendations based on the analysis]'''
 
 
 def handle_response(response):
