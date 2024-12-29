@@ -160,7 +160,7 @@ with col1:
         on_change=lambda: setattr(st.session_state, 'start_button_clicked', True) if st.session_state.topic_input else None
     )
 with col2:
-    start_button_clicked = st.button("🌊 Dive In", key="start_button", use_container_width=True)
+    start_button_clicked = st.button("🌊 Dive In", use_container_width=True)
 
 # Add random fact placeholder at the top of analysis section
 fact_placeholder = st.empty()
@@ -171,12 +171,6 @@ loops = st.select_slider(
     options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
     value="Lake",
 )
-
-# Create columns for button
-_, _, button_col = st.columns([1, 1, 1])
-
-with button_col:
-    start_button_clicked = st.button("🌊 Dive In", key="start_button")
 
 # Add progress bar placeholder before TL;DR
 progress_placeholder = st.empty()
