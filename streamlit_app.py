@@ -24,13 +24,13 @@ STEPS = [
 ########################################
 # FUNCTION: RENDER STEPPER
 ########################################
-def render_stepper(current_step: int) -> None:
+def render_stepper(current_step: int) -> str:
     """Renders a 5-step wizard with proper styling."""
     # Clamp current_step
     current_step = max(0, min(current_step, 4))
     
-    # Create the CSS
-    st.markdown("""
+    # Create the CSS and HTML
+    html = """
         <style>
         .stepper-container {
             display: flex;
@@ -109,7 +109,7 @@ def render_stepper(current_step: int) -> None:
             display: none;
         }
         </style>
-    """, unsafe_allow_html=True)
+    """
     
     # Create the HTML with minimal whitespace and proper escaping
     html_parts = []
@@ -121,8 +121,8 @@ def render_stepper(current_step: int) -> None:
     
     html_parts.append('</div>')
     
-    # Render the HTML
-    st.markdown(''.join(html_parts), unsafe_allow_html=True)
+    # Return the complete HTML
+    return html + ''.join(html_parts)
 
 
 ########################################
@@ -506,10 +506,9 @@ if start_button:
         st.session_state.random_fact = None
         st.session_state.current_step = 0
 
-        # Create a container for the step wizard
-        step_container = st.container()
-        with step_container:
-            render_stepper(st.session_state.current_step)
+        # Create a container for the step wizard that persists
+        step_container = st.empty()
+        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
         # STEP 0: Random Fact & TL;DR
         st.session_state.random_fact = generate_random_fact(topic)
@@ -522,11 +521,9 @@ if start_button:
             with st.expander("💡 TL;DR", expanded=True):
                 st.markdown(st.session_state.tldr_summary)
 
-        # Mark Refining Prompt complete and update stepper
+        # Mark Refining Prompt complete
         st.session_state.current_step = 1
-        with step_container:
-            render_stepper(st.session_state.current_step)
-            st.experimental_rerun()
+        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
         # STEP 1: Framework Development
         refined_prompt, framework = generate_refined_prompt_and_framework(topic)
@@ -543,11 +540,9 @@ if start_button:
         with st.expander("🗺️ Investigation Framework", expanded=False):
             st.markdown(framework)
 
-        # Mark Developing Framework complete and update stepper
+        # Mark Developing Framework complete
         st.session_state.current_step = 2
-        with step_container:
-            render_stepper(st.session_state.current_step)
-            st.experimental_rerun()
+        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
         # STEP 2: Research
         current_analysis = ""
@@ -589,11 +584,9 @@ if start_button:
 
         st.session_state.research_results = research_results_list
 
-        # Mark Conducting Research complete and update stepper
+        # Mark Conducting Research complete
         st.session_state.current_step = 3
-        with step_container:
-            render_stepper(st.session_state.current_step)
-            st.experimental_rerun()
+        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
         # Generate final report
         combined_results = "\n\n".join(f"### {t}\n{c}" for t,c in research_results_list)
@@ -613,11 +606,9 @@ if start_button:
             with st.expander("📋 Final Report", expanded=True):
                 st.markdown(final_analysis)
 
-            # Mark Analysis Complete and update stepper
+            # Mark Analysis Complete
             st.session_state.current_step = 4
-            with step_container:
-                render_stepper(st.session_state.current_step)
-                st.experimental_rerun()
+            step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
         except Exception as e:
             st.error("Error generating final report. Please try again.")
