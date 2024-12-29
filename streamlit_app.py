@@ -21,17 +21,58 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
 }
 
 /* Style for progress bar */
-.stProgress > div > div > div > div {
-    background-color: #007bff !important; /* Match the slider blue color */
-    border-radius: 20px;
-    height: 38px; /* Match the height of the Dive In button */
-}
-
 .stProgress {
+    width: 100% !important;
+    margin-bottom: 20px;
     background-color: rgba(0, 123, 255, 0.1);
     border-radius: 20px;
     padding: 0;
-    margin-top: 3px; /* Align with button */
+}
+
+.stProgress > div > div > div > div {
+    background-color: #007bff !important;
+    border-radius: 20px;
+    height: 12px;
+}
+
+/* Style for the slider */
+.stSlider {
+    width: 100% !important;
+    padding: 10px 0 30px 0;
+}
+
+.stSlider > div {
+    margin-bottom: 20px;
+}
+
+.stSlider > div > div {
+    font-family: 'Roboto', sans-serif !important;
+    font-size: 1.1rem !important;
+}
+
+.stSlider > div > div > div {
+    height: 20px !important;
+}
+
+.stSlider > div > div > div > div {
+    background-color: #007bff !important;
+}
+
+/* Make slider label text bigger and clearer */
+.stSlider label {
+    font-family: 'Roboto', sans-serif !important;
+    font-size: 1.1rem !important;
+    font-weight: 500 !important;
+    color: #2c3e50 !important;
+    margin-bottom: 10px !important;
+}
+
+/* Style slider value text */
+.stSlider > div > div:nth-child(3) > span {
+    font-family: 'Roboto', sans-serif !important;
+    font-size: 1.1rem !important;
+    font-weight: 500 !important;
+    color: #007bff !important;
 }
 
 /* Style for expander headers */
@@ -485,14 +526,14 @@ if 'framework' not in st.session_state:
     st.session_state.framework = None
 
 # Main Execution
-# Create columns for buttons and progress bar
-button_col, progress_col = st.columns([1, 2])
+# Create columns for buttons
+button_col = st.columns(1)[0]
 
 with button_col:
     start_button_clicked = st.button("🌊 Dive In", key="start_button")
 
-with progress_col:
-    progress_placeholder = st.empty()
+# Add progress bar placeholder before TL;DR
+progress_placeholder = st.empty()
 
 # Display previous results if they exist
 if st.session_state.analysis_complete:
