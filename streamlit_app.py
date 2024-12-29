@@ -128,6 +128,11 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
     border: none !important;
     font-family: 'Roboto', sans-serif !important;
 }
+
+/* Style for the download button */
+.stDownloadButton button {
+    width: 200px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -334,49 +339,17 @@ loops = st.select_slider(
     value="Lake",
 )
 
-# Create columns for button
-_, _, button_col = st.columns([1, 1, 1])
-
-with button_col:
-    start_button_clicked = st.button("🌊 Dive In", key="start_button")
-
-# Add progress bar placeholder before TL;DR
-progress_placeholder = st.empty()
-
-# Display previous results if they exist
-if st.session_state.analysis_complete:
-    if st.session_state.tldr_summary:
-        with st.expander(f"**💡 TL;DR**", expanded=True):
-            st.markdown(st.session_state.tldr_summary)
-    
-    if st.session_state.refined_prompt:
-        with st.expander(f"**🎯 Refined Prompt**", expanded=False):
-            st.markdown(st.session_state.refined_prompt)
-    
-    if st.session_state.framework:
-        with st.expander(f"**🗺️ Investigation Framework**", expanded=False):
-            st.markdown(st.session_state.framework)
-    
-    for title, content in st.session_state.research_results:
-        with st.expander(f"**{title}**", expanded=False):
-            st.markdown(content)
-    
-    if st.session_state.final_analysis:
-        with st.expander(f"**📋 Final Report**", expanded=False):
-            st.markdown(st.session_state.final_analysis)
-        
-        # Create columns for download button only
-        _, download_col = st.columns([1, 2])
-        with download_col:
-            st.download_button(
-                label="⬇️ Download Report as PDF",
-                data=st.session_state.pdf_buffer,
-                file_name=f"{topic}_analysis_report.pdf",
-                mime="application/pdf",
-                key="download_button",
-                help="Download the complete analysis report as a PDF file",
-                use_container_width=True
-            )
+# Convert the depth selection to a numerical value
+if loops == "Puddle":
+    loops_num = 1
+elif loops == "Lake":
+    loops_num = random.randint(2, 3)
+elif loops == "Ocean":
+    loops_num = random.randint(4, 6)
+elif loops == "Mariana Trench":
+    loops_num = random.randint(7, 10)
+else:
+    loops_num = 2  # Default value
 
 def handle_response(response):
     """Handle model response and extract text with more specific error handling."""
@@ -396,17 +369,48 @@ def handle_response(response):
         logging.error(f"Error extracting text from response: {e}")
     return ""
 
+
+# Define default generation config
+default_generation_config = genai.types.GenerationConfig(
+    temperature=0.7, top_p=0.8, top_k=40, max_output_tokens=2048
+)
+
+# Create new GenerationConfig objects for other agents:
+agent2_config = genai.types.GenerationConfig(
+    temperature=0.5, top_p=0.7, top_k=40, max_output_tokens=2048
+)
+
+agent3_config = genai.types.GenerationConfig(
+    temperature=0.3, top_p=0.7, top_k=20, max_output_tokens=4096
+)
+
+def generate_quick_summary(topic):
+    """Generate a quick summary (TL;DR) using the model."""
+    try:
+        quick_summary_prompt = f"""
+        Provide a very brief, one to two-sentence TL;DR (Too Long; Didn't Read) overview of the following topic, incorporating emojis where relevant:
+        {topic}
+        """
+        response = model.generate_content(
+            quick_summary_prompt,
+            generation_config=default_generation_config,
+        )
+        summary = handle_response(response)
+        # Ensure summary is within 1-2 sentences
+        sentences = summary.split('.')
+        if len(sentences) > 2:
+            summary = '. '.join(sentences[:2]) + '.' if sentences[0] else ''
+        return summary.strip()
+    except Exception as e:
+        logging.error(f"Failed to generate quick summary: {e}")
+        return ""
+
 def generate_refined_prompt_and_framework(topic):
     """Generate a refined prompt and investigation framework using Agent 1."""
     try:
         prompt_response = model.generate_content(
             agent1_prompt.format(topic=topic),
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.7,
-                top_p=0.8,
-                top_k=40,
-                max_output_tokens=2048,
-            ),
+            generation_config=default_generation_config,
         )
 
         agent1_response = handle_response(prompt_response)
@@ -421,7 +425,7 @@ def generate_refined_prompt_and_framework(topic):
                 # Clean up the framework section
                 framework = parts[1].strip()
                 if framework.startswith("Investigation Framework"):
-                    framework = framework[len("Investigation Framework"):].strip()
+                    framework = framework[len("Investigation Framework") :].strip()
 
                 # Remove any stray colons from section headers
                 framework = framework.replace(
@@ -456,6 +460,7 @@ def generate_refined_prompt_and_framework(topic):
     except Exception as e:
         logging.error(f"Failed to generate refined prompt and framework: {e}")
     return None, None
+
 
 def conduct_research(refined_prompt, framework, previous_analysis, current_aspect, iteration):
     """Conduct research and analysis using Agent 2."""
@@ -494,56 +499,105 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
         logging.error(f"Failed to conduct research in phase {iteration}: {e}")
     return None
 
+def generate_random_fact(topic):
+    """Generate a random interesting fact related to the topic."""
+    try:
+        fact_prompt = f"""
+        Generate ONE short, fascinating, and possibly bizarre fact related to this topic: {topic}
+        Make it engaging and fun. Include relevant emojis. Keep it to one or two sentences maximum.
+        Focus on surprising, lesser-known, or unusual aspects of the topic.
+        """
+        response = model.generate_content(
+            fact_prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.9,
+                top_p=0.9,
+                top_k=40,
+                max_output_tokens=100,
+            ),
+        )
+        return handle_response(response)
+    except Exception as e:
+        logging.error(f"Failed to generate random fact: {e}")
+        return None
 
 def create_download_pdf(refined_prompt, framework, current_analysis, final_analysis):
-    """Create a PDF for download."""
-    buffer = io.BytesIO()
-    pdf = FPDF()
-    pdf.add_page()
-
-    # Set font and size for title
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(0, 10, "Advanced Reasoning Bot Report", 0, 1, 'C')
-    pdf.ln(10)
-
-    # Set font for content
-    pdf.set_font("Arial", '', 12)
-
-    # Add framework
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Investigation Framework", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    pdf.multi_cell(0, 10, framework)
-    pdf.ln(5)
-
-    # Add research phases
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Research Phases", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    pdf.multi_cell(0, 10, current_analysis)
-    pdf.ln(5)
-
-    # Add final report
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Final Report", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    pdf.multi_cell(0, 10, final_analysis)
-
-    pdf_output = pdf.output(dest='S').encode('latin1')  # Get PDF content as a string
-    return io.BytesIO(pdf_output)
+    """Create a PDF report of the analysis."""
+    try:
+        # Create PDF object
+        pdf = FPDF()
+        pdf.add_page()
+        
+        # Set font
+        pdf.set_font("Helvetica", size=12)
+        
+        # Add title
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.cell(0, 10, "Advanced Reasoning Bot Report", 0, 1, 'C')
+        pdf.ln(10)
+        
+        # Set font for content
+        pdf.set_font("Helvetica", '', 12)
+        
+        # Add refined prompt section
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, "Refined Prompt", 0, 1)
+        pdf.set_font("Helvetica", '', 12)
+        pdf.multi_cell(0, 10, refined_prompt)
+        pdf.ln(5)
+        
+        # Add framework section
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, "Investigation Framework", 0, 1)
+        pdf.set_font("Helvetica", '', 12)
+        pdf.multi_cell(0, 10, framework)
+        pdf.ln(5)
+        
+        # Add research analysis section
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, "Research Analysis", 0, 1)
+        pdf.set_font("Helvetica", '', 12)
+        pdf.multi_cell(0, 10, current_analysis)
+        pdf.ln(5)
+        
+        # Add final analysis section
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, "Final Analysis", 0, 1)
+        pdf.set_font("Helvetica", '', 12)
+        pdf.multi_cell(0, 10, final_analysis)
+        
+        # Save PDF to buffer
+        pdf_buffer = io.BytesIO()
+        pdf.output(pdf_buffer)
+        pdf_buffer.seek(0)
+        
+        return pdf_buffer.getvalue()
+        
+    except Exception as e:
+        logging.error(f"Failed to create PDF: {e}")
+        # Create a simple PDF with error message
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Helvetica", size=12)
+        pdf.cell(0, 10, "Error creating PDF report. Please try again.", ln=True)
+        pdf_buffer = io.BytesIO()
+        pdf.output(pdf_buffer)
+        pdf_buffer.seek(0)
+        return pdf_buffer.getvalue()
 
 # Main Execution
-# Create columns for buttons and spinner
+# Create columns for buttons
 button_col, spinner_col = st.columns([1, 1])
-
-with button_col:
-    start_button_clicked = st.button("Start Analysis", key="start_button")
-
-# Placeholder for spinner
-spinner_placeholder = st.empty()
 
 # Placeholder for analysis completion message and download button
 analysis_completion_placeholder = st.empty()
+
+# Move the Start Analysis button and spinner to the top
+with button_col:
+    start_button_clicked = st.button("Start Analysis", key="start_button")
+
+with spinner_col:
+    spinner_placeholder = st.empty()
 
 if start_button_clicked:
     if topic:
@@ -686,16 +740,13 @@ if start_button_clicked:
                             with analysis_completion_placeholder:
                                 st.markdown("🥂 Analysis Complete")
 
-                                # Create columns for download button only after analysis is complete
-                                _, download_col = st.columns([1, 2])
-
-                                with download_col:
-                                    st.download_button(
-                                        label="⬇️ Download Report as PDF",
-                                        data=pdf_buffer,
-                                        file_name=f"{topic}_analysis_report.pdf",
-                                        mime="application/pdf"
-                                    )
+                            # Provide the download button for the PDF
+                            st.download_button(
+                                label="⬇️ Download Report as PDF",
+                                data=pdf_buffer,
+                                file_name=f"{topic}_analysis_report.pdf",
+                                mime="application/pdf"
+                            )
 
                         except Exception as e:
                             with placeholders["analysis"]:
