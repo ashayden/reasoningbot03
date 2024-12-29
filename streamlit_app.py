@@ -36,12 +36,13 @@ def render_stepper(current_step: int) -> None:
         .stepper-container {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             margin: 2rem auto;
             padding: 1rem;
             max-width: 800px;
             background: transparent;
             position: relative;
+            gap: 1rem;
         }
         .step {
             display: flex;
@@ -49,12 +50,11 @@ def render_stepper(current_step: int) -> None:
             align-items: center;
             position: relative;
             flex: 1;
-            min-width: 80px;
-            max-width: 120px;
+            max-width: 150px;
         }
         .step-number {
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0.1);
             border: 2px solid rgba(255, 255, 255, 0.2);
@@ -69,20 +69,21 @@ def render_stepper(current_step: int) -> None:
             transition: all 0.3s ease;
         }
         .step-label {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             color: rgba(255, 255, 255, 0.6);
             text-align: center;
-            max-width: 100px;
+            max-width: 120px;
             word-wrap: break-word;
             position: relative;
             z-index: 2;
             line-height: 1.2;
+            margin-top: 4px;
         }
         .step-line {
             position: absolute;
-            top: 16px;
-            left: calc(50% + 20px);
-            right: calc(-50% + 20px);
+            top: 18px;
+            left: calc(50% + 25px);
+            right: calc(-50% + 25px);
             height: 2px;
             background-color: rgba(255, 255, 255, 0.2);
             z-index: 1;
@@ -500,16 +501,17 @@ if start_button:
     if not topic.strip():
         st.warning("Please enter a topic.")
     else:
-        # Reset states relevant to analysis
+        # Reset states
         st.session_state.analysis_complete = False
         st.session_state.research_results = []
         st.session_state.random_fact = None
         st.session_state.current_step = 0
 
-        # Show step wizard once at the start
+        # Show initial stepper
         render_stepper(st.session_state.current_step)
 
         # STEP 0: Random Fact & TL;DR
+        st.session_state.current_step = 0
         st.session_state.random_fact = generate_random_fact(topic)
         if st.session_state.random_fact:
             with st.expander("🎲 Random Fact", expanded=True):
@@ -519,6 +521,10 @@ if start_button:
         if st.session_state.tldr_summary:
             with st.expander("💡 TL;DR", expanded=True):
                 st.markdown(st.session_state.tldr_summary)
+
+        # Update stepper for completed step
+        st.session_state.current_step = 1
+        render_stepper(st.session_state.current_step)
 
         # STEP 1: Framework Development
         st.session_state.current_step = 1
