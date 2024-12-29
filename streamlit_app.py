@@ -32,19 +32,15 @@ def render_step_wizard(step: int):
         # Determine step state
         if i < step:
             status = "complete"
-            color = "#28a745"  # Green
         elif i == step:
             status = "active"
-            color = "#2439f7"  # Blue
         else:
             status = "inactive"
-            color = "rgba(255, 255, 255, 0.2)"  # Light gray
         
-        # Render step
+        # Render step without number
         col.markdown(
             f'''
             <div class="step-box {status}">
-                <div class="step-number">{i + 1}</div>
                 <div class="step-label">{label}</div>
             </div>
             ''',
@@ -57,6 +53,16 @@ def render_step_wizard(step: int):
                 f'<div class="step-connector {status}"></div>',
                 unsafe_allow_html=True
             )
+
+# Update the main logic to handle step wizard display
+def display_step_wizard():
+    """Display step wizard in a container."""
+    wizard_container = st.empty()
+    with wizard_container:
+        st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
+        render_step_wizard(st.session_state.state['current_step'])
+        st.markdown('</div>', unsafe_allow_html=True)
+    return wizard_container
 
 ########################################
 # MAIN APP + LLM CODE
@@ -101,7 +107,7 @@ st.markdown("""
     background-color: rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.2);
     color: rgba(255, 255, 255, 0.6);
-    padding: 8px 16px;
+    padding: 12px 20px;
     border-radius: 20px;
     text-align: center;
     transition: all 0.3s ease;
@@ -119,21 +125,15 @@ st.markdown("""
     color: white;
 }
 
-.step-number {
+.step-label {
     font-size: 0.9rem;
     font-weight: 500;
-    margin-bottom: 4px;
-}
-
-.step-label {
-    font-size: 0.8rem;
-    font-weight: 400;
 }
 
 .step-connector {
     height: 2px;
     background-color: rgba(255, 255, 255, 0.2);
-    margin-top: 20px;
+    margin-top: 25px;
     transition: background-color 0.3s ease;
 }
 
@@ -143,7 +143,7 @@ st.markdown("""
 
 /* Container for step wizard */
 .step-wizard-wrapper {
-    margin: 20px 0;
+    margin: 30px 0;
     padding: 10px 0;
 }
 </style>
@@ -251,42 +251,6 @@ if topic != st.session_state.state['previous_topic']:
 # If done, step=4
 if st.session_state.state['analysis_complete']:
     st.session_state.state['current_step'] = 4
-
-# -------------- Step Wizard Container --------------
-def render_step_wizard(step: int):
-    """Renders a single step wizard instance."""
-    cols = st.columns([1, 0.2, 1, 0.2, 1, 0.2, 1])
-    
-    # Define styles as CSS classes in the main CSS block
-    for i, (col, label) in enumerate(zip(cols[::2], STEPS)):
-        # Determine step state
-        if i < step:
-            status = "complete"
-            color = "#28a745"  # Green
-        elif i == step:
-            status = "active"
-            color = "#2439f7"  # Blue
-        else:
-            status = "inactive"
-            color = "rgba(255, 255, 255, 0.2)"  # Light gray
-        
-        # Render step
-        col.markdown(
-            f'''
-            <div class="step-box {status}">
-                <div class="step-number">{i + 1}</div>
-                <div class="step-label">{label}</div>
-            </div>
-            ''',
-            unsafe_allow_html=True
-        )
-        
-        # Render connector (except for last step)
-        if i < len(STEPS) - 1:
-            cols[i*2 + 1].markdown(
-                f'<div class="step-connector {status}"></div>',
-                unsafe_allow_html=True
-            )
 
 # -------------- Utility Functions --------------
 def handle_response(response):
@@ -454,9 +418,7 @@ if start_clicked:
     
     try:
         # Create single step wizard container
-        st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
-        render_step_wizard(0)
-        st.markdown('</div>', unsafe_allow_html=True)
+        wizard_container = display_step_wizard()
 
         # Step 1: Initial Analysis
         st.session_state.state['random_fact'] = generate_random_fact(topic)
@@ -472,7 +434,7 @@ if start_clicked:
 
         # Update Step 1
         st.session_state.state['current_step'] = 1
-        render_step_wizard(1)
+        display_step_wizard()
 
         # Step 2: Framework Development
         refined_prompt, framework = generate_refined_prompt_and_framework(topic)
@@ -490,7 +452,7 @@ if start_clicked:
 
         # Update Step 2
         st.session_state.state['current_step'] = 2
-        render_step_wizard(2)
+        display_step_wizard()
 
         # Step 3: Research Phase
         aspects = [line.strip() for line in framework.split("\n") 
@@ -527,7 +489,7 @@ if start_clicked:
         
         # Update Step 3
         st.session_state.state['current_step'] = 3
-        render_step_wizard(3)
+        display_step_wizard()
 
         # Generate final report
         combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results_list)
@@ -563,7 +525,7 @@ if start_clicked:
         # Update final step
         st.session_state.state['current_step'] = 4
         st.session_state.state['analysis_complete'] = True
-        render_step_wizard(4)
+        display_step_wizard()
 
         # Show download button
         st.download_button(
@@ -582,6 +544,4 @@ if start_clicked:
 
 # Show existing step wizard if analysis is in progress
 elif st.session_state.state['analysis_started']:
-    st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
-    render_step_wizard(st.session_state.state['current_step'])
-    st.markdown('</div>', unsafe_allow_html=True)
+    display_step_wizard()
