@@ -182,69 +182,227 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Slider for research depth
-st.markdown("##### How deep should we dive?")
-
-# Add spacing
-st.markdown("<div style='height: 1rem'></div>", unsafe_allow_html=True)
-
-loops = st.select_slider(
-    "",  # Empty label since we're using custom markdown above
-    options=["Lake", "Ocean"],
-    value="Lake",
+# Input section with Enter key handling
+topic = st.text_input(
+    "Enter a topic or question:",
+    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
+    key="topic_input",
+    on_change=lambda: st.session_state.update({"start_button_clicked": True}) if st.session_state.topic_input else None,
 )
 
-# Add spacing
-st.markdown("<div style='height: 2rem'></div>", unsafe_allow_html=True)
-
-# Create columns for input and button
-col1, col2 = st.columns([4, 1])
-
-with col1:
-    topic = st.text_input(
-        "Enter a topic or question:",
-        placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
-        key="topic_input",
-        on_change=lambda: st.session_state.update({"start_button_clicked": True}) if st.session_state.topic_input else None,
-    )
-
-with col2:
-    start_button_clicked = st.button("🌊 Dive In", key="start_button", use_container_width=True)
-
-# Handle button click and Enter key
-if start_button_clicked or (topic and st.session_state.get("topic_input", "") != st.session_state.get("previous_input", "")):
+# Handle Enter key press
+if topic and st.session_state.get('topic_input', '') != st.session_state.get('previous_input', ''):
     st.session_state.start_button_clicked = True
-    
-    # Reset session state
+
+# Reset session state if input changes
+if topic != st.session_state.previous_input:
     st.session_state.analysis_complete = False
-    st.session_state.research_results = []
-    st.session_state.random_fact = None
     st.session_state.pdf_buffer = None
     st.session_state.final_analysis = None
+    st.session_state.research_results = []
     st.session_state.tldr_summary = None
     st.session_state.refined_prompt = None
     st.session_state.framework = None
     st.session_state.previous_input = topic
 
-    if topic:
-        try:
-            # Initialize progress bar
-            progress_bar = st.progress(0)
-            
-            # Generate and store random fact
-            random_fact = generate_random_fact(topic)
-            if random_fact:
-                st.session_state.random_fact = random_fact
-                with st.expander("🎲 Random Fact", expanded=True):
-                    st.markdown(random_fact)
-                progress_bar.progress(10)
-            
-            # Rest of the analysis code...
-            
-        except Exception as e:
-            st.error(f"Analysis failed: {str(e)}. Please try again.")
-            logging.error(f"Analysis failed: {e}")
-            st.session_state.analysis_complete = False
+# Update progress bar color when analysis is complete
+if st.session_state.analysis_complete:
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stProgressBar"] > div > div > div > div {
+            background-color: #28a745 !important;
+            animation: none !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+# --- UI/UX - Add expander for prompt details ---
+with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
+    # Agent Prompts
+    agent1_prompt = st.text_area(
+        "Agent 1 Prompt (Prompt Engineer)",
+        '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
+
+USER'S TOPIC/QUESTION: {topic}
+
+1.  **Prompt Refinement**
+    *   Analyze the user's input and identify areas where you can add more detail, specificity, and context.
+    *   Consider what background information or assumptions might be helpful to include.
+    *   Reformulate the user's input into a more comprehensive and well-defined prompt.
+
+2.  **Investigation Framework**
+    *   Based on your **refined prompt**, define a structured approach for investigating the topic.
+    *   Outline:
+        -   Core Question/Hypothesis
+        -   Key Areas Requiring Investigation
+        -   Critical Factors to Examine
+        -   Required Data and Information Sources
+        -   Potential Challenges or Limitations
+
+    *   Present this as a clear investigation framework that will guide further research and analysis.
+
+Format your response with appropriate spacing between sections:
+
+Refined Prompt
+[Your refined prompt here]
+
+---
+
+Investigation Framework
+
+Core Question/Hypothesis
+
+[Your hypothesis here, which may wrap to multiple lines while maintaining proper alignment]
+
+Key Areas Requiring Investigation
+
+1. [Area Name]:
+   - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
+   - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
+   - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
+
+2. [Area Name]:
+   - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
+   - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
+   - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
+
+Note: 
+- Each section header should be on its own line
+- Leave a blank line between the header and its content
+- Each numbered item starts with a number followed by a period, space, and area name
+- Bullet points appear on new lines beneath the numbered item
+- Use consistent indentation for bullet points
+- Add a blank line between numbered items
+- Use a hyphen (-) for bullet points''',
+        key="agent1_prompt",
+        height=300,
+    )
+
+    agent2_prompt = st.text_area(
+        "Agent 2 Prompt (Researcher)",
+        '''Using the refined prompt and the established framework, continue researching and analyzing:
+
+REFINED PROMPT:
+{refined_prompt}
+
+FRAMEWORK:
+{framework}
+
+PREVIOUS ANALYSIS:
+{previous_analysis}
+
+CURRENT FOCUS:
+{current_aspect}
+
+Begin your response with a descriptive title that summarizes the focus area and its relation to the main topic.
+For example: "Economic Factors: Impact on Regional Development Trends"
+
+Then present your findings by:
+1. Gathering relevant data and evidence
+2. Analyzing new findings
+3. Identifying connections and patterns
+4. Updating conclusions based on new information
+5. Noting any emerging implications
+
+Structure your response with the descriptive title on the first line, followed by your analysis.''',
+        key="agent2_prompt",
+        height=300,
+    )
+
+    agent3_prompt = st.text_area(
+        "Agent 3 Prompt (Expert Analyst)",
+        '''Based on the completed analysis of the topic:
+
+REFINED PROMPT:
+{refined_prompt}
+
+FRAMEWORK:
+{system_prompt}
+
+ANALYSIS:
+{all_aspect_analyses}
+
+You are a leading expert in fields relevant to the topic. Provide an in-depth analysis as a recognized authority on this topic. Offer insights and conclusions based on your extensive knowledge and experience.
+
+Write a comprehensive report addressing the topic and/or answering the user's question. Include relevant statistics. Present the report in a neutral, objective, and informative tone, befitting an expert in the field.
+
+### Final Report
+
+[Title of Analysis]
+
+Executive Summary:
+[Provide a comprehensive overview of the key findings, challenges, and recommendations]
+
+I. [First Major Section]:
+[Detailed analysis with supporting evidence and data]
+
+[Continue with subsequent sections as needed]
+
+Recommendations:
+[List specific, actionable recommendations based on the analysis]''',
+        key="agent3_prompt",
+        height=300,
+    )
+
+# Slider for research depth with descriptive options
+loops = st.select_slider(
+    "How deep should we dive?",
+    options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
+    value="Lake",
+)
+
+# Create columns for button
+_, _, button_col = st.columns([1, 1, 1])
+
+with button_col:
+    start_button_clicked = st.button("🌊 Dive In", key="start_button")
+
+# Add progress bar placeholder before TL;DR
+progress_placeholder = st.empty()
+
+# Display previous results if they exist
+if st.session_state.analysis_complete and topic:
+    # Display random fact first
+    with st.expander("🎲 Random Fact", expanded=True):
+        if 'random_fact' not in st.session_state:
+            st.session_state.random_fact = generate_random_fact(topic)
+        st.markdown(st.session_state.random_fact if st.session_state.random_fact else "Unable to generate random fact.")
+    
+    if st.session_state.tldr_summary:
+        with st.expander("💡 TL;DR", expanded=True):
+            st.markdown(st.session_state.tldr_summary)
+    
+    if st.session_state.refined_prompt:
+        with st.expander(f"🎯 Refined Prompt", expanded=False):
+            st.markdown(st.session_state.refined_prompt)
+    
+    if st.session_state.framework:
+        with st.expander(f"🗺️ Investigation Framework", expanded=False):
+            st.markdown(st.session_state.framework)
+    
+    for title, content in st.session_state.research_results:
+        with st.expander(f"**{title}**", expanded=False):
+            st.markdown(content)
+    
+    if st.session_state.final_analysis:
+        with st.expander(f"📋 Final Report", expanded=False):
+            st.markdown(st.session_state.final_analysis)
+        
+        # Create columns for download button
+        _, download_col = st.columns([1, 2])
+        with download_col:
+            st.download_button(
+                label="⬇️ Download Report as PDF",
+                data=st.session_state.pdf_buffer,
+                file_name=f"{topic}_analysis_report.pdf",
+                mime="application/pdf",
+                key="download_button",
+                help="Download the complete analysis report as a PDF file",
+                use_container_width=True
+            )
 
 def generate_random_fact(topic):
     """Generate a random interesting fact related to the topic."""
@@ -484,3 +642,183 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
     except Exception as e:
         logging.error(f"Failed to conduct research in phase {iteration}: {e}")
     return None
+
+# Convert the depth selection to a numerical value
+if loops == "Puddle":
+    loops_num = 1
+elif loops == "Lake":
+    loops_num = random.randint(2, 3)
+elif loops == "Ocean":
+    loops_num = random.randint(4, 6)
+elif loops == "Mariana Trench":
+    loops_num = random.randint(7, 10)
+else:
+    loops_num = 2  # Default value
+
+if start_button_clicked:
+    if topic:
+        # Reset session state
+        st.session_state.analysis_complete = False
+        st.session_state.research_results = []
+        st.session_state.random_fact = None  # Reset random fact
+        
+        # Initialize progress bar
+        progress_bar = st.progress(0)
+        
+        try:
+            # Generate and store random fact
+            random_fact = generate_random_fact(topic)
+            if random_fact:
+                st.session_state.random_fact = random_fact
+                with st.expander("🎲 Random Fact", expanded=True):
+                    st.markdown(random_fact)
+                progress_bar.progress(10)
+            
+            # Quick Summary (TL;DR)
+            tldr_summary = generate_quick_summary(topic)
+            if tldr_summary:
+                progress_bar.progress(20)
+                st.session_state.tldr_summary = tldr_summary
+                with st.expander("💡 TL;DR", expanded=True):
+                    st.markdown(tldr_summary)
+
+            # Agent 1: Refine prompt and generate framework
+            refined_prompt, framework = generate_refined_prompt_and_framework(topic)
+            if refined_prompt and framework:
+                st.session_state.refined_prompt = refined_prompt.lstrip(":\n").strip()
+                st.session_state.framework = framework.lstrip(": **\n").strip()
+                
+                # Display refined prompt
+                with st.expander(f"🎯 Refined Prompt", expanded=False):
+                    st.markdown(st.session_state.refined_prompt)
+                
+                # Display framework
+                with st.expander(f"🗺️ Investigation Framework", expanded=False):
+                    st.markdown(st.session_state.framework)
+                progress_bar.progress(40)
+
+                # Agent 2: Conduct research through iterations
+                current_analysis = ""
+                aspects = []
+                research_expanders = []
+
+                # Extract aspects from framework
+                if framework:
+                    for line in framework.split("\n"):
+                        if line.strip().startswith(("1.", "2.", "3.", "4.")):
+                            aspects.append(line.strip())
+
+                # Conduct research phases
+                for i in range(loops_num):
+                    current_aspect = random.choice(aspects) if aspects else "Current State and Trends"
+                    research = conduct_research(refined_prompt, framework, current_analysis, current_aspect, i + 1)
+                    
+                    if research:
+                        current_analysis += "\n\n" + research
+                        research_lines = research.split("\n")
+                        title = next((line for line in research_lines if line.strip()), current_aspect)
+                        research_content = "\n".join(research_lines[1:])
+                        # Add research emoji based on content
+                        title_lower = title.lower()
+                        if any(word in title_lower for word in ["extinct", "survival", "species", "wildlife", "bird", "animal", "habitat"]):
+                            emoji = "🦅"
+                        elif any(word in title_lower for word in ["economic", "finance", "market", "cost", "price", "value"]):
+                            emoji = "📊"
+                        elif any(word in title_lower for word in ["environment", "climate", "ecosystem", "nature", "conservation"]):
+                            emoji = "🌍"
+                        elif any(word in title_lower for word in ["culture", "social", "community", "tradition", "heritage"]):
+                            emoji = "🎭"
+                        elif any(word in title_lower for word in ["history", "historical", "past", "timeline", "archive"]):
+                            emoji = "📜"
+                        elif any(word in title_lower for word in ["technology", "innovation", "digital", "software", "data"]):
+                            emoji = "💻"
+                        elif any(word in title_lower for word in ["education", "learning", "teaching", "study", "research"]):
+                            emoji = "📚"
+                        elif any(word in title_lower for word in ["health", "medical", "disease", "treatment", "care"]):
+                            emoji = "🏥"
+                        elif any(word in title_lower for word in ["evidence", "sighting", "observation", "search", "investigation"]):
+                            emoji = "🔍"
+                        elif any(word in title_lower for word in ["methodology", "approach", "technique", "method"]):
+                            emoji = "🔬"
+                        elif any(word in title_lower for word in ["debate", "controversy", "argument", "discussion"]):
+                            emoji = "💭"
+                        elif any(word in title_lower for word in ["future", "prediction", "forecast", "prospect"]):
+                            emoji = "🔮"
+                        else:
+                            emoji = "📝"
+                        research_expanders.append((f"{emoji} {title}", research_content))
+                        progress_bar.progress(40 + int((i + 1) / loops_num * 40))
+                    else:
+                        raise Exception(f"Research phase {i + 1} failed")
+
+                # Display research phases
+                for title, content in research_expanders:
+                    with st.expander(f"**{title}**", expanded=False):
+                        st.markdown(content)
+
+                # Agent 3: Generate final analysis
+                final_response = model.generate_content(
+                    agent3_prompt.format(
+                        refined_prompt=refined_prompt,
+                        system_prompt=framework,
+                        all_aspect_analyses=current_analysis,
+                    ),
+                    generation_config=agent3_config,
+                )
+                final_analysis = handle_response(final_response)
+
+                # Create PDF buffer
+                pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
+
+                # Store research results in session state
+                st.session_state.research_results = research_expanders
+                
+                # Store final analysis in session state
+                st.session_state.final_analysis = final_analysis
+                
+                # Store PDF buffer in session state
+                st.session_state.pdf_buffer = pdf_buffer
+                
+                # Mark analysis as complete
+                st.session_state.analysis_complete = True
+
+                # Display final report last
+                with st.expander(f"📋 Final Report", expanded=False):
+                    st.markdown(final_analysis)
+
+                progress_bar.progress(100)
+
+                # Update progress bar color when complete
+                if st.session_state.analysis_complete:
+                    st.markdown(
+                        """
+                        <style>
+                        .stProgress > div > div > div > div {
+                            background-color: #28a745 !important;
+                            animation: none !important;
+                        }
+                        </style>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                # Create columns for download button only
+                _, download_col = st.columns([1, 2])
+                with download_col:
+                    st.download_button(
+                        label="⬇️ Download Report as PDF",
+                        data=pdf_buffer,
+                        file_name=f"{topic}_analysis_report.pdf",
+                        mime="application/pdf",
+                        key="download_button",
+                        help="Download the complete analysis report as a PDF file",
+                        use_container_width=True
+                    )
+
+        except Exception as e:
+            st.error(f"Analysis failed: {str(e)}. Please try again.")
+            logging.error(f"Analysis failed: {e}")
+            st.session_state.analysis_complete = False
+
+    else:
+        st.warning("Please enter a topic to analyze.")
