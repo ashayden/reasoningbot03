@@ -467,12 +467,7 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
                 previous_analysis=previous_analysis,
                 current_aspect=current_aspect
             ),
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.5,
-                top_p=0.7,
-                top_k=40,
-                max_output_tokens=2048,
-            ),
+            generation_config=agent2_config,
         )
 
         research = handle_response(prompt_response)
@@ -499,133 +494,62 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
         logging.error(f"Failed to conduct research in phase {iteration}: {e}")
     return None
 
-def generate_random_fact(topic):
-    """Generate a random interesting fact related to the topic."""
-    try:
-        fact_prompt = f"""
-        Generate ONE short, fascinating, and possibly bizarre fact related to this topic: {topic}
-        Make it engaging and fun. Include relevant emojis. Keep it to one or two sentences maximum.
-        Focus on surprising, lesser-known, or unusual aspects of the topic.
-        """
-        response = model.generate_content(
-            fact_prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.9,
-                top_p=0.9,
-                top_k=40,
-                max_output_tokens=100,
-            ),
-        )
-        return handle_response(response)
-    except Exception as e:
-        logging.error(f"Failed to generate random fact: {e}")
-        return None
 
-def generate_quick_summary(topic):
-    """Generate a quick summary (TL;DR) using the model."""
-    try:
-        quick_summary_prompt = f"""
-        Provide a very brief, one to two-sentence TL;DR (Too Long; Didn't Read) overview of the following topic, incorporating emojis where relevant:
-        {topic}
-        """
-        response = model.generate_content(
-            quick_summary_prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.7,
-                top_p=0.8,
-                top_k=40,
-                max_output_tokens=2048,
-            ),
-        )
-        summary = handle_response(response)
-        # Ensure summary is within 1-2 sentences
-        sentences = summary.split('.')
-        if len(sentences) > 2:
-            summary = '. '.join(sentences[:2]) + '.' if sentences[0] else ''
-        return summary.strip()
-    except Exception as e:
-        logging.error(f"Failed to generate quick summary: {e}")
-        return None
+def create_download_pdf(refined_prompt, framework, current_analysis, final_analysis):
+    """Create a PDF for download."""
+    buffer = io.BytesIO()
+    pdf = FPDF()
+    pdf.add_page()
 
-def create_download_pdf(refined_prompt, framework, research_analysis, final_analysis):
-    """Create a PDF report of the analysis."""
-    try:
-        # Create PDF object
-        pdf = FPDF()
-        pdf.add_page()
-        
-        # Set font
-        pdf.set_font("Helvetica", size=12)
-        
-        # Add title
-        pdf.set_font("Helvetica", "B", 16)
-        pdf.cell(0, 10, "Analysis Report", ln=True, align="C")
-        pdf.ln(10)
-        
-        # Add refined prompt section
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, "Refined Prompt", ln=True)
-        pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, refined_prompt)
-        pdf.ln(10)
-        
-        # Add framework section
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, "Investigation Framework", ln=True)
-        pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, framework)
-        pdf.ln(10)
-        
-        # Add research analysis section
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, "Research Analysis", ln=True)
-        pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, research_analysis)
-        pdf.ln(10)
-        
-        # Add final analysis section
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, "Final Analysis", ln=True)
-        pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, final_analysis)
-        
-        # Save PDF to buffer
-        pdf_buffer = io.BytesIO()
-        pdf.output(pdf_buffer)
-        pdf_buffer.seek(0)
-        
-        return pdf_buffer.getvalue()
-        
-    except Exception as e:
-        logging.error(f"Failed to create PDF: {e}")
-        # Create a simple PDF with error message
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Helvetica", size=12)
-        pdf.cell(0, 10, "Error creating PDF report. Please try again.", ln=True)
-        pdf_buffer = io.BytesIO()
-        pdf.output(pdf_buffer)
-        pdf_buffer.seek(0)
-        return pdf_buffer.getvalue()
+    # Set font and size for title
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(0, 10, "Advanced Reasoning Bot Report", 0, 1, 'C')
+    pdf.ln(10)
 
-# Convert the depth selection to a numerical value
-if loops == "Puddle":
-    loops_num = 1
-elif loops == "Lake":
-    loops_num = random.randint(2, 3)
-elif loops == "Ocean":
-    loops_num = random.randint(4, 6)
-elif loops == "Mariana Trench":
-    loops_num = random.randint(7, 10)
-else:
-    loops_num = 2  # Default value
+    # Set font for content
+    pdf.set_font("Arial", '', 12)
+
+    # Add framework
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Investigation Framework", 0, 1)
+    pdf.set_font('Arial', '', 12)
+    pdf.multi_cell(0, 10, framework)
+    pdf.ln(5)
+
+    # Add research phases
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Research Phases", 0, 1)
+    pdf.set_font('Arial', '', 12)
+    pdf.multi_cell(0, 10, current_analysis)
+    pdf.ln(5)
+
+    # Add final report
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Final Report", 0, 1)
+    pdf.set_font('Arial', '', 12)
+    pdf.multi_cell(0, 10, final_analysis)
+
+    pdf_output = pdf.output(dest='S').encode('latin1')  # Get PDF content as a string
+    return io.BytesIO(pdf_output)
+
+# Main Execution
+# Create columns for buttons and spinner
+button_col, spinner_col = st.columns([1, 1])
+
+with button_col:
+    start_button_clicked = st.button("Start Analysis", key="start_button")
+
+# Placeholder for spinner
+spinner_placeholder = st.empty()
+
+# Placeholder for analysis completion message and download button
+analysis_completion_placeholder = st.empty()
 
 if start_button_clicked:
     if topic:
-        # Reset session state
-        st.session_state.analysis_complete = False
-        st.session_state.research_results = []
-        
+        # Hide the analysis complete message and download button
+        analysis_completion_placeholder.empty()
+
         # Initialize progress indicators
         progress_states = {
             "tldr": {"label": "TL;DR", "progress": 0, "status": "pending"},
@@ -635,182 +559,152 @@ if start_button_clicked:
             "analysis": {"label": "Final Report", "progress": 0, "status": "pending"},
         }
 
-        # Initialize overall progress bar
-        progress_bar = progress_placeholder.progress(0)
+        # Create placeholders for each section
+        placeholders = {}
+        for section in progress_states:
+            placeholders[section] = st.empty()
 
-        try:
-            # Create placeholder for random facts
-            facts_placeholder = st.empty()
-            
-            # Display initial random fact
-            with facts_placeholder.container():
-                with st.expander("**🎲 Random Fact**", expanded=True):
-                    st.markdown(generate_random_fact(topic))
-            
-            # Start fact update loop in the background
-            def update_fact():
-                time.sleep(8)  # Wait 8 seconds before showing new facts
-                while not st.session_state.analysis_complete:
-                    with facts_placeholder.container():
-                        with st.expander("**🎲 Random Fact**", expanded=True):
-                            st.markdown(generate_random_fact(topic))
-                    time.sleep(12)  # Show new fact every 12 seconds
-            
-            # Start the fact update loop in a separate thread
-            import threading
-            fact_thread = threading.Thread(target=update_fact)
-            fact_thread.daemon = True
-            fact_thread.start()
+        # Use the spinner placeholder for the "Analyzing..." message
+        with spinner_placeholder:
+            with st.spinner("Analyzing..."):
+                # Quick Summary (TL;DR)
+                tldr_summary = generate_quick_summary(topic)
+                progress_states["tldr"]["progress"] = 100
+                progress_states["tldr"]["status"] = "complete"
 
-            # Quick Summary (TL;DR)
-            tldr_summary = generate_quick_summary(topic)
-            if tldr_summary:
-                st.session_state.tldr_summary = tldr_summary
-                with st.expander(f"**💡 {progress_states['tldr']['label']}**", expanded=True):
-                    st.markdown(tldr_summary)
-                progress_bar.progress(20)
+                # Update placeholder for TL;DR
+                with placeholders["tldr"]:
+                    with st.expander(f"**{progress_states['tldr']['label']}**", expanded=True):
+                        st.markdown(tldr_summary)
 
-            # Agent 1: Refine prompt and generate framework
-            refined_prompt, framework = generate_refined_prompt_and_framework(topic)
-            if refined_prompt and framework:
-                st.session_state.refined_prompt = refined_prompt.lstrip(":\n").strip()
-                st.session_state.framework = framework.lstrip(": **\n").strip()
-                
-                # Display refined prompt
-                with st.expander(f"**🎯 {progress_states['refined_prompt']['label']}**", expanded=False):
-                    st.markdown(st.session_state.refined_prompt)
-                
-                # Display framework
-                with st.expander(f"**🗺️ {progress_states['framework']['label']}**", expanded=False):
-                    st.markdown(st.session_state.framework)
-                progress_bar.progress(40)
+                # Agent 1: Refine prompt and generate framework
+                refined_prompt, framework = generate_refined_prompt_and_framework(topic)
+                progress_states["refined_prompt"]["progress"] = 100
+                progress_states["refined_prompt"]["status"] = "complete"
 
-                # Agent 2: Conduct research through iterations
-                current_analysis = ""
-                aspects = []
-                research_expanders = []
-
-                # Extract aspects from framework
-                if framework:
-                    for line in framework.split("\n"):
-                        if line.strip().startswith(("1.", "2.", "3.", "4.")):
-                            aspects.append(line.strip())
-
-                # Conduct research phases
-                for i in range(loops_num):
-                    current_aspect = random.choice(aspects) if aspects else "Current State and Trends"
-                    research = conduct_research(refined_prompt, framework, current_analysis, current_aspect, i + 1)
-                    
-                    if research:
-                        current_analysis += "\n\n" + research
-                        research_lines = research.split("\n")
-                        title = next((line for line in research_lines if line.strip()), current_aspect)
-                        research_content = "\n".join(research_lines[1:])
-                        # Add research emoji based on content
-                        title_lower = title.lower()
-                        if any(word in title_lower for word in ["extinct", "survival", "species", "wildlife", "bird", "animal", "habitat"]):
-                            emoji = "🦅"
-                        elif any(word in title_lower for word in ["economic", "finance", "market", "cost", "price", "value"]):
-                            emoji = "📊"
-                        elif any(word in title_lower for word in ["environment", "climate", "ecosystem", "nature", "conservation"]):
-                            emoji = "🌍"
-                        elif any(word in title_lower for word in ["culture", "social", "community", "tradition", "heritage"]):
-                            emoji = "🎭"
-                        elif any(word in title_lower for word in ["history", "historical", "past", "timeline", "archive"]):
-                            emoji = "📜"
-                        elif any(word in title_lower for word in ["technology", "innovation", "digital", "software", "data"]):
-                            emoji = "💻"
-                        elif any(word in title_lower for word in ["education", "learning", "teaching", "study", "research"]):
-                            emoji = "📚"
-                        elif any(word in title_lower for word in ["health", "medical", "disease", "treatment", "care"]):
-                            emoji = "🏥"
-                        elif any(word in title_lower for word in ["evidence", "sighting", "observation", "search", "investigation"]):
-                            emoji = "🔍"
-                        elif any(word in title_lower for word in ["methodology", "approach", "technique", "method"]):
-                            emoji = "🔬"
-                        elif any(word in title_lower for word in ["debate", "controversy", "argument", "discussion"]):
-                            emoji = "💭"
-                        elif any(word in title_lower for word in ["future", "prediction", "forecast", "prospect"]):
-                            emoji = "🔮"
-                        else:
-                            emoji = "📝"
-                        research_expanders.append((f"{emoji} {title}", research_content))
-                        progress_bar.progress(40 + int((i + 1) / loops_num * 40))
-                    else:
-                        raise Exception(f"Research phase {i + 1} failed")
-
-                # Display research phases
-                for title, content in research_expanders:
-                    with st.expander(f"**{title}**", expanded=False):
-                        st.markdown(content)
-
-                # Agent 3: Generate final analysis
-                final_response = model.generate_content(
-                    agent3_prompt.format(
-                        refined_prompt=refined_prompt,
-                        system_prompt=framework,
-                        all_aspect_analyses=current_analysis,
-                    ),
-                    generation_config=agent3_config,
-                )
-                final_analysis = handle_response(final_response)
-
-                # Create PDF buffer
-                pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
-
-                # Store research results in session state
-                st.session_state.research_results = research_expanders
-                
-                # Store final analysis in session state
-                st.session_state.final_analysis = final_analysis
-                
-                # Store PDF buffer in session state
-                st.session_state.pdf_buffer = pdf_buffer
-                
-                # Mark analysis as complete
-                st.session_state.analysis_complete = True
-
-                # Display final report last
-                with st.expander(f"**📋 {progress_states['analysis']['label']}**", expanded=False):
-                    st.markdown(final_analysis)
-
-                progress_bar.progress(100)
-
-                # Update progress bar color based on progress
-                progress_bar = progress_placeholder.progress(0)
-                st.markdown(
-                    f"""
-                    <style>
-                    .stProgress > div > div > div > div {{
-                        background: linear-gradient(90deg, 
-                            #007bff 0%, 
-                            #007bff {min(progress_bar.progress, 100)}%, 
-                            {('#28a745' if progress_bar.progress == 100 else '#007bff')} {min(progress_bar.progress, 100)}%, 
-                            {('#28a745' if progress_bar.progress == 100 else '#007bff')} 100%
-                        );
-                    }}
-                    </style>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-                # Create columns for download button only
-                _, download_col = st.columns([1, 2])
-                with download_col:
-                    st.download_button(
-                        label="⬇️ Download Report as PDF",
-                        data=pdf_buffer,
-                        file_name=f"{topic}_analysis_report.pdf",
-                        mime="application/pdf",
-                        key="download_button",
-                        help="Download the complete analysis report as a PDF file",
-                        use_container_width=True
+                if refined_prompt is None or framework is None:
+                    st.error(
+                        "Failed to generate refined prompt and investigation framework. Please check the logs for details and try again."
                     )
+                else:
+                    progress_states["framework"]["progress"] = 100
+                    progress_states["framework"]["status"] = "complete"
 
-        except Exception as e:
-            st.error(f"Analysis failed: {str(e)}. Please try again.")
-            logging.error(f"Analysis failed: {e}")
-            st.session_state.analysis_complete = False
+                    # Update placeholders with expanders and content
+                    with placeholders["refined_prompt"]:
+                        with st.expander(f"**{progress_states['refined_prompt']['label']}**", expanded=False):
+                            st.markdown(refined_prompt.lstrip(":\n").strip())
+
+                    with placeholders["framework"]:
+                        with st.expander(f"**{progress_states['framework']['label']}**", expanded=False):
+                            st.markdown(framework.lstrip(": **\n").strip())
+
+                    # Agent 2: Conduct research through iterations
+                    current_analysis = ""
+                    aspects = []
+                    research_placeholders = {}  # Create a dict to store placeholders for each research phase
+
+                    if framework:
+                        for line in framework.split("\n"):
+                            if (
+                                line.strip().startswith("1.")
+                                or line.strip().startswith("2.")
+                                or line.strip().startswith("3.")
+                                or line.strip().startswith("4.")
+                            ):
+                                aspects.append(line.strip())
+
+                    for i in range(loops_num):
+                        progress_states["research"]["progress"] = int(((i + 1) / loops_num) * 100)
+                        progress_states["research"]["status"] = "complete" if i == loops_num - 1 else "in progress"
+
+                        if aspects:
+                            current_aspect = random.choice(aspects)
+                        else:
+                            current_aspect = "Current State and Trends"
+
+                        research = conduct_research(
+                            refined_prompt, framework, current_analysis, current_aspect, i + 1
+                        )
+                        if research:
+                            current_analysis += "\n\n" + research
+                            research_lines = research.split("\n")
+                            title = next(
+                                (line for line in research_lines if line.strip()),
+                                current_aspect,
+                            )
+
+                            # Create a unique key for each research phase's placeholder
+                            research_phase_key = f"research_phase_{i}"
+                            if research_phase_key not in research_placeholders:
+                                research_placeholders[research_phase_key] = st.empty()
+
+                            # Use the dedicated placeholder for each research phase
+                            with research_placeholders[research_phase_key]:
+                                with st.expander(f"**{title}**", expanded=False):
+                                    st.markdown("\n".join(research_lines[1:]))
+                        else:
+                            with placeholders["research"]:
+                                st.error(
+                                    f"Failed during research phase {i + 1}. Please check the logs for details and try again."
+                                )
+                                break
+
+                    # Agent 3: Present comprehensive analysis
+                    if research:
+                        progress_states["analysis"]["progress"] = 100
+                        progress_states["analysis"]["status"] = "complete"
+                        try:
+                            final_response = model.generate_content(
+                                agent3_prompt.format(
+                                    refined_prompt=refined_prompt,
+                                    system_prompt=framework,
+                                    all_aspect_analyses=current_analysis,
+                                ),
+                                generation_config=agent3_config,
+                            )
+
+                            final_analysis = handle_response(final_response)
+
+                            with placeholders["analysis"]:
+                                with st.expander(f"**{progress_states['analysis']['label']}**", expanded=False):
+                                    st.markdown(final_analysis)
+
+                            # Create PDF
+                            pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
+
+                            # Update session state
+                            st.session_state.pdf_buffer = pdf_buffer
+                            st.session_state.analysis_complete = True
+                            st.session_state.final_analysis = final_analysis
+                            st.session_state.research_results = [(title, content) for title, content in research_placeholders.items()]
+                            st.session_state.tldr_summary = tldr_summary
+                            st.session_state.refined_prompt = refined_prompt
+                            st.session_state.framework = framework
+
+                            # Display "Analysis Complete" and download button (outside expander)
+                            with analysis_completion_placeholder:
+                                st.markdown("🥂 Analysis Complete")
+
+                                # Create columns for download button only after analysis is complete
+                                _, download_col = st.columns([1, 2])
+
+                                with download_col:
+                                    st.download_button(
+                                        label="⬇️ Download Report as PDF",
+                                        data=pdf_buffer,
+                                        file_name=f"{topic}_analysis_report.pdf",
+                                        mime="application/pdf"
+                                    )
+
+                        except Exception as e:
+                            with placeholders["analysis"]:
+                                st.error(
+                                    f"Error in final analysis generation: {str(e)}. Please check the logs for details and try again."
+                                )
+                    else:
+                        progress_states["analysis"]["progress"] = 100
+                        progress_states["analysis"]["status"] = "complete"
 
     else:
         st.warning("Please enter a topic to analyze.")
