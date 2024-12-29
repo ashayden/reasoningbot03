@@ -52,8 +52,8 @@ def render_stepper(current_step: int) -> str:
             margin: 0 0.5rem;
         }
         .step-number {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0.1);
             border: 2px solid rgba(255, 255, 255, 0.2);
@@ -61,8 +61,9 @@ def render_stepper(current_step: int) -> str:
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
             z-index: 2;
             position: relative;
             transition: all 0.3s ease;
@@ -76,13 +77,13 @@ def render_stepper(current_step: int) -> str:
             position: relative;
             z-index: 2;
             line-height: 1.2;
-            margin-top: 4px;
+            margin-top: 0;
         }
         .step-line {
             position: absolute;
-            top: 18px;
-            left: calc(50% + 25px);
-            right: calc(-50% + 25px);
+            top: 16px;
+            left: calc(50% + 20px);
+            right: calc(-50% + 20px);
             height: 2px;
             background-color: rgba(255, 255, 255, 0.2);
             z-index: 1;
