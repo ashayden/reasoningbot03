@@ -221,8 +221,9 @@ if st.session_state.analysis_complete:
     st.session_state.current_step = 4
 
 # -------------- Step Wizard --------------
-step_wizard = st.empty()
-step_wizard.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+# Remove initial step wizard display
+# step_wizard = st.empty()
+# step_wizard.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
 # Expanders for advanced customization
 with st.expander("**Advanced Prompt Customization**"):
@@ -409,7 +410,8 @@ if start_clicked:
         'current_step': 0
     })
     
-    # Create persistent step wizard container
+    # Create step wizard container AFTER the Dive In button
+    st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)  # Add spacing
     step_container = st.container()
     with step_container:
         render_stepper(st.session_state.current_step)
@@ -488,11 +490,19 @@ if start_clicked:
     # Generate final report
     try:
         combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results_list)
-        final_prompt = agent3_prompt.format(
-            refined_prompt=refined_prompt,
-            framework=framework,
-            research_results=combined_results
-        )
+        final_prompt = f"""Based on all previous research conducted, please provide a comprehensive final analysis of {topic}.
+        
+        Here are the key findings from our research:
+        
+        {combined_results}
+        
+        Please synthesize these findings into a clear, well-organized final report that:
+        1. Summarizes the key insights
+        2. Identifies patterns and connections
+        3. Draws meaningful conclusions
+        4. Suggests potential implications or next steps
+        
+        Format the response in a clear, professional style with appropriate headings and structure."""
         
         resp = model.generate_content(final_prompt, generation_config=agent3_config)
         final_analysis = handle_response(resp)
@@ -526,5 +536,5 @@ if start_clicked:
 
     except Exception as e:
         logging.error(f"Final report error: {e}")
-        st.error("Error generating final report. Please try again.")
+        st.error(f"Error generating final report: {str(e)}")
         st.stop()
