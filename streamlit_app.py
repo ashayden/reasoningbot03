@@ -274,6 +274,93 @@ st.markdown("""
     align-items: center !important;
     width: 100% !important;
 }
+
+/* Text color fixes */
+.main-title {
+    color: rgba(250, 250, 250, 0.9) !important;
+    text-align: center !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.subheader {
+    font-size: 1.2rem !important;
+    color: rgba(250, 250, 250, 0.8) !important;
+    margin-bottom: 2rem !important;
+    text-align: center !important;
+}
+
+/* Input label color */
+.stTextInput label, .stTextArea label {
+    color: rgba(250, 250, 250, 0.8) !important;
+}
+
+/* Slider label color */
+.stSlider label {
+    color: rgba(250, 250, 250, 0.8) !important;
+}
+
+/* Expander content text color */
+[data-testid="stExpander"] {
+    color: rgba(250, 250, 250, 0.9) !important;
+}
+
+/* Markdown text color */
+.stMarkdown {
+    color: rgba(250, 250, 250, 0.9) !important;
+}
+
+/* Text area styling */
+[data-testid="stExpander"] textarea {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 4px !important;
+    padding: 8px !important;
+    font-family: monospace !important;
+    transition: border-color 0.2s ease-in-out !important;
+    color: rgba(250, 250, 250, 0.9) !important;
+}
+
+[data-testid="stExpander"] textarea:focus {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Expander header with right-aligned emoji */
+[data-testid="stExpander"] summary {
+    color: rgba(250, 250, 250, 0.9) !important;
+    font-weight: 500 !important;
+    padding: 0.5rem 1rem !important;
+    transition: all 0.2s ease-in-out !important;
+    font-size: 1.2rem !important;
+    background-color: transparent !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+[data-testid="stExpander"] summary:hover {
+    background-color: rgba(250, 250, 250, 0.05) !important;
+}
+
+/* Headers inside expander */
+[data-testid="stExpander"] h3, 
+[data-testid="stExpander"] h4 {
+    color: rgba(250, 250, 250, 0.9) !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Remove blue backgrounds */
+[data-testid="stExpander"],
+[data-testid="stExpander"] div,
+[data-testid="stExpander"] details,
+.st-emotion-cache-1y4p8pa,
+.st-emotion-cache-1gulkj3,
+.st-emotion-cache-1q1n0ol,
+.st-emotion-cache-1ehh7ok {
+    background-color: transparent !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
