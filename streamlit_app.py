@@ -173,30 +173,39 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -------------- Session State --------------
-if 'step_wizard_container' not in st.session_state:
-    st.session_state.step_wizard_container = None
-if 'analysis_complete' not in st.session_state:
-    st.session_state.analysis_complete = False
-if 'current_step' not in st.session_state:
-    st.session_state.current_step = 0
-if 'pdf_buffer' not in st.session_state:
-    st.session_state.pdf_buffer = None
-if 'final_analysis' not in st.session_state:
-    st.session_state.final_analysis = None
-if 'research_results' not in st.session_state:
-    st.session_state.research_results = []
-if 'tldr_summary' not in st.session_state:
-    st.session_state.tldr_summary = None
-if 'refined_prompt' not in st.session_state:
-    st.session_state.refined_prompt = None
-if 'framework' not in st.session_state:
-    st.session_state.framework = None
-if 'previous_input' not in st.session_state:
-    st.session_state.previous_input = ""
-if 'start_button_clicked' not in st.session_state:
-    st.session_state.start_button_clicked = False
-if 'random_fact' not in st.session_state:
-    st.session_state.random_fact = None
+# Centralize all state initialization
+if 'initialized' not in st.session_state:
+    st.session_state.update({
+        'initialized': True,
+        'analysis_complete': False,
+        'current_step': 0,
+        'research_results': [],
+        'random_fact': None,
+        'tldr_summary': None,
+        'refined_prompt': None,
+        'framework': None,
+        'previous_topic': "",
+        'analysis_started': False,
+        'pdf_buffer': None,
+        'final_analysis': None,
+        'step_wizard_key': 0  # Used to force wizard recreation when needed
+    })
+
+def reset_analysis_state():
+    """Centralized function to reset analysis state."""
+    st.session_state.update({
+        'analysis_complete': False,
+        'current_step': 0,
+        'research_results': [],
+        'random_fact': None,
+        'tldr_summary': None,
+        'refined_prompt': None,
+        'framework': None,
+        'analysis_started': False,
+        'pdf_buffer': None,
+        'final_analysis': None,
+        'step_wizard_key': st.session_state.step_wizard_key + 1  # Force wizard recreation
+    })
 
 # -------------- Configure LLM --------------
 try:
@@ -226,27 +235,28 @@ topic = st.text_input("Enter a topic or question:",
                       placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"')
 
 # If topic changes, reset
-if topic != st.session_state.previous_input:
-    st.session_state.previous_input = topic
-    st.session_state.analysis_complete = False
-    st.session_state.current_step = 0
-    st.session_state.final_analysis = None
-    st.session_state.research_results = []
-    st.session_state.tldr_summary = None
-    st.session_state.refined_prompt = None
-    st.session_state.framework = None
-    # Update step wizard to initial state
-    if st.session_state.step_wizard_container:
-        st.session_state.step_wizard_container.markdown(render_stepper(0), unsafe_allow_html=True)
+if topic != st.session_state.previous_topic:
+    reset_analysis_state()
+    st.session_state.previous_topic = topic
 
 # If done, step=4
 if st.session_state.analysis_complete:
     st.session_state.current_step = 4
 
-# -------------- Step Wizard --------------
-# Remove initial step wizard display
-# step_wizard = st.empty()
-# step_wizard.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+# -------------- Step Wizard Container --------------
+def create_step_wizard():
+    """Creates and returns a step wizard container."""
+    st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+    return st.empty()
+
+def update_step_wizard(container, step: int):
+    """Updates the step wizard with proper error handling."""
+    try:
+        container.markdown(render_stepper(step), unsafe_allow_html=True)
+    except Exception as e:
+        logging.error(f"Error updating step wizard: {e}")
+        # Attempt recovery by recreating container
+        st.session_state.step_wizard_key += 1
 
 # Expanders for advanced customization
 with st.expander("**Advanced Prompt Customization**"):
@@ -430,42 +440,27 @@ loops_num = {
 }.get(depth, 3)  # Default to 3 if depth not found
 
 # -------------- MAIN LOGIC --------------
-# Create step wizard container if it doesn't exist (only once)
-if not st.session_state.step_wizard_container:
-    st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
-    st.session_state.step_wizard_container = st.empty()
+# Topic change handling
+if topic != st.session_state.previous_topic:
+    reset_analysis_state()
+    st.session_state.previous_topic = topic
 
-# Reset logic
-if topic != st.session_state.previous_input:
-    st.session_state.previous_input = topic
-    st.session_state.analysis_complete = False
-    st.session_state.current_step = 0
-    st.session_state.final_analysis = None
-    st.session_state.research_results = []
-    st.session_state.tldr_summary = None
-    st.session_state.refined_prompt = None
-    st.session_state.framework = None
-    # Update step wizard to initial state
-    if st.session_state.step_wizard_container:
-        st.session_state.step_wizard_container.markdown(render_stepper(0), unsafe_allow_html=True)
-
+# Initialize analysis
 if start_clicked:
     if not topic.strip():
         st.warning("Please enter a topic.")
         st.stop()
-
-    # Reset analysis states but keep the container
-    st.session_state.update({
-        'analysis_complete': False,
-        'research_results': [],
-        'random_fact': None,
-        'current_step': 0
-    })
     
-    # Update step wizard to initial state
-    st.session_state.step_wizard_container.markdown(render_stepper(0), unsafe_allow_html=True)
-
+    # Start new analysis
+    if not st.session_state.analysis_started:
+        st.session_state.analysis_started = True
+        reset_analysis_state()
+    
     try:
+        # Create or get step wizard container
+        step_wizard = create_step_wizard()
+        update_step_wizard(step_wizard, 0)
+
         # Step 1: Initial Analysis
         st.session_state.random_fact = generate_random_fact(topic)
         st.session_state.tldr_summary = generate_quick_summary(topic)
@@ -478,9 +473,9 @@ if start_clicked:
             with st.expander("💡 TL;DR", expanded=True):
                 st.markdown(st.session_state.tldr_summary)
 
-        # Update Step 1 complete
+        # Update Step 1
         st.session_state.current_step = 1
-        st.session_state.step_wizard_container.markdown(render_stepper(1), unsafe_allow_html=True)
+        update_step_wizard(step_wizard, 1)
 
         # Step 2: Framework Development
         refined_prompt, framework = generate_refined_prompt_and_framework(topic)
@@ -496,9 +491,9 @@ if start_clicked:
         with st.expander("🗺️ Investigation Framework", expanded=False):
             st.markdown(framework)
 
-        # Update Step 2 complete
+        # Update Step 2
         st.session_state.current_step = 2
-        st.session_state.step_wizard_container.markdown(render_stepper(2), unsafe_allow_html=True)
+        update_step_wizard(step_wizard, 2)
 
         # Step 3: Research Phase
         aspects = [line.strip() for line in framework.split("\n") 
@@ -533,9 +528,9 @@ if start_clicked:
                 
         st.session_state.research_results = research_results_list
         
-        # Update Step 3 complete
+        # Update Step 3
         st.session_state.current_step = 3
-        st.session_state.step_wizard_container.markdown(render_stepper(3), unsafe_allow_html=True)
+        update_step_wizard(step_wizard, 3)
 
         # Generate final report
         combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results_list)
@@ -568,10 +563,10 @@ if start_clicked:
         pdf_bytes = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
         st.session_state.pdf_buffer = pdf_bytes
 
-        # Update final step complete
+        # Update final step
         st.session_state.current_step = 4
         st.session_state.analysis_complete = True
-        st.session_state.step_wizard_container.markdown(render_stepper(4), unsafe_allow_html=True)
+        update_step_wizard(step_wizard, 4)
 
         # Show download button
         st.download_button(
@@ -585,4 +580,10 @@ if start_clicked:
     except Exception as e:
         logging.error(f"Error during analysis: {str(e)}")
         st.error(f"An error occurred: {str(e)}")
+        reset_analysis_state()
         st.stop()
+
+# Show existing step wizard if analysis is in progress
+elif st.session_state.analysis_started:
+    step_wizard = create_step_wizard()
+    update_step_wizard(step_wizard, st.session_state.current_step)
