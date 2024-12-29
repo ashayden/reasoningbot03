@@ -547,6 +547,67 @@ def generate_quick_summary(topic):
         logging.error(f"Failed to generate quick summary: {e}")
         return None
 
+def create_download_pdf(refined_prompt, framework, research_analysis, final_analysis):
+    """Create a PDF report of the analysis."""
+    try:
+        # Create PDF object
+        pdf = FPDF()
+        pdf.add_page()
+        
+        # Set font
+        pdf.set_font("Helvetica", size=12)
+        
+        # Add title
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.cell(0, 10, "Analysis Report", ln=True, align="C")
+        pdf.ln(10)
+        
+        # Add refined prompt section
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, "Refined Prompt", ln=True)
+        pdf.set_font("Helvetica", size=12)
+        pdf.multi_cell(0, 10, refined_prompt)
+        pdf.ln(10)
+        
+        # Add framework section
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, "Investigation Framework", ln=True)
+        pdf.set_font("Helvetica", size=12)
+        pdf.multi_cell(0, 10, framework)
+        pdf.ln(10)
+        
+        # Add research analysis section
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, "Research Analysis", ln=True)
+        pdf.set_font("Helvetica", size=12)
+        pdf.multi_cell(0, 10, research_analysis)
+        pdf.ln(10)
+        
+        # Add final analysis section
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, "Final Analysis", ln=True)
+        pdf.set_font("Helvetica", size=12)
+        pdf.multi_cell(0, 10, final_analysis)
+        
+        # Save PDF to buffer
+        pdf_buffer = io.BytesIO()
+        pdf.output(pdf_buffer)
+        pdf_buffer.seek(0)
+        
+        return pdf_buffer.getvalue()
+        
+    except Exception as e:
+        logging.error(f"Failed to create PDF: {e}")
+        # Create a simple PDF with error message
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Helvetica", size=12)
+        pdf.cell(0, 10, "Error creating PDF report. Please try again.", ln=True)
+        pdf_buffer = io.BytesIO()
+        pdf.output(pdf_buffer)
+        pdf_buffer.seek(0)
+        return pdf_buffer.getvalue()
+
 # Convert the depth selection to a numerical value
 if loops == "Puddle":
     loops_num = 1
