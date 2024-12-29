@@ -13,6 +13,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+# STEP LABELS FOR YOUR WIZARD
 STEPS = [
     "Refining Prompt",
     "Developing Framework",
@@ -21,206 +22,229 @@ STEPS = [
 ]
 
 ########################################
-# STEP WIZARD RENDERING
+# FUNCTION: RENDER STEPPER
 ########################################
-def render_step_wizard(step: int):
-    """Renders a single step wizard instance."""
-    # Create container for step wizard
-    st.markdown("""
+def render_stepper(current_step: int) -> str:
+    """Renders a 5-step wizard with proper styling."""
+    # Clamp current_step
+    current_step = max(0, min(current_step, 4))
+    
+    # Create the CSS and HTML
+    html = """
         <style>
-        div[data-testid="stHorizontalBlock"] {
-            background: transparent !important;
-            gap: 0.5rem;
+        .stepper-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 2rem auto;
+            padding: 1rem 2rem;
+            max-width: 700px;
+            background: transparent;
+            position: relative;
+        }
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            flex: 1;
+            max-width: 140px;
+            margin: 0 0.5rem;
+        }
+        .step-number {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 8px;
+            z-index: 2;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .step-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            max-width: 110px;
+            word-wrap: break-word;
+            position: relative;
+            z-index: 2;
+            line-height: 1.2;
+            margin-top: 4px;
+        }
+        .step-line {
+            position: absolute;
+            top: 18px;
+            left: calc(50% + 25px);
+            right: calc(-50% + 25px);
+            height: 2px;
+            background-color: rgba(255, 255, 255, 0.2);
+            z-index: 1;
+        }
+        .step.active .step-number {
+            border-color: #2439f7;
+            color: #2439f7;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 0 4px rgba(36, 57, 247, 0.1);
+        }
+        .step.active .step-label {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+        }
+        .step.complete .step-number {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+        .step.complete .step-line {
+            background-color: #28a745;
+        }
+        .step:last-child .step-line {
+            display: none;
         }
         </style>
-    """, unsafe_allow_html=True)
+    """
     
-    # Use columns for layout
-    cols = st.columns([1, 0.2, 1, 0.2, 1, 0.2, 1])
+    # Create the HTML with minimal whitespace
+    html_parts = [
+        '<div class="stepper-container">',
+        *[f'<div class="step {status}"><div class="step-number">{i + 1}</div><div class="step-label">{label}</div><div class="step-line"></div></div>'
+          for i, label in enumerate(STEPS)
+          for status in ["complete" if i < current_step else "active" if i == current_step else ""]],
+        '</div>'
+    ]
     
-    # Render each step
-    for i, (col, label) in enumerate(zip(cols[::2], STEPS)):
-        # Determine step state
-        if i < step:
-            status = "complete"
-        elif i == step:
-            status = "active"
-        else:
-            status = "inactive"
-        
-        # Render step
-        col.markdown(
-            f'''
-            <div class="step-box {status}">
-                <div class="step-label">{label}</div>
-            </div>
-            ''',
-            unsafe_allow_html=True
-        )
-        
-        # Render connector (except for last step)
-        if i < len(STEPS) - 1:
-            cols[i*2 + 1].markdown(
-                f'<div class="step-connector {status}"></div>',
-                unsafe_allow_html=True
-            )
+    # Return the complete HTML
+    return html + ''.join(html_parts)
 
-# Initialize step wizard container
-def initialize_wizard():
-    """Initialize the step wizard container in session state."""
-    if 'wizard_container' not in st.session_state:
-        st.session_state.wizard_container = st.container()
-
-# Update step wizard
-def update_wizard_step(step: int):
-    """Update the step wizard display."""
-    initialize_wizard()
-    with st.session_state.wizard_container:
-        st.markdown('<div class="step-wizard-wrapper">', unsafe_allow_html=True)
-        render_step_wizard(step)
-        st.markdown('</div>', unsafe_allow_html=True)
 
 ########################################
-# MAIN APP + LLM CODE
+# ORIGINAL STREAMLIT + LLM CODE
 ########################################
 
-# Basic CSS injection for your overall UI
+# Inject custom CSS (with no old wave bar)
 st.markdown("""
 <style>
-/* Container spacing */
+/* Make container spacing more compact */
 .block-container {
-  padding-top: 2rem !important;
-  padding-bottom: 1rem !important;
-  max-width: 800px;
+    padding-top: 2rem !important;
+    padding-bottom: 1rem !important;
+    max-width: 800px;
 }
-/* Tweak text input & button styling */
+
+/* Input field styling */
 .stTextInput > div > div > input {
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-  border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    border-radius: 0.5rem;
 }
+
+/* Button styling */
 .stButton > button {
-  width: 100%;
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-  border-radius: 0.5rem;
-  margin: 0.5rem 0;
-}
-/* Expander headings */
-.streamlit-expanderHeader {
-  font-size: 1rem;
-  font-weight: 600;
-  padding: 0.75rem 0;
-  border-radius: 0.5rem;
-}
-/* Step wizard spacing */
-.step-wizard-container {
-  margin-top: 20px;
-  margin-bottom: 20px;
-}
-/* Step Wizard Styles */
-.step-box {
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.6);
-    padding: 12px 20px;
-    border-radius: 20px;
-    text-align: center;
-    transition: all 0.3s ease;
-    margin: 0 5px;
-}
-
-.step-box.active {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: #2439f7;
-    color: white;
-    box-shadow: 0 0 10px rgba(36, 57, 247, 0.3);
-}
-
-.step-box.complete {
-    background-color: #28a745;
-    border-color: #28a745;
-    color: white;
-    box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
-}
-
-.step-label {
-    font-size: 0.9rem;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
     font-weight: 500;
+    border-radius: 0.5rem;
+    margin: 0.5rem 0;
+    transition: all 0.2s;
+}
+
+/* Expander styling */
+.streamlit-expanderHeader {
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 0.75rem 0;
+    border-radius: 0.5rem;
+}
+
+/* Slider styling */
+.stSlider > div > div > div {
+    height: 0.5rem !important;
+}
+.stSlider > div > div > div > div {
+    height: 1rem !important;
+    width: 1rem !important;
+}
+
+/* Download button styling */
+[data-testid="stDownloadButton"] > button {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    margin: 0.5rem 0;
+}
+
+/* Adjust spacing between sections */
+.element-container {
+    margin-bottom: 1rem;
+}
+
+/* Main title with hover effect */
+.main-title {
+    font-size: 2.5rem !important;
+    color: rgba(49, 51, 63, 0.9) !important;
+    text-align: center !important;
+    margin-bottom: 2rem !important;
+    font-weight: 700 !important;
+    position: relative !important;
+    cursor: help !important;
+}
+.main-title:hover::after {
+    content: attr(data-title);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -30px;
+    background: rgba(49, 51, 63, 0.9);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
     white-space: nowrap;
-}
-
-.step-connector {
-    height: 2px;
-    background-color: rgba(255, 255, 255, 0.2);
-    margin-top: 25px;
-    transition: background-color 0.3s ease;
-}
-
-.step-connector.complete {
-    background-color: #28a745;
-    box-shadow: 0 0 5px rgba(40, 167, 69, 0.3);
-}
-
-/* Container for step wizard */
-.step-wizard-wrapper {
-    margin: 30px 0;
-    padding: 20px 0;
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
-    position: relative;
     z-index: 1000;
-}
-
-/* Ensure step wizard stays at the top */
-[data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"]:first-child {
-    position: relative;
-    z-index: 1000;
-}
-
-/* Add spacing after the step wizard */
-.step-wizard-wrapper + div {
-    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 </style>
 """, unsafe_allow_html=True)
 
-# -------------- Session State --------------
-if 'state' not in st.session_state:
-    st.session_state.state = {
-        'analysis_complete': False,
-        'current_step': 0,
-        'research_results': [],
-        'random_fact': None,
-        'tldr_summary': None,
-        'refined_prompt': None,
-        'framework': None,
-        'previous_topic': "",
-        'analysis_started': False,
-        'pdf_buffer': None,
-        'final_analysis': None
-    }
+# Initialize session state
+if 'analysis_complete' not in st.session_state:
+    st.session_state.analysis_complete = False
+if 'current_step' not in st.session_state:
+    st.session_state.current_step = 0
+if 'pdf_buffer' not in st.session_state:
+    st.session_state.pdf_buffer = None
+if 'final_analysis' not in st.session_state:
+    st.session_state.final_analysis = None
+if 'research_results' not in st.session_state:
+    st.session_state.research_results = []
+if 'tldr_summary' not in st.session_state:
+    st.session_state.tldr_summary = None
+if 'refined_prompt' not in st.session_state:
+    st.session_state.refined_prompt = None
+if 'framework' not in st.session_state:
+    st.session_state.framework = None
+if 'previous_input' not in st.session_state:
+    st.session_state.previous_input = ""
+if 'start_button_clicked' not in st.session_state:
+    st.session_state.start_button_clicked = False
+if 'random_fact' not in st.session_state:
+    st.session_state.random_fact = None
 
-def reset_analysis_state():
-    """Centralized function to reset analysis state."""
-    st.session_state.state.update({
-        'analysis_complete': False,
-        'current_step': 0,
-        'research_results': [],
-        'random_fact': None,
-        'tldr_summary': None,
-        'refined_prompt': None,
-        'framework': None,
-        'analysis_started': False,
-        'pdf_buffer': None,
-        'final_analysis': None
-    })
-
-# -------------- Configure LLM --------------
+# Get your GenAI key
 try:
     api_key = st.secrets["GOOGLE_API_KEY"]
 except Exception as e:
-    st.error("GOOGLE_API_KEY not found in secrets.")
+    st.error(f"GOOGLE_API_KEY not found in secrets: {e}")
     st.stop()
 
 try:
@@ -236,61 +260,112 @@ except Exception as e:
     st.error(f"Error configuring Gemini API: {e}")
     st.stop()
 
-# -------------- Title --------------
-st.markdown("<h1 style='text-align:center;'>M.A.R.A.</h1>", unsafe_allow_html=True)
+# --- Main Title ---
+st.markdown(
+    "<h1 class='main-title' data-title='Multi-Agent Reasoning Assistant a003'>M.A.R.A.</h1>",
+    unsafe_allow_html=True
+)
 
-# -------------- User Input --------------
-topic = st.text_input("Enter a topic or question:", 
-                      placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"')
+# ============ USER INPUT TOPIC ============
+topic = st.text_input(
+    "Enter a topic or question:",
+    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"'
+)
 
-# Advanced customization expander
-with st.expander("Advanced Prompt Customization"):
+# If topic changes, reset states
+if topic != st.session_state.previous_input:
+    st.session_state.previous_input = topic
+    st.session_state.analysis_complete = False
+    st.session_state.current_step = 0
+    st.session_state.final_analysis = None
+    st.session_state.research_results = []
+    st.session_state.tldr_summary = None
+    st.session_state.refined_prompt = None
+    st.session_state.framework = None
+
+# If analysis is done, show step #5
+if st.session_state.analysis_complete:
+    st.session_state.current_step = 4
+
+# ---------- EXPANDERS FOR PROMPTS ----------
+with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
     agent1_prompt = st.text_area(
         "Agent 1 Prompt (Prompt Engineer)",
-        "You are an expert prompt engineer...\nRefined Prompt:\n---\n",
-        height=150
+        '''You are an expert prompt engineer. Your task is to take the user's topic:
+{topic}
+
+1) Create a more refined prompt
+2) Provide a structured investigation framework
+
+Format exactly:
+Refined Prompt:
+[Your refined prompt here]
+---
+[Investigation framework with numbered items]
+''',
+        height=250
     )
     agent2_prompt = st.text_area(
         "Agent 2 Prompt (Researcher)",
-        "Using the refined prompt & framework...\n",
-        height=150
+        '''Using the following inputs:
+
+REFINED PROMPT:
+{refined_prompt}
+
+FRAMEWORK:
+{framework}
+
+PREVIOUS ANALYSIS:
+{previous_analysis}
+
+CURRENT FOCUS:
+{current_aspect}
+
+Perform additional research and provide new findings. 
+Include any relevant data, references, or analysis points. 
+Begin your response with a short title, then detail your findings.
+''',
+        height=250
     )
     agent3_prompt = st.text_area(
         "Agent 3 Prompt (Expert Analyst)",
-        "Based on all previous research...\n",
-        height=150
+        '''Based on all previous research and analysis:
+
+REFINED PROMPT:
+{refined_prompt}
+
+FRAMEWORK:
+{framework}
+
+ALL RESEARCH RESULTS:
+{research_results}
+
+You are an expert in this field. Provide a comprehensive final report covering:
+- Key insights
+- Conclusions
+- Supporting evidence
+- Recommendations
+
+Write in a neutral, authoritative tone.
+''',
+        height=250
     )
 
 # Depth slider
-depth = st.select_slider(
-    "How deep should we dive?", 
-    ["Puddle", "Lake", "Ocean", "Mariana Trench"], 
-    "Lake"
+loops = st.select_slider(
+    "How deep should we dive?",
+    options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
+    value="Lake",
 )
 
-# Calculate loops based on depth
-loops_num = {
-    "Puddle": 2,
-    "Lake": 3,
-    "Ocean": 4,
-    "Mariana Trench": 5
-}.get(depth, 3)  # Default to 3 if depth not found
+# Button
+start_button = st.button("🌊 Dive In")
 
-# Start button
-start_clicked = st.button("🌊 Dive In")
-
-# If topic changes, reset
-if topic != st.session_state.state['previous_topic']:
-    reset_analysis_state()
-    st.session_state.state['previous_topic'] = topic
-
-# If done, step=4
-if st.session_state.state['analysis_complete']:
-    st.session_state.state['current_step'] = 4
-
-# -------------- Utility Functions --------------
+########################################
+# UTILITY FUNCTIONS
+########################################
 def handle_response(response):
-    """Safely extract text from GenAI response."""
+    """Extract text from GenAI response."""
     if hasattr(response, "parts") and response.parts:
         for part in response.parts:
             if part.text:
@@ -300,249 +375,219 @@ def handle_response(response):
     return ""
 
 def create_download_pdf(refined_prompt, framework, research_analysis, final_analysis):
-    """Create PDF from analysis results."""
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Helvetica", size=12)
-
-    def sanitize_text(txt):
-        if not txt:
-            return ""
-        txt = txt.replace('—', '-').replace('–', '-')
-        txt = txt.replace('’', "'").replace('‘', "'").replace('…', '...')
-        return ''.join(ch for ch in txt if ord(ch) < 128)
-
-    # Title
-    pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, "Analysis Report", ln=True, align="C")
-    pdf.ln(10)
-
-    # Refined Prompt
-    pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 10, "Refined Prompt", ln=True)
-    pdf.set_font("Helvetica", size=12)
-    pdf.multi_cell(0, 10, sanitize_text(refined_prompt))
-    pdf.ln(10)
-
-    # Framework
-    pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 10, "Investigation Framework", ln=True)
-    pdf.set_font("Helvetica", size=12)
-    pdf.multi_cell(0, 10, sanitize_text(framework))
-    pdf.ln(10)
-
-    # Research analysis
-    pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 10, "Research Analysis", ln=True)
-    pdf.set_font("Helvetica", size=12)
-    pdf.multi_cell(0, 10, sanitize_text(research_analysis))
-    pdf.ln(10)
-
-    # Final analysis
-    pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 10, "Final Analysis", ln=True)
-    pdf.set_font("Helvetica", size=12)
-    pdf.multi_cell(0, 10, sanitize_text(final_analysis))
-
-    return pdf.output(dest='S').encode('latin-1')
-
-def generate_random_fact(topic: str) -> str:
-    """Generate a random interesting fact about the topic."""
+    """Create a PDF from the analysis results."""
     try:
-        prompt = f"""Generate one interesting and surprising fact about {topic}.
-        Make it concise (1-2 sentences) and engaging.
-        Focus on lesser-known aspects that would intrigue readers."""
-        
-        response = model.generate_content(prompt)
-        return handle_response(response)
-    except Exception as e:
-        logging.error(f"Error generating random fact: {e}")
-        return None
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Helvetica", size=12)
 
-def generate_quick_summary(topic: str) -> str:
-    """Generate a quick TL;DR summary about the topic."""
+        def sanitize_text(text):
+            if not text:
+                return ""
+            text = text.replace('—', '-').replace('–', '-')
+            text = text.replace('’', "'").replace('‘', "'").replace('…', '...')
+            return ''.join(char for char in text if ord(char) < 128)
+
+        # Title
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.cell(0, 10, "Analysis Report", ln=True, align="C")
+        pdf.ln(10)
+
+        # Refined prompt
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, "Refined Prompt", ln=True)
+        pdf.set_font("Helvetica", size=12)
+        pdf.multi_cell(0, 10, sanitize_text(refined_prompt))
+        pdf.ln(10)
+
+        # Framework
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, "Investigation Framework", ln=True)
+        pdf.set_font("Helvetica", size=12)
+        pdf.multi_cell(0, 10, sanitize_text(framework))
+        pdf.ln(10)
+
+        # Research analysis
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, "Research Analysis", ln=True)
+        pdf.set_font("Helvetica", size=12)
+        pdf.multi_cell(0, 10, sanitize_text(research_analysis))
+        pdf.ln(10)
+
+        # Final analysis
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, "Final Analysis", ln=True)
+        pdf.set_font("Helvetica", size=12)
+        pdf.multi_cell(0, 10, sanitize_text(final_analysis))
+
+        return pdf.output(dest='S').encode('latin-1')
+
+    except Exception as e:
+        logging.error(f"Failed to create PDF: {e}")
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Helvetica", size=12)
+        pdf.cell(0, 10, f"Error creating PDF: {str(e)}", ln=True)
+        return pdf.output(dest='S').encode('latin-1')
+
+def generate_random_fact(topic):
+    """Generate random interesting fact about the topic."""
     try:
-        prompt = f"""Provide a brief, clear summary of {topic} in 2-3 sentences.
-        Focus on the most important aspects that someone should know.
-        Keep it factual and objective."""
-        
-        response = model.generate_content(prompt)
-        return handle_response(response)
+        prompt = f"Give a short and surprising fact about {topic} in one sentence."
+        resp = model.generate_content(prompt)
+        return handle_response(resp)
     except Exception as e:
-        logging.error(f"Error generating summary: {e}")
-        return None
+        logging.error(e)
+    return None
 
-def generate_refined_prompt_and_framework(topic: str) -> tuple[str, str]:
-    """Generate a refined prompt and research framework."""
+def generate_quick_summary(topic):
+    """Generate a quick summary (TL;DR)."""
     try:
-        prompt = f"""As an expert prompt engineer, analyze {topic} and create:
-        1. A refined, detailed prompt that will guide the research
-        2. A structured framework for investigation (4-5 key aspects to explore)
-        
-        Format your response exactly as:
-        
-        Refined Prompt:
-        [Your refined prompt here]
-        ---
-        [Your investigation framework with numbered points]"""
-        
-        response = model.generate_content(prompt)
-        text = handle_response(response)
-        
-        if not text or "Refined Prompt:" not in text or "---" not in text:
-            return None, None
-            
-        parts = text.split("---")
-        refined = parts[0].replace("Refined Prompt:", "").strip()
-        framework = parts[1].strip()
-        
-        return refined, framework
+        prompt = f"Give a concise 1-2 sentence summary about {topic}."
+        resp = model.generate_content(prompt)
+        return handle_response(resp)
     except Exception as e:
-        logging.error(f"Error generating framework: {e}")
-        return None, None
+        logging.error(e)
+    return None
 
-def conduct_research(refined_prompt: str, framework: str, current_analysis: str, aspect: str, iteration: int) -> str:
-    """Conduct research on a specific aspect of the topic."""
+def generate_refined_prompt_and_framework(topic):
+    """Call Agent 1 to refine prompt + framework."""
     try:
-        # Create a more focused research prompt
-        prompt = f"""You are a thorough researcher analyzing this aspect:
-        {aspect}
-        
-        Context:
-        - Refined Research Prompt: {refined_prompt}
-        - Research Framework: {framework}
-        - Previous Research: {current_analysis if current_analysis else "No previous research yet."}
-        
-        Please provide a detailed analysis of this aspect that:
-        1. Focuses on factual, verifiable information
-        2. Cites sources where possible
-        3. Maintains objectivity
-        4. Connects findings to the overall research goal
-        
-        Format your response with clear headings and structure.
-        Keep the analysis focused and relevant to the specific aspect being investigated."""
-        
-        response = model.generate_content(prompt, generation_config=agent3_config)
-        result = handle_response(response)
-        
-        if not result or len(result.strip()) < 50:  # Basic validation
-            logging.error(f"Research iteration {iteration} returned insufficient content")
-            return None
-            
-        return result
-        
+        text = agent1_prompt.format(topic=topic)
+        resp = model.generate_content(text)
+        ans = handle_response(resp)
+        if ans and "---" in ans:
+            parts = ans.split("---")
+            refined_prompt = parts[0].replace("Refined Prompt:", "").strip()
+            framework = parts[1].strip()
+            return refined_prompt, framework
     except Exception as e:
-        logging.error(f"Error in research iteration {iteration}: {str(e)}")
-        return None
+        logging.error(e)
+    return None, None
 
-# -------------- MAIN LOGIC --------------
-# Topic change handling (only once at the top)
-if topic != st.session_state.state['previous_topic']:
-    reset_analysis_state()
-    st.session_state.state['previous_topic'] = topic
+def conduct_research(refined_prompt, framework, prev_analysis, aspect, iteration):
+    """Call Agent 2 to conduct deeper research."""
+    try:
+        prompt = agent2_prompt.format(
+            refined_prompt=refined_prompt,
+            framework=framework,
+            previous_analysis=prev_analysis,
+            current_aspect=aspect
+        )
+        resp = model.generate_content(prompt)
+        return handle_response(resp)
+    except Exception as e:
+        logging.error(e)
+    return None
 
-# Initialize analysis
-if start_clicked:
+# Convert slider selection to numeric loops
+if loops == "Puddle":
+    loops_num = 1
+elif loops == "Lake":
+    loops_num = random.randint(2, 3)
+elif loops == "Ocean":
+    loops_num = random.randint(4, 6)
+elif loops == "Mariana Trench":
+    loops_num = random.randint(7, 10)
+else:
+    loops_num = 2
+
+########################################
+# MAIN LOGIC WHEN USER CLICKS BUTTON
+########################################
+if start_button:
     if not topic.strip():
         st.warning("Please enter a topic.")
         st.stop()
+
+    # Reset states and initialize container
+    st.session_state.update({
+        'analysis_complete': False,
+        'research_results': [],
+        'random_fact': None,
+        'current_step': 0
+    })
     
-    # Start new analysis
-    if not st.session_state.state['analysis_started']:
-        st.session_state.state['analysis_started'] = True
-        reset_analysis_state()
-        initialize_wizard()
+    # Create persistent step wizard container
+    step_container = st.empty()
+    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+
+    # Step 1: Initial Analysis
+    st.session_state.random_fact = generate_random_fact(topic)
+    st.session_state.tldr_summary = generate_quick_summary(topic)
+
+    if st.session_state.random_fact:
+        with st.expander("🎲 Random Fact", expanded=True):
+            st.markdown(st.session_state.random_fact)
+
+    if st.session_state.tldr_summary:
+        with st.expander("💡 TL;DR", expanded=True):
+            st.markdown(st.session_state.tldr_summary)
+
+    # Mark Step 1 complete
+    st.session_state.current_step = 1
+    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+
+    # Step 2: Framework Development
+    refined_prompt, framework = generate_refined_prompt_and_framework(topic)
+    if not refined_prompt or not framework:
+        st.error("Could not generate refined prompt and framework. Please try again.")
+        st.stop()
+
+    st.session_state.refined_prompt = refined_prompt
+    st.session_state.framework = framework
+
+    with st.expander("🎯 Refined Prompt", expanded=False):
+        st.markdown(refined_prompt)
+    with st.expander("🗺️ Investigation Framework", expanded=False):
+        st.markdown(framework)
+
+    # Mark Step 2 complete
+    st.session_state.current_step = 2
+    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+
+    # Step 3: Research Phase
+    aspects = [line.strip() for line in framework.split("\n") 
+              if line.strip().startswith(tuple(f"{x}." for x in range(1,10)))]
     
+    if not aspects:
+        st.error("No research aspects found in the framework. Please try again.")
+        st.stop()
+
+    current_analysis = ""
+    research_results_list = []
+
+    for i in range(loops_num):
+        aspect = aspects[i % len(aspects)]
+        research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
+        
+        if not research_text:
+            st.error("Research analysis failed. Please try again.")
+            st.stop()
+            
+        current_analysis += "\n\n" + research_text
+        lines = research_text.split("\n")
+        title = lines[0].strip() if lines else aspect
+        content = "\n".join(lines[1:]) if len(lines) > 1 else ""
+        research_results_list.append((title, content))
+
+        with st.expander(title, expanded=False):
+            st.markdown(content)
+
+    st.session_state.research_results = research_results_list
+
+    # Mark Step 3 complete
+    st.session_state.current_step = 3
+    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+
+    # Step 4: Final Analysis
     try:
-        # Initial step
-        update_wizard_step(0)
-
-        # Step 1: Initial Analysis
-        st.session_state.state['random_fact'] = generate_random_fact(topic)
-        st.session_state.state['tldr_summary'] = generate_quick_summary(topic)
-
-        if st.session_state.state['random_fact']:
-            with st.expander("🎲 Random Fact", expanded=True):
-                st.markdown(st.session_state.state['random_fact'])
-
-        if st.session_state.state['tldr_summary']:
-            with st.expander("💡 TL;DR", expanded=True):
-                st.markdown(st.session_state.state['tldr_summary'])
-
-        # Update Step 1
-        st.session_state.state['current_step'] = 1
-        update_wizard_step(1)
-
-        # Step 2: Framework Development
-        refined_prompt, framework = generate_refined_prompt_and_framework(topic)
-        if not refined_prompt or not framework:
-            st.error("Could not generate refined prompt and framework. Please try again.")
-            st.stop()
-
-        st.session_state.state['refined_prompt'] = refined_prompt
-        st.session_state.state['framework'] = framework
-
-        with st.expander("🎯 Refined Prompt", expanded=False):
-            st.markdown(refined_prompt)
-        with st.expander("🗺️ Investigation Framework", expanded=False):
-            st.markdown(framework)
-
-        # Update Step 2
-        st.session_state.state['current_step'] = 2
-        update_wizard_step(2)
-
-        # Step 3: Research Phase
-        aspects = [line.strip() for line in framework.split("\n") 
-                if line.strip().startswith(tuple(f"{x}." for x in range(1,10)))]
-        
-        if not aspects:
-            st.error("No research aspects found in the framework. Please try again.")
-            st.stop()
-
-        current_analysis = ""
-        research_results_list = []
-        
-        for i in range(loops_num):
-            aspect = aspects[i % len(aspects)]
-            research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
-            
-            if not research_text:
-                raise ValueError(f"Failed to generate research for aspect: {aspect}")
-                
-            current_analysis += "\n\n" + research_text
-            
-            # Extract title and content
-            lines = research_text.split("\n")
-            title = lines[0].strip() if lines else aspect
-            content = "\n".join(lines[1:]) if len(lines) > 1 else research_text
-            
-            research_results_list.append((title, content))
-            
-            # Display research results
-            with st.expander(f"{i+1}. {title}", expanded=False):
-                st.markdown(content)
-                
-        st.session_state.state['research_results'] = research_results_list
-        
-        # Update Step 3
-        st.session_state.state['current_step'] = 3
-        update_wizard_step(3)
-
-        # Generate final report
         combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results_list)
-        final_prompt = f"""Based on all previous research conducted, please provide a comprehensive final analysis of {topic}.
-        
-        Here are the key findings from our research:
-        
-        {combined_results}
-        
-        Please synthesize these findings into a clear, well-organized final report that:
-        1. Summarizes the key insights
-        2. Identifies patterns and connections
-        3. Draws meaningful conclusions
-        4. Suggests potential implications or next steps
-        
-        Format the response in a clear, professional style with appropriate headings and structure."""
+        final_prompt = agent3_prompt.format(
+            refined_prompt=refined_prompt,
+            framework=framework,
+            research_results=combined_results
+        )
         
         resp = model.generate_content(final_prompt, generation_config=agent3_config)
         final_analysis = handle_response(resp)
@@ -551,18 +596,18 @@ if start_clicked:
             st.error("Could not generate final report. Please try again.")
             st.stop()
             
-        st.session_state.state['final_analysis'] = final_analysis
+        st.session_state.final_analysis = final_analysis
         with st.expander("📋 Final Report", expanded=True):
             st.markdown(final_analysis)
 
         # Create PDF
         pdf_bytes = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
-        st.session_state.state['pdf_buffer'] = pdf_bytes
+        st.session_state.pdf_buffer = pdf_bytes
 
-        # Update final step
-        st.session_state.state['current_step'] = 4
-        st.session_state.state['analysis_complete'] = True
-        update_wizard_step(4)
+        # Mark analysis complete
+        st.session_state.current_step = 4
+        st.session_state.analysis_complete = True
+        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
         # Show download button
         st.download_button(
@@ -574,11 +619,6 @@ if start_clicked:
         )
 
     except Exception as e:
-        logging.error(f"Error during analysis: {str(e)}")
-        st.error(f"An error occurred: {str(e)}")
-        reset_analysis_state()
+        logging.error(f"Final report error: {e}")
+        st.error("Error generating final report. Please try again.")
         st.stop()
-
-# Show existing step wizard if analysis is in progress
-elif st.session_state.state['analysis_started']:
-    update_wizard_step(st.session_state.state['current_step'])
