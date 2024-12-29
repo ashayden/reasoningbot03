@@ -35,13 +35,12 @@ def render_stepper(current_step: int) -> str:
         .stepper-container {
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
             margin: 2rem auto;
-            padding: 1rem;
-            max-width: 800px;
+            padding: 1rem 2rem;
+            max-width: 700px;
             background: transparent;
             position: relative;
-            gap: 1rem;
         }
         .step {
             display: flex;
@@ -49,7 +48,8 @@ def render_stepper(current_step: int) -> str:
             align-items: center;
             position: relative;
             flex: 1;
-            max-width: 150px;
+            max-width: 140px;
+            margin: 0 0.5rem;
         }
         .step-number {
             width: 36px;
@@ -71,7 +71,7 @@ def render_stepper(current_step: int) -> str:
             font-size: 0.85rem;
             color: rgba(255, 255, 255, 0.6);
             text-align: center;
-            max-width: 120px;
+            max-width: 110px;
             word-wrap: break-word;
             position: relative;
             z-index: 2;
@@ -111,15 +111,14 @@ def render_stepper(current_step: int) -> str:
         </style>
     """
     
-    # Create the HTML with minimal whitespace and proper escaping
-    html_parts = []
-    html_parts.append('<div class="stepper-container">')
-    
-    for i, label in enumerate(STEPS):
-        status = "complete" if i < current_step else "active" if i == current_step else ""
-        html_parts.append(f'<div class="step {status}"><div class="step-number">{i + 1}</div><div class="step-label">{label}</div><div class="step-line"></div></div>')
-    
-    html_parts.append('</div>')
+    # Create the HTML with minimal whitespace
+    html_parts = [
+        '<div class="stepper-container">',
+        *[f'<div class="step {status}"><div class="step-number">{i + 1}</div><div class="step-label">{label}</div><div class="step-line"></div></div>'
+          for i, label in enumerate(STEPS)
+          for status in ["complete" if i < current_step else "active" if i == current_step else ""]],
+        '</div>'
+    ]
     
     # Return the complete HTML
     return html + ''.join(html_parts)
@@ -499,133 +498,118 @@ else:
 if start_button:
     if not topic.strip():
         st.warning("Please enter a topic.")
-    else:
-        # Reset states
-        st.session_state.analysis_complete = False
-        st.session_state.research_results = []
-        st.session_state.random_fact = None
-        st.session_state.current_step = 0
+        st.stop()
 
-        # Create a container for the step wizard that persists
-        step_container = st.empty()
-        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+    # Reset states and initialize container
+    st.session_state.update({
+        'analysis_complete': False,
+        'research_results': [],
+        'random_fact': None,
+        'current_step': 0
+    })
+    
+    # Create persistent step wizard container
+    step_container = st.empty()
+    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
-        # STEP 0: Random Fact & TL;DR
-        st.session_state.random_fact = generate_random_fact(topic)
-        if st.session_state.random_fact:
-            with st.expander("🎲 Random Fact", expanded=True):
-                st.markdown(st.session_state.random_fact)
+    # Step 1: Initial Analysis
+    st.session_state.random_fact = generate_random_fact(topic)
+    st.session_state.tldr_summary = generate_quick_summary(topic)
 
-        st.session_state.tldr_summary = generate_quick_summary(topic)
-        if st.session_state.tldr_summary:
-            with st.expander("💡 TL;DR", expanded=True):
-                st.markdown(st.session_state.tldr_summary)
+    if st.session_state.random_fact:
+        with st.expander("🎲 Random Fact", expanded=True):
+            st.markdown(st.session_state.random_fact)
 
-        # Mark Refining Prompt complete
-        st.session_state.current_step = 1
-        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+    if st.session_state.tldr_summary:
+        with st.expander("💡 TL;DR", expanded=True):
+            st.markdown(st.session_state.tldr_summary)
 
-        # STEP 1: Framework Development
-        refined_prompt, framework = generate_refined_prompt_and_framework(topic)
-        if not refined_prompt or not framework:
-            st.error("Could not generate refined prompt and framework. Please try again.")
+    # Mark Step 1 complete
+    st.session_state.current_step = 1
+    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+
+    # Step 2: Framework Development
+    refined_prompt, framework = generate_refined_prompt_and_framework(topic)
+    if not refined_prompt or not framework:
+        st.error("Could not generate refined prompt and framework. Please try again.")
+        st.stop()
+
+    st.session_state.refined_prompt = refined_prompt
+    st.session_state.framework = framework
+
+    with st.expander("🎯 Refined Prompt", expanded=False):
+        st.markdown(refined_prompt)
+    with st.expander("🗺️ Investigation Framework", expanded=False):
+        st.markdown(framework)
+
+    # Mark Step 2 complete
+    st.session_state.current_step = 2
+    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+
+    # Step 3: Research Phase
+    aspects = [line.strip() for line in framework.split("\n") 
+              if line.strip().startswith(tuple(f"{x}." for x in range(1,10)))]
+    
+    if not aspects:
+        st.error("No research aspects found in the framework. Please try again.")
+        st.stop()
+
+    current_analysis = ""
+    research_results_list = []
+
+    for i in range(loops_num):
+        aspect = aspects[i % len(aspects)]
+        research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
+        
+        if not research_text:
+            st.error("Research analysis failed. Please try again.")
             st.stop()
+            
+        current_analysis += "\n\n" + research_text
+        lines = research_text.split("\n")
+        title = lines[0].strip() if lines else aspect
+        content = "\n".join(lines[1:]) if len(lines) > 1 else ""
+        research_results_list.append((title, content))
 
-        st.session_state.refined_prompt = refined_prompt
-        st.session_state.framework = framework
+        with st.expander(title, expanded=False):
+            st.markdown(content)
 
-        with st.expander("🎯 Refined Prompt", expanded=False):
-            st.markdown(refined_prompt)
+    st.session_state.research_results = research_results_list
 
-        with st.expander("🗺️ Investigation Framework", expanded=False):
-            st.markdown(framework)
+    # Mark Step 3 complete
+    st.session_state.current_step = 3
+    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
-        # Mark Developing Framework complete
-        st.session_state.current_step = 2
-        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
-
-        # STEP 2: Research
-        current_analysis = ""
-        aspects = []
-        research_results_list = []
-
-        # Extract aspects from framework
-        for line in framework.split("\n"):
-            if line.strip().startswith(tuple(f"{x}." for x in range(1,10))):
-                aspects.append(line.strip())
-
-        if not aspects:
-            st.error("No research aspects found in the framework. Please try again.")
-            st.stop()
-
-        for i in range(loops_num):
-            aspect = aspects[i % len(aspects)]  # cycle aspects
-            research_text = conduct_research(
-                refined_prompt, 
-                framework, 
-                current_analysis, 
-                aspect, 
-                i+1
-            )
-            if research_text:
-                current_analysis += "\n\n" + research_text
-                lines = research_text.split("\n")
-                first_line = lines[0].strip() if lines else aspect
-                remainder = "\n".join(lines[1:]) if len(lines) > 1 else ""
-                research_results_list.append((first_line, remainder))
-            else:
-                st.error("Research analysis failed. Please try again.")
-                st.stop()
-
-        # Display research results
-        for title, content in research_results_list:
-            with st.expander(title, expanded=False):
-                st.markdown(content)
-
-        st.session_state.research_results = research_results_list
-
-        # Mark Conducting Research complete
-        st.session_state.current_step = 3
-        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
-
-        # Generate final report
-        combined_results = "\n\n".join(f"### {t}\n{c}" for t,c in research_results_list)
-        final_agent3_prompt = agent3_prompt.format(
+    # Step 4: Final Analysis
+    try:
+        combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results_list)
+        final_prompt = agent3_prompt.format(
             refined_prompt=refined_prompt,
             framework=framework,
             research_results=combined_results
         )
-
-        try:
-            resp = model.generate_content(final_agent3_prompt, generation_config=agent3_config)
-            final_analysis = handle_response(resp)
-            if not final_analysis:
-                st.error("Could not generate final report. Please try again.")
-                st.stop()
-            st.session_state.final_analysis = final_analysis
-            with st.expander("📋 Final Report", expanded=True):
-                st.markdown(final_analysis)
-
-            # Mark Analysis Complete
-            st.session_state.current_step = 4
-            step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
-
-        except Exception as e:
-            st.error("Error generating final report. Please try again.")
+        
+        resp = model.generate_content(final_prompt, generation_config=agent3_config)
+        final_analysis = handle_response(resp)
+        
+        if not final_analysis:
+            st.error("Could not generate final report. Please try again.")
             st.stop()
+            
+        st.session_state.final_analysis = final_analysis
+        with st.expander("📋 Final Report", expanded=True):
+            st.markdown(final_analysis)
 
         # Create PDF
-        pdf_bytes = create_download_pdf(
-            refined_prompt, 
-            framework, 
-            current_analysis, 
-            st.session_state.final_analysis
-        )
+        pdf_bytes = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
         st.session_state.pdf_buffer = pdf_bytes
 
-        # Complete
+        # Mark analysis complete
+        st.session_state.current_step = 4
         st.session_state.analysis_complete = True
+        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
+        # Show download button
         st.download_button(
             label="⬇️ Download Report as PDF",
             data=pdf_bytes,
@@ -633,3 +617,8 @@ if start_button:
             mime="application/pdf",
             key="download_button"
         )
+
+    except Exception as e:
+        logging.error(f"Final report error: {e}")
+        st.error("Error generating final report. Please try again.")
+        st.stop()
