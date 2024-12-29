@@ -367,25 +367,35 @@ def generate_refined_prompt_and_framework(topic: str) -> tuple[str, str]:
 def conduct_research(refined_prompt: str, framework: str, current_analysis: str, aspect: str, iteration: int) -> str:
     """Conduct research on a specific aspect of the topic."""
     try:
-        prompt = f"""Based on this refined prompt:
-        {refined_prompt}
-        
-        And this research framework:
-        {framework}
-        
-        Previous findings:
-        {current_analysis}
-        
-        Research this specific aspect (iteration {iteration}):
+        # Create a more focused research prompt
+        prompt = f"""You are a thorough researcher analyzing this aspect:
         {aspect}
         
-        Provide detailed findings in a clear, organized format.
-        Focus on factual information and cite sources where possible."""
+        Context:
+        - Refined Research Prompt: {refined_prompt}
+        - Research Framework: {framework}
+        - Previous Research: {current_analysis if current_analysis else "No previous research yet."}
         
-        response = model.generate_content(prompt)
-        return handle_response(response)
+        Please provide a detailed analysis of this aspect that:
+        1. Focuses on factual, verifiable information
+        2. Cites sources where possible
+        3. Maintains objectivity
+        4. Connects findings to the overall research goal
+        
+        Format your response with clear headings and structure.
+        Keep the analysis focused and relevant to the specific aspect being investigated."""
+        
+        response = model.generate_content(prompt, generation_config=agent3_config)
+        result = handle_response(response)
+        
+        if not result or len(result.strip()) < 50:  # Basic validation
+            logging.error(f"Research iteration {iteration} returned insufficient content")
+            return None
+            
+        return result
+        
     except Exception as e:
-        logging.error(f"Error in research iteration {iteration}: {e}")
+        logging.error(f"Error in research iteration {iteration}: {str(e)}")
         return None
 
 # Add loops_num variable
@@ -459,29 +469,38 @@ if start_clicked:
 
     current_analysis = ""
     research_results_list = []
-
-    for i in range(loops_num):
-        aspect = aspects[i % len(aspects)]
-        research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
-        
-        if not research_text:
-            st.error("Research analysis failed. Please try again.")
-            st.stop()
+    
+    try:
+        for i in range(loops_num):
+            aspect = aspects[i % len(aspects)]
+            research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
             
-        current_analysis += "\n\n" + research_text
-        lines = research_text.split("\n")
-        title = lines[0].strip() if lines else aspect
-        content = "\n".join(lines[1:]) if len(lines) > 1 else ""
-        research_results_list.append((title, content))
-
-        with st.expander(title, expanded=False):
-            st.markdown(content)
-
-    st.session_state.research_results = research_results_list
-
-    # Mark Step 3 complete
-    st.session_state.current_step = 3
-    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+            if not research_text:
+                raise ValueError(f"Failed to generate research for aspect: {aspect}")
+                
+            current_analysis += "\n\n" + research_text
+            
+            # Extract title and content
+            lines = research_text.split("\n")
+            title = lines[0].strip() if lines else aspect
+            content = "\n".join(lines[1:]) if len(lines) > 1 else research_text
+            
+            research_results_list.append((title, content))
+            
+            # Display research results
+            with st.expander(f"{i+1}. {title}", expanded=False):
+                st.markdown(content)
+                
+        st.session_state.research_results = research_results_list
+        
+        # Mark Step 3 complete
+        st.session_state.current_step = 3
+        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+        
+    except Exception as e:
+        logging.error(f"Research phase error: {str(e)}")
+        st.error("An error occurred during the research phase. Please try again.")
+        st.stop()
 
     # Generate final report
     try:
