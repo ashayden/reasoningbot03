@@ -150,16 +150,23 @@ if 'previous_input' not in st.session_state:
 # Update input section with embedded button
 col1, col2 = st.columns([4, 1])
 with col1:
+    def on_text_change():
+        if st.session_state.get('topic_input'):
+            st.session_state.start_button_clicked = True
+    
     topic = st.text_input(
         "Enter a topic or question:",
         placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
         key="topic_input",
-        on_change=lambda: setattr(st.session_state, 'start_button_clicked', True) if st.session_state.topic_input else None
+        on_change=on_text_change
     )
 with col2:
     start_button_clicked = st.button("🌊 Dive In", use_container_width=True)
 
-# Add random fact placeholder at the top of analysis section
+# Initialize progress bar first
+progress_bar = st.progress(0)
+
+# Add random fact placeholder after progress bar
 fact_placeholder = st.empty()
 
 # Slider for research depth with descriptive options
