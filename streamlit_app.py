@@ -23,12 +23,13 @@ STEPS = [
 ########################################
 # STEP WIZARD RENDERING
 ########################################
-def render_stepper(current_step: int) -> str:
+def render_stepper(current_step: int) -> None:
     """Renders a 4-step wizard with proper styling."""
     # Clamp current_step between 0 and 3
     current_step = max(0, min(current_step, 3))
     
-    css = """
+    # Create the CSS
+    st.markdown("""
         <style>
         .stepper-container {
             display: flex;
@@ -103,24 +104,19 @@ def render_stepper(current_step: int) -> str:
             display: none;
         }
         </style>
-    """
+    """, unsafe_allow_html=True)
     
-    html = ['<div class="stepper-container">']
+    # Create the HTML
+    html = '<div class="stepper-container">'
     
     for i, label in enumerate(STEPS):
         status = "complete" if i < current_step else "active" if i == current_step else ""
-        step = f'''
-            <div class="step {status}">
-                <div class="step-number">{i + 1}</div>
-                <div class="step-label">{label}</div>
-                <div class="step-line"></div>
-            </div>
-        '''
-        html.append(step)
+        html += f'<div class="step {status}"><div class="step-number">{i + 1}</div><div class="step-label">{label}</div><div class="step-line"></div></div>'
     
-    html.append('</div>')
+    html += '</div>'
     
-    return css + ''.join(html)
+    # Render the HTML
+    st.markdown(html, unsafe_allow_html=True)
 
 ########################################
 # MAIN APP + LLM CODE
@@ -316,65 +312,133 @@ def create_download_pdf(refined_prompt, framework, research_analysis, final_anal
 # -------------- MAIN LOGIC --------------
 if start_clicked:
     if not topic.strip():
-        st.warning("Please enter a topic to analyze.")
-    else:
-        # Example: progress steps
-        st.session_state.analysis_complete = False
-        st.session_state.current_step = 0
-        step_wizard.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+        st.warning("Please enter a topic.")
+        st.stop()
 
-        # Step 0: random fact & summary
-        # (Pretend to do LLM calls here)
-        st.subheader("Step 1: Refining Prompt")
+    # Reset states
+    st.session_state.update({
+        'analysis_complete': False,
+        'research_results': [],
+        'random_fact': None,
+        'current_step': 0
+    })
+    
+    # Create persistent step wizard container
+    step_container = st.container()
+    with step_container:
+        render_stepper(st.session_state.current_step)
 
-        random_fact = f"Fun Fact about {topic}..."
-        st.expander("🎲 Random Fact", expanded=True).write(random_fact)
+    # Step 1: Initial Analysis
+    st.session_state.random_fact = generate_random_fact(topic)
+    st.session_state.tldr_summary = generate_quick_summary(topic)
 
-        summary = f"A quick summary for {topic}..."
-        st.expander("💡 TL;DR", expanded=True).write(summary)
+    if st.session_state.random_fact:
+        with st.expander("🎲 Random Fact", expanded=True):
+            st.markdown(st.session_state.random_fact)
 
-        # Step 1: refine prompt
-        st.session_state.current_step = 1
-        step_wizard.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
-        st.subheader("Step 2: Developing Framework")
+    if st.session_state.tldr_summary:
+        with st.expander("💡 TL;DR", expanded=True):
+            st.markdown(st.session_state.tldr_summary)
 
-        # Suppose agent1 returns these
-        refined_prompt = f"My refined prompt for {topic}"
-        framework = f"1. Explore history\n2. Key factors\n3. Potential challenges"
+    # Mark Step 1 complete
+    st.session_state.current_step = 1
+    with step_container:
+        render_stepper(st.session_state.current_step)
 
-        st.expander("🎯 Refined Prompt", expanded=False).write(refined_prompt)
-        st.expander("🗺️ Investigation Framework", expanded=False).write(framework)
+    # Step 2: Framework Development
+    refined_prompt, framework = generate_refined_prompt_and_framework(topic)
+    if not refined_prompt or not framework:
+        st.error("Could not generate refined prompt and framework. Please try again.")
+        st.stop()
 
-        # Step 2: conduct research
-        st.session_state.current_step = 2
-        step_wizard.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
-        st.subheader("Step 3: Conducting Research")
+    st.session_state.refined_prompt = refined_prompt
+    st.session_state.framework = framework
 
-        # Suppose agent2 does multiple loops
-        research_content = "Some research findings..."
-        st.expander("Research Title", expanded=False).write(research_content)
+    with st.expander("🎯 Refined Prompt", expanded=False):
+        st.markdown(refined_prompt)
+    with st.expander("🗺️ Investigation Framework", expanded=False):
+        st.markdown(framework)
+
+    # Mark Step 2 complete
+    st.session_state.current_step = 2
+    with step_container:
+        render_stepper(st.session_state.current_step)
+
+    # Step 3: Research Phase
+    aspects = [line.strip() for line in framework.split("\n") 
+              if line.strip().startswith(tuple(f"{x}." for x in range(1,10)))]
+    
+    if not aspects:
+        st.error("No research aspects found in the framework. Please try again.")
+        st.stop()
+
+    current_analysis = ""
+    research_results_list = []
+
+    for i in range(loops_num):
+        aspect = aspects[i % len(aspects)]
+        research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
         
-        # Step 3: final report
-        st.session_state.current_step = 3
-        step_wizard.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
-        st.subheader("Step 4: Final Report")
+        if not research_text:
+            st.error("Research analysis failed. Please try again.")
+            st.stop()
+            
+        current_analysis += "\n\n" + research_text
+        lines = research_text.split("\n")
+        title = lines[0].strip() if lines else aspect
+        content = "\n".join(lines[1:]) if len(lines) > 1 else ""
+        research_results_list.append((title, content))
 
-        final_report = f"Here is the final report about {topic}..."
-        st.expander("📋 Final Report", expanded=True).write(final_report)
+        with st.expander(title, expanded=False):
+            st.markdown(content)
+
+    st.session_state.research_results = research_results_list
+
+    # Mark Step 3 complete
+    st.session_state.current_step = 3
+    with step_container:
+        render_stepper(st.session_state.current_step)
+
+    # Generate final report
+    try:
+        combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results_list)
+        final_prompt = agent3_prompt.format(
+            refined_prompt=refined_prompt,
+            framework=framework,
+            research_results=combined_results
+        )
+        
+        resp = model.generate_content(final_prompt, generation_config=agent3_config)
+        final_analysis = handle_response(resp)
+        
+        if not final_analysis:
+            st.error("Could not generate final report. Please try again.")
+            st.stop()
+            
+        st.session_state.final_analysis = final_analysis
+        with st.expander("📋 Final Report", expanded=True):
+            st.markdown(final_analysis)
 
         # Create PDF
-        pdf_buf = create_download_pdf(refined_prompt, framework, research_content, final_report)
-        st.session_state.pdf_buffer = pdf_buf
+        pdf_bytes = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
+        st.session_state.pdf_buffer = pdf_bytes
 
-        # Step 4: done
+        # Mark analysis complete
         st.session_state.current_step = 4
         st.session_state.analysis_complete = True
-        step_wizard.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
+        with step_container:
+            render_stepper(st.session_state.current_step)
 
+        # Show download button
         st.download_button(
-            label="Download Report as PDF",
-            data=pdf_buf,
+            label="⬇️ Download Report as PDF",
+            data=pdf_bytes,
             file_name=f"{topic}_analysis_report.pdf",
             mime="application/pdf",
             key="download_button"
         )
+
+    except Exception as e:
+        logging.error(f"Final report error: {e}")
+        st.error("Error generating final report. Please try again.")
+        st.stop()
