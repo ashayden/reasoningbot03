@@ -468,6 +468,22 @@ def create_download_pdf(refined_prompt, framework, current_analysis, final_analy
         buffer.seek(0)
         return buffer
 
+# Initialize session state for storing analysis results
+if 'analysis_complete' not in st.session_state:
+    st.session_state.analysis_complete = False
+if 'pdf_buffer' not in st.session_state:
+    st.session_state.pdf_buffer = None
+if 'final_analysis' not in st.session_state:
+    st.session_state.final_analysis = None
+if 'research_results' not in st.session_state:
+    st.session_state.research_results = []
+if 'tldr_summary' not in st.session_state:
+    st.session_state.tldr_summary = None
+if 'refined_prompt' not in st.session_state:
+    st.session_state.refined_prompt = None
+if 'framework' not in st.session_state:
+    st.session_state.framework = None
+
 # Main Execution
 # Create columns for buttons and progress bar
 button_col, progress_col = st.columns([1, 2])
@@ -478,8 +494,49 @@ with button_col:
 with progress_col:
     progress_placeholder = st.empty()
 
+# Display previous results if they exist
+if st.session_state.analysis_complete:
+    if st.session_state.tldr_summary:
+        with st.expander(f"**💡 TL;DR**", expanded=True):
+            st.markdown(st.session_state.tldr_summary)
+    
+    if st.session_state.refined_prompt:
+        with st.expander(f"**🎯 Refined Prompt**", expanded=False):
+            st.markdown(st.session_state.refined_prompt)
+    
+    if st.session_state.framework:
+        with st.expander(f"**🗺️ Investigation Framework**", expanded=False):
+            st.markdown(st.session_state.framework)
+    
+    for title, content in st.session_state.research_results:
+        with st.expander(f"**{title}**", expanded=False):
+            st.markdown(content)
+    
+    if st.session_state.final_analysis:
+        with st.expander(f"**📋 Final Report**", expanded=False):
+            st.markdown(st.session_state.final_analysis)
+        
+        # Create columns for completion message and download button
+        msg_col, download_col = st.columns([1, 2])
+        with msg_col:
+            st.markdown("🥂 Analysis Complete")
+        with download_col:
+            st.download_button(
+                label="⬇️ Download Report as PDF",
+                data=st.session_state.pdf_buffer,
+                file_name=f"{topic}_analysis_report.pdf",
+                mime="application/pdf",
+                key="download_button",
+                help="Download the complete analysis report as a PDF file",
+                use_container_width=True
+            )
+
 if start_button_clicked:
     if topic:
+        # Reset session state
+        st.session_state.analysis_complete = False
+        st.session_state.research_results = []
+        
         # Initialize progress indicators
         progress_states = {
             "tldr": {"label": "TL;DR", "progress": 0, "status": "pending"},
@@ -496,6 +553,7 @@ if start_button_clicked:
             # Quick Summary (TL;DR)
             tldr_summary = generate_quick_summary(topic)
             if tldr_summary:
+                st.session_state.tldr_summary = tldr_summary
                 with st.expander(f"**💡 {progress_states['tldr']['label']}**", expanded=True):
                     st.markdown(tldr_summary)
                 progress_bar.progress(20)
@@ -503,13 +561,16 @@ if start_button_clicked:
             # Agent 1: Refine prompt and generate framework
             refined_prompt, framework = generate_refined_prompt_and_framework(topic)
             if refined_prompt and framework:
+                st.session_state.refined_prompt = refined_prompt.lstrip(":\n").strip()
+                st.session_state.framework = framework.lstrip(": **\n").strip()
+                
                 # Display refined prompt
                 with st.expander(f"**🎯 {progress_states['refined_prompt']['label']}**", expanded=False):
-                    st.markdown(refined_prompt.lstrip(":\n").strip())
+                    st.markdown(st.session_state.refined_prompt)
                 
                 # Display framework
                 with st.expander(f"**🗺️ {progress_states['framework']['label']}**", expanded=False):
-                    st.markdown(framework.lstrip(": **\n").strip())
+                    st.markdown(st.session_state.framework)
                 progress_bar.progress(40)
 
                 # Agent 2: Conduct research through iterations
@@ -574,6 +635,18 @@ if start_button_clicked:
                 # Create PDF buffer
                 pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
 
+                # Store research results in session state
+                st.session_state.research_results = research_expanders
+                
+                # Store final analysis in session state
+                st.session_state.final_analysis = final_analysis
+                
+                # Store PDF buffer in session state
+                st.session_state.pdf_buffer = pdf_buffer
+                
+                # Mark analysis as complete
+                st.session_state.analysis_complete = True
+
                 # Display final report last
                 with st.expander(f"**📋 {progress_states['analysis']['label']}**", expanded=False):
                     st.markdown(final_analysis)
@@ -592,13 +665,13 @@ if start_button_clicked:
                         mime="application/pdf",
                         key="download_button",
                         help="Download the complete analysis report as a PDF file",
-                        use_container_width=True,
-                        on_click=None  # Prevent rerun on click
+                        use_container_width=True
                     )
 
         except Exception as e:
             st.error(f"Analysis failed: {str(e)}. Please try again.")
             logging.error(f"Analysis failed: {e}")
+            st.session_state.analysis_complete = False
 
     else:
         st.warning("Please enter a topic to analyze.")
