@@ -165,7 +165,7 @@ st.markdown("""
 [data-testid="stExpander"] {
     border: none !important;
     box-shadow: none !important;
-    background-color: #2439f7 !important;
+    background-color: transparent !important;
     border-radius: 6px !important;
     margin-bottom: 1rem !important;
     width: auto !important;
@@ -173,13 +173,29 @@ st.markdown("""
     float: right !important;
 }
 
+/* Target the block container of the expander */
+[data-testid="stExpander"] > .st-emotion-cache-1q1n0ol {
+    background-color: transparent !important;
+}
+
+/* Target the expander content */
+[data-testid="stExpander"] > .st-emotion-cache-1ehh7ok {
+    background-color: transparent !important;
+}
+
+/* Target any div within expander */
+[data-testid="stExpander"] div {
+    background-color: transparent !important;
+}
+
 [data-testid="stExpander"] details {
     border: none !important;
     box-shadow: none !important;
+    background-color: transparent !important;
 }
 
 [data-testid="stExpander"] summary {
-    color: white !important;
+    color: #2439f7 !important;
     font-weight: 500 !important;
     letter-spacing: 0.5px !important;
     padding: 0.5rem 1rem !important;
@@ -188,10 +204,11 @@ st.markdown("""
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
+    background-color: transparent !important;
 }
 
 [data-testid="stExpander"] summary:hover {
-    background-color: #1a2bc4 !important;
+    background-color: rgba(36, 57, 247, 0.1) !important;
     transform: translateY(-1px) !important;
 }
 
@@ -207,10 +224,24 @@ st.markdown("""
     width: 800px !important;
     max-width: 90vw !important;
     z-index: 1000 !important;
-    background-color: #0E1117 !important;
     padding: 1rem !important;
     border-radius: 6px !important;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Target Streamlit's emotion classes */
+.st-emotion-cache-1y4p8pa {
+    background-color: transparent !important;
+}
+
+.st-emotion-cache-1gulkj3 {
+    background-color: transparent !important;
+}
+
+/* Ensure text areas and inputs within expander are white */
+[data-testid="stExpander"] textarea,
+[data-testid="stExpander"] input {
+    background-color: white !important;
 }
 </style>
 """, unsafe_allow_html=True)
