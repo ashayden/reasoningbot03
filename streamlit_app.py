@@ -150,150 +150,20 @@ if 'framework' not in st.session_state:
 if 'previous_input' not in st.session_state:
     st.session_state.previous_input = ""
 
-# Input section
-topic = st.text_input(
-    "Enter a topic or question:",
-    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
-)
-
-# Reset session state if input changes
-if topic != st.session_state.previous_input:
-    st.session_state.analysis_complete = False
-    st.session_state.pdf_buffer = None
-    st.session_state.final_analysis = None
-    st.session_state.research_results = []
-    st.session_state.tldr_summary = None
-    st.session_state.refined_prompt = None
-    st.session_state.framework = None
-    st.session_state.previous_input = topic
-
-# --- UI/UX - Add expander for prompt details ---
-with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
-    # Agent Prompts
-    agent1_prompt = st.text_area(
-        "Agent 1 Prompt (Prompt Engineer)",
-        '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
-
-USER'S TOPIC/QUESTION: {topic}
-
-1.  **Prompt Refinement**
-    *   Analyze the user's input and identify areas where you can add more detail, specificity, and context.
-    *   Consider what background information or assumptions might be helpful to include.
-    *   Reformulate the user's input into a more comprehensive and well-defined prompt.
-
-2.  **Investigation Framework**
-    *   Based on your **refined prompt**, define a structured approach for investigating the topic.
-    *   Outline:
-        -   Core Question/Hypothesis
-        -   Key Areas Requiring Investigation
-        -   Critical Factors to Examine
-        -   Required Data and Information Sources
-        -   Potential Challenges or Limitations
-
-    *   Present this as a clear investigation framework that will guide further research and analysis.
-
-Format your response with appropriate spacing between sections:
-
-Refined Prompt
-[Your refined prompt here]
-
----
-
-Investigation Framework
-
-Core Question/Hypothesis
-
-[Your hypothesis here, which may wrap to multiple lines while maintaining proper alignment]
-
-Key Areas Requiring Investigation
-
-1. [Area Name]:
-   - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
-   - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
-   - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
-
-2. [Area Name]:
-   - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
-   - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
-   - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
-
-Note: 
-- Each section header should be on its own line
-- Leave a blank line between the header and its content
-- Each numbered item starts with a number followed by a period, space, and area name
-- Bullet points appear on new lines beneath the numbered item
-- Use consistent indentation for bullet points
-- Add a blank line between numbered items
-- Use a hyphen (-) for bullet points''',
-        key="agent1_prompt",
-        height=300,
+# Update input section with embedded button
+col1, col2 = st.columns([4, 1])
+with col1:
+    topic = st.text_input(
+        "Enter a topic or question:",
+        placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
+        key="topic_input",
+        on_change=lambda: setattr(st.session_state, 'start_button_clicked', True) if st.session_state.topic_input else None
     )
+with col2:
+    start_button_clicked = st.button("🌊 Dive In", key="start_button", use_container_width=True)
 
-    agent2_prompt = st.text_area(
-        "Agent 2 Prompt (Researcher)",
-        '''Using the refined prompt and the established framework, continue researching and analyzing:
-
-REFINED PROMPT:
-{refined_prompt}
-
-FRAMEWORK:
-{framework}
-
-PREVIOUS ANALYSIS:
-{previous_analysis}
-
-CURRENT FOCUS:
-{current_aspect}
-
-Begin your response with a descriptive title that summarizes the focus area and its relation to the main topic.
-For example: "Economic Factors: Impact on Regional Development Trends"
-
-Then present your findings by:
-1. Gathering relevant data and evidence
-2. Analyzing new findings
-3. Identifying connections and patterns
-4. Updating conclusions based on new information
-5. Noting any emerging implications
-
-Structure your response with the descriptive title on the first line, followed by your analysis.''',
-        key="agent2_prompt",
-        height=300,
-    )
-
-    agent3_prompt = st.text_area(
-        "Agent 3 Prompt (Expert Analyst)",
-        '''Based on the completed analysis of the topic:
-
-REFINED PROMPT:
-{refined_prompt}
-
-FRAMEWORK:
-{system_prompt}
-
-ANALYSIS:
-{all_aspect_analyses}
-
-You are a leading expert in fields relevant to the topic. Provide an in-depth analysis as a recognized authority on this topic. Offer insights and conclusions based on your extensive knowledge and experience.
-
-Write a comprehensive report addressing the topic and/or answering the user's question. Include relevant statistics. Present the report in a neutral, objective, and informative tone, befitting an expert in the field.
-
-### Final Report
-
-[Title of Analysis]
-
-Executive Summary:
-[Provide a comprehensive overview of the key findings, challenges, and recommendations]
-
-I. [First Major Section]:
-[Detailed analysis with supporting evidence and data]
-
-[Continue with subsequent sections as needed]
-
-Recommendations:
-[List specific, actionable recommendations based on the analysis]''',
-        key="agent3_prompt",
-        height=300,
-    )
+# Add random fact placeholder at the top of analysis section
+fact_placeholder = st.empty()
 
 # Slider for research depth with descriptive options
 loops = st.select_slider(
@@ -580,7 +450,7 @@ elif loops == "Mariana Trench":
 else:
     loops_num = 2  # Default value
 
-if start_button_clicked:
+if start_button_clicked or st.session_state.get('start_button_clicked', False):
     if topic:
         # Reset session state
         st.session_state.analysis_complete = False
@@ -590,6 +460,25 @@ if start_button_clicked:
         progress_bar = st.progress(0)
         
         try:
+            # Display initial random fact
+            with fact_placeholder.container():
+                with st.expander("🎲 Random Fact", expanded=True):
+                    st.markdown(generate_random_fact(topic))
+            
+            # Start fact update loop in the background
+            def update_fact():
+                while not st.session_state.analysis_complete:
+                    time.sleep(8)  # Wait before showing new facts
+                    with fact_placeholder.container():
+                        with st.expander("🎲 Random Fact", expanded=True):
+                            st.markdown(generate_random_fact(topic))
+            
+            # Start the fact update thread
+            import threading
+            fact_thread = threading.Thread(target=update_fact)
+            fact_thread.daemon = True
+            fact_thread.start()
+
             # Quick Summary (TL;DR)
             tldr_summary = generate_quick_summary(topic)
             if tldr_summary:
@@ -717,18 +606,19 @@ if start_button_clicked:
                         unsafe_allow_html=True
                     )
 
-                # Create columns for download button only
-                _, download_col = st.columns([1, 2])
-                with download_col:
-                    st.download_button(
-                        label="⬇️ Download Report as PDF",
-                        data=pdf_buffer,
-                        file_name=f"{topic}_analysis_report.pdf",
-                        mime="application/pdf",
-                        key="download_button",
-                        help="Download the complete analysis report as a PDF file",
-                        use_container_width=True
-                    )
+                # Update download button to be simpler text
+                if st.session_state.analysis_complete:
+                    _, download_col = st.columns([1, 2])
+                    with download_col:
+                        st.download_button(
+                            label="⬇️ Download Report",
+                            data=pdf_buffer,
+                            file_name=f"{topic}_analysis_report.pdf",
+                            mime="application/pdf",
+                            key="download_button",
+                            help="Download the complete analysis report as a PDF file",
+                            use_container_width=True
+                        )
 
         except Exception as e:
             st.error(f"Analysis failed: {str(e)}. Please try again.")
