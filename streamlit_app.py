@@ -480,6 +480,78 @@ def conduct_research(refined_prompt, framework, prev_analysis, aspect, iteration
         logging.error(e)
     return None
 
+def get_title_emoji(title: str) -> str:
+    """Select an emoji based on keywords in the research block title."""
+    # Convert title to lowercase for matching
+    title_lower = title.lower()
+    
+    # Common keywords and their corresponding emojis
+    keyword_emojis = {
+        # Cultural & Social
+        'culture': '🎭', 'tradition': '📿', 'society': '👥', 'community': '🤝',
+        'social': '👥', 'people': '👥', 'population': '👥',
+        
+        # Arts & Entertainment
+        'music': '🎵', 'art': '🎨', 'dance': '💃', 'festival': '🎉',
+        'entertainment': '🎪', 'celebration': '🎊', 'performance': '🎭',
+        
+        # Food & Cuisine
+        'food': '🍲', 'cuisine': '🍳', 'culinary': '🍽️', 'dish': '🍽️',
+        'cooking': '👨‍🍳', 'restaurant': '🍽️', 'dining': '🍽️',
+        
+        # Places & Locations
+        'city': '🌆', 'urban': '🏙️', 'street': '🛣️', 'district': '🏘️',
+        'neighborhood': '🏘️', 'area': '📍', 'location': '📍', 'region': '🗺️',
+        
+        # Nature & Environment
+        'nature': '🌳', 'environment': '🌿', 'climate': '🌡️', 'weather': '☁️',
+        'river': '🌊', 'ocean': '🌊', 'forest': '🌳', 'wildlife': '🦋',
+        
+        # Time Periods
+        'history': '📜', 'historical': '📜', 'ancient': '🏺', 'modern': '🌆',
+        'contemporary': '🎯', 'future': '🔮', 'past': '⌛', 'era': '⏳',
+        
+        # Architecture & Buildings
+        'architecture': '🏛️', 'building': '🏗️', 'structure': '🏛️',
+        'construction': '🏗️', 'design': '✏️', 'monument': '🗿',
+        
+        # Economy & Business
+        'economy': '💹', 'business': '💼', 'trade': '🤝', 'market': '🏪',
+        'industry': '🏭', 'commerce': '💰', 'financial': '💱',
+        
+        # Religion & Spirituality
+        'religion': '⛪', 'spiritual': '✨', 'sacred': '🙏', 'ritual': '📿',
+        'belief': '🙏', 'faith': '✨', 'worship': '⛪',
+        
+        # Transportation
+        'transport': '🚊', 'traffic': '🚦', 'vehicle': '🚗', 'travel': '✈️',
+        'transportation': '🚊', 'mobility': '🚶',
+        
+        # Education & Learning
+        'education': '📚', 'school': '🏫', 'learning': '📖', 'teaching': '👨‍🏫',
+        'academic': '🎓', 'study': '📝', 'research': '🔬',
+        
+        # Technology & Innovation
+        'technology': '💻', 'innovation': '💡', 'digital': '🖥️', 'tech': '⚡',
+        'scientific': '🔬', 'science': '🔬', 'development': '⚡',
+        
+        # Health & Medicine
+        'health': '🏥', 'medical': '⚕️', 'healthcare': '🏥', 'wellness': '💪',
+        'disease': '🦠', 'treatment': '💊',
+        
+        # Politics & Government
+        'political': '🏛️', 'government': '🏛️', 'policy': '📜', 'law': '⚖️',
+        'legislation': '📜', 'regulation': '📋'
+    }
+    
+    # Check for keyword matches in the title
+    for keyword, emoji in keyword_emojis.items():
+        if keyword in title_lower:
+            return emoji
+    
+    # Default emoji if no keywords match
+    return '📌'
+
 # Convert slider selection to numeric loops
 if loops == "Puddle":
     loops_num = 1
@@ -571,7 +643,8 @@ if start_button:
         content = "\n".join(lines[1:]) if len(lines) > 1 else ""
         research_results_list.append((title, content))
 
-        with st.expander(title, expanded=False):
+        emoji = get_title_emoji(title)
+        with st.expander(f"{emoji} {title}", expanded=False):
             st.markdown(content)
 
     st.session_state.research_results = research_results_list
