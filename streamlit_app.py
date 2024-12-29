@@ -24,7 +24,6 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
 .stProgress {
     width: 100% !important;
     margin: 10px 0;
-    background-color: rgba(0, 123, 255, 0.1);
     border-radius: 20px;
     padding: 0;
 }
@@ -146,6 +145,14 @@ except Exception as e:
 try:
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel("gemini-1.5-pro-latest")
+    
+    # Add agent3 configuration
+    agent3_config = genai.types.GenerationConfig(
+        temperature=0.7,
+        top_p=0.8,
+        top_k=40,
+        max_output_tokens=2048,
+    )
 except Exception as e:
     logging.error(f"Error configuring Gemini API: {e}")
     st.error(f"⚠️ Error configuring Gemini API: {str(e)}")
