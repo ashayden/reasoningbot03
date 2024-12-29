@@ -60,11 +60,6 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
     border: none !important;
     font-family: 'Roboto', sans-serif !important;
 }
-
-/* Style for the download button */
-.stDownloadButton button {
-    width: 200px;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -434,25 +429,16 @@ def create_download_pdf(refined_prompt, framework, current_analysis, final_analy
 
 # Main Execution
 # Create columns for buttons
-button_col, download_col = st.columns([1, 1])
+button_col, spinner_col = st.columns([1, 1])
 
 with button_col:
     start_button_clicked = st.button("Start Analysis", key="start_button")
 
-with download_col:
-    # Create a placeholder for the download button
-    download_button_placeholder = st.empty()
-
-# Initialize session state variable for controlling the display of the download button
-if "show_download_button" not in st.session_state:
-    st.session_state.show_download_button = False
+with spinner_col:
+    spinner_placeholder = st.empty()  # Placeholder for the spinner
 
 if start_button_clicked:
     if topic:
-        # Hide the download button when starting a new analysis
-        st.session_state.show_download_button = False
-        download_button_placeholder.empty()
-
         # Initialize progress indicators
         progress_states = {
             "tldr": {"label": "TL;DR", "progress": 0, "status": "pending"},
@@ -467,146 +453,135 @@ if start_button_clicked:
         for section in progress_states:
             placeholders[section] = st.empty()
 
-        with st.spinner("Analyzing..."):
-            # Quick Summary (TL;DR)
-            tldr_summary = generate_quick_summary(topic)
-            progress_states["tldr"]["progress"] = 100
-            progress_states["tldr"]["status"] = "complete"
+        # Use the spinner placeholder for the "Analyzing..." message
+        with spinner_placeholder:
+            with st.spinner("Analyzing..."):
+                # Quick Summary (TL;DR)
+                tldr_summary = generate_quick_summary(topic)
+                progress_states["tldr"]["progress"] = 100
+                progress_states["tldr"]["status"] = "complete"
 
-            # Update placeholder for TL;DR
-            with placeholders["tldr"]:
-                with st.expander(f"**{progress_states['tldr']['label']}**", expanded=True):
-                    st.markdown(tldr_summary)
+                # Update placeholder for TL;DR
+                with placeholders["tldr"]:
+                    with st.expander(f"**{progress_states['tldr']['label']}**", expanded=True):
+                        st.markdown(tldr_summary)
 
-            # Agent 1: Refine prompt and generate framework
-            refined_prompt, framework = generate_refined_prompt_and_framework(topic)
-            progress_states["refined_prompt"]["progress"] = 100
-            progress_states["refined_prompt"]["status"] = "complete"
+                # Agent 1: Refine prompt and generate framework
+                refined_prompt, framework = generate_refined_prompt_and_framework(topic)
+                progress_states["refined_prompt"]["progress"] = 100
+                progress_states["refined_prompt"]["status"] = "complete"
 
-            if refined_prompt is None or framework is None:
-                st.error(
-                    "Failed to generate refined prompt and investigation framework. Please check the logs for details and try again."
-                )
-            else:
-                progress_states["framework"]["progress"] = 100
-                progress_states["framework"]["status"] = "complete"
-
-                # Update placeholders with expanders and content
-                with placeholders["refined_prompt"]:
-                    with st.expander(f"**{progress_states['refined_prompt']['label']}**", expanded=False):
-                        st.markdown(refined_prompt.lstrip(":\n").strip())
-
-                with placeholders["framework"]:
-                    with st.expander(f"**{progress_states['framework']['label']}**", expanded=False):
-                        st.markdown(framework.lstrip(": **\n").strip())
-
-                # Agent 2: Conduct research through iterations
-                current_analysis = ""
-                aspects = []
-                research_placeholders = {}  # Create a dict to store placeholders for each research phase
-
-                if framework:
-                    for line in framework.split("\n"):
-                        if (
-                            line.strip().startswith("1.")
-                            or line.strip().startswith("2.")
-                            or line.strip().startswith("3.")
-                            or line.strip().startswith("4.")
-                        ):
-                            aspects.append(line.strip())
-
-                for i in range(loops_num):
-                    progress_states["research"]["progress"] = int(((i + 1) / loops_num) * 100)
-                    progress_states["research"]["status"] = "complete" if i == loops_num - 1 else "in progress"
-
-                    if aspects:
-                        current_aspect = random.choice(aspects)
-                    else:
-                        current_aspect = "Current State and Trends"
-
-                    research = conduct_research(
-                        refined_prompt, framework, current_analysis, current_aspect, i + 1
+                if refined_prompt is None or framework is None:
+                    st.error(
+                        "Failed to generate refined prompt and investigation framework. Please check the logs for details and try again."
                     )
-                    if research:
-                        current_analysis += "\n\n" + research
-                        research_lines = research.split("\n")
-                        title = next(
-                            (line for line in research_lines if line.strip()),
-                            current_aspect,
-                        )
-
-                        # Create a unique key for each research phase's placeholder
-                        research_phase_key = f"research_phase_{i}"
-                        if research_phase_key not in research_placeholders:
-                            research_placeholders[research_phase_key] = st.empty()
-
-                        # Use the dedicated placeholder for each research phase
-                        with research_placeholders[research_phase_key]:
-                            with st.expander(f"**{title}**", expanded=False):
-                                st.markdown("\n".join(research_lines[1:]))
-                    else:
-                        with placeholders["research"]:
-                            st.error(
-                                f"Failed during research phase {i + 1}. Please check the logs for details and try again."
-                            )
-                            break
-
-                # Agent 3: Present comprehensive analysis
-                if research:
-                    progress_states["analysis"]["progress"] = 100
-                    progress_states["analysis"]["status"] = "complete"
-                    try:
-                        final_response = model.generate_content(
-                            agent3_prompt.format(
-                                refined_prompt=refined_prompt,
-                                system_prompt=framework,
-                                all_aspect_analyses=current_analysis,
-                            ),
-                            generation_config=agent3_config,
-                        )
-
-                        final_analysis = handle_response(final_response)
-
-                        with placeholders["analysis"]:
-                            with st.expander(f"**{progress_states['analysis']['label']}**", expanded=False):
-                                st.markdown(final_analysis)
-
-                        # Set the flag to indicate analysis is complete and display download button
-                        st.session_state.show_download_button = True
-
-                    except Exception as e:
-                        with placeholders["analysis"]:
-                            st.error(
-                                f"Error in final analysis generation: {str(e)}. Please check the logs for details and try again."
-                            )
                 else:
-                    progress_states["analysis"]["progress"] = 100
-                    progress_states["analysis"]["status"] = "complete"
+                    progress_states["framework"]["progress"] = 100
+                    progress_states["framework"]["status"] = "complete"
+
+                    # Update placeholders with expanders and content
+                    with placeholders["refined_prompt"]:
+                        with st.expander(f"**{progress_states['refined_prompt']['label']}**", expanded=False):
+                            st.markdown(refined_prompt.lstrip(":\n").strip())
+
+                    with placeholders["framework"]:
+                        with st.expander(f"**{progress_states['framework']['label']}**", expanded=False):
+                            st.markdown(framework.lstrip(": **\n").strip())
+
+                    # Agent 2: Conduct research through iterations
+                    current_analysis = ""
+                    aspects = []
+                    research_placeholders = {}  # Create a dict to store placeholders for each research phase
+
+                    if framework:
+                        for line in framework.split("\n"):
+                            if (
+                                line.strip().startswith("1.")
+                                or line.strip().startswith("2.")
+                                or line.strip().startswith("3.")
+                                or line.strip().startswith("4.")
+                            ):
+                                aspects.append(line.strip())
+
+                    for i in range(loops_num):
+                        progress_states["research"]["progress"] = int(((i + 1) / loops_num) * 100)
+                        progress_states["research"]["status"] = "complete" if i == loops_num - 1 else "in progress"
+
+                        if aspects:
+                            current_aspect = random.choice(aspects)
+                        else:
+                            current_aspect = "Current State and Trends"
+
+                        research = conduct_research(
+                            refined_prompt, framework, current_analysis, current_aspect, i + 1
+                        )
+                        if research:
+                            current_analysis += "\n\n" + research
+                            research_lines = research.split("\n")
+                            title = next(
+                                (line for line in research_lines if line.strip()),
+                                current_aspect,
+                            )
+
+                            # Create a unique key for each research phase's placeholder
+                            research_phase_key = f"research_phase_{i}"
+                            if research_phase_key not in research_placeholders:
+                                research_placeholders[research_phase_key] = st.empty()
+
+                            # Use the dedicated placeholder for each research phase
+                            with research_placeholders[research_phase_key]:
+                                with st.expander(f"**{title}**", expanded=False):
+                                    st.markdown("\n".join(research_lines[1:]))
+                        else:
+                            with placeholders["research"]:
+                                st.error(
+                                    f"Failed during research phase {i + 1}. Please check the logs for details and try again."
+                                )
+                                break
+
+                    # Agent 3: Present comprehensive analysis
+                    if research:
+                        progress_states["analysis"]["progress"] = 100
+                        progress_states["analysis"]["status"] = "complete"
+                        try:
+                            final_response = model.generate_content(
+                                agent3_prompt.format(
+                                    refined_prompt=refined_prompt,
+                                    system_prompt=framework,
+                                    all_aspect_analyses=current_analysis,
+                                ),
+                                generation_config=agent3_config,
+                            )
+
+                            final_analysis = handle_response(final_response)
+
+                            with placeholders["analysis"]:
+                                with st.expander(f"**{progress_states['analysis']['label']}**", expanded=False):
+                                    st.markdown(final_analysis)
+
+                            # PDF download and "Analysis Complete" outside the expander
+                            pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
+                            
+                            # Check if "analysis" section is complete before adding the message
+                            if progress_states["analysis"]["status"] == "complete":
+                                st.markdown("🥂 Analysis Complete")
+
+                            # Provide the download button for the PDF
+                            st.download_button(
+                                label="⬇️ Download Report as PDF",
+                                data=pdf_buffer,
+                                file_name=f"{topic}_analysis_report.pdf",
+                                mime="application/pdf"
+                            )
+
+                        except Exception as e:
+                            with placeholders["analysis"]:
+                                st.error(
+                                    f"Error in final analysis generation: {str(e)}. Please check the logs for details and try again."
+                                )
+                    else:
+                        progress_states["analysis"]["progress"] = 100
+                        progress_states["analysis"]["status"] = "complete"
 
     else:
         st.warning("Please enter a topic to analyze.")
-
-# Manage the display of the download button and "Analysis Complete" message based on the session state
-if st.session_state.show_download_button:
-    # Create the download button for PDF in the download_col column
-    pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
-    with download_col:
-        st.download_button(
-            label="⬇️ Download Report as PDF",
-            data=pdf_buffer,
-            file_name=f"{topic}_analysis_report.pdf",
-            mime="application/pdf"
-        )
-
-    # Display "Analysis Complete" message below the expander for final report
-    with placeholders["analysis"]:
-        st.markdown("🥂 Analysis Complete")
-else:
-    with download_col:
-        st.download_button(
-            label="⬇️ Download Report as PDF",
-            data=io.BytesIO(),  # Placeholder data
-            file_name="report.pdf",
-            mime="application/pdf",
-            disabled=True  # Disable the button
-        )
