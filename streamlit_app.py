@@ -421,6 +421,21 @@ def handle_response(response):
 def create_download_pdf(refined_prompt, framework, research_analysis, final_analysis):
     """Create a PDF report from the analysis results."""
     try:
+        def sanitize_text(text):
+            """Clean text for PDF compatibility."""
+            if not text:
+                return ""
+            # Replace problematic characters
+            text = text.replace('—', '-')  # Em dash
+            text = text.replace('–', '-')  # En dash
+            text = text.replace('"', '"')  # Smart quotes
+            text = text.replace('"', '"')  # Smart quotes
+            text = text.replace(''', "'")  # Smart apostrophes
+            text = text.replace(''', "'")  # Smart apostrophes
+            text = text.replace('…', '...')  # Ellipsis
+            # Remove emojis and other special characters
+            return ''.join(char for char in text if ord(char) < 128)
+
         pdf = FPDF()
         pdf.add_page()
         
@@ -436,28 +451,28 @@ def create_download_pdf(refined_prompt, framework, research_analysis, final_anal
         pdf.set_font("Helvetica", "B", 14)
         pdf.cell(0, 10, "Refined Prompt", ln=True)
         pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, refined_prompt)
+        pdf.multi_cell(0, 10, sanitize_text(refined_prompt))
         pdf.ln(10)
         
         # Add framework section
         pdf.set_font("Helvetica", "B", 14)
         pdf.cell(0, 10, "Investigation Framework", ln=True)
         pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, framework)
+        pdf.multi_cell(0, 10, sanitize_text(framework))
         pdf.ln(10)
         
         # Add research analysis section
         pdf.set_font("Helvetica", "B", 14)
         pdf.cell(0, 10, "Research Analysis", ln=True)
         pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, research_analysis)
+        pdf.multi_cell(0, 10, sanitize_text(research_analysis))
         pdf.ln(10)
         
         # Add final analysis section
         pdf.set_font("Helvetica", "B", 14)
         pdf.cell(0, 10, "Final Analysis", ln=True)
         pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, final_analysis)
+        pdf.multi_cell(0, 10, sanitize_text(final_analysis))
         
         # Return PDF as bytes
         return pdf.output(dest='S').encode('latin-1')
@@ -468,7 +483,7 @@ def create_download_pdf(refined_prompt, framework, research_analysis, final_anal
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Helvetica", size=12)
-        pdf.cell(0, 10, "Error creating PDF report. Please try again.", ln=True)
+        pdf.cell(0, 10, f"Error creating PDF report: {str(e)}", ln=True)
         return pdf.output(dest='S').encode('latin-1')
 
 def generate_refined_prompt_and_framework(topic):
