@@ -25,19 +25,20 @@ STEPS = [
 ########################################
 def render_stepper(current_step: int) -> None:
     """Renders a 4-step wizard with proper styling."""
-    # Clamp current_step between 0 and 3
-    current_step = max(0, min(current_step, 3))
+    # Clamp current_step between 0 and 4 (4 is complete state)
+    current_step = max(0, min(current_step, 4))
     
-    # Create the CSS
+    # Create the CSS with improved transitions and states
     st.markdown("""
         <style>
         .stepper-container {
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 2rem auto;
-            padding: 1rem;
+            margin: 1rem auto;
+            padding: 0.5rem;
             max-width: 800px;
+            background: transparent;
             position: relative;
         }
         .step {
@@ -49,8 +50,8 @@ def render_stepper(current_step: int) -> None:
             padding: 0 1rem;
         }
         .step-number {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0.1);
             border: 2px solid rgba(255, 255, 255, 0.2);
@@ -65,22 +66,24 @@ def render_stepper(current_step: int) -> None:
             transition: all 0.3s ease;
         }
         .step-label {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: rgba(255, 255, 255, 0.6);
             text-align: center;
             margin-top: 0.5rem;
             font-weight: 400;
             position: relative;
             z-index: 2;
+            transition: all 0.3s ease;
         }
         .step-line {
             position: absolute;
-            top: 18px;
-            left: calc(50% + 18px);
-            right: calc(-50% + 18px);
+            top: 16px;
+            left: calc(50% + 16px);
+            right: calc(-50% + 16px);
             height: 2px;
             background: rgba(255, 255, 255, 0.2);
             z-index: 1;
+            transition: background-color 0.3s ease;
         }
         .step.active .step-number {
             background-color: rgba(255, 255, 255, 0.9);
@@ -100,18 +103,33 @@ def render_stepper(current_step: int) -> None:
         .step.complete .step-line {
             background-color: #28a745;
         }
+        .step.complete .step-label {
+            color: rgba(255, 255, 255, 0.9);
+        }
         .step:last-child .step-line {
             display: none;
         }
         </style>
     """, unsafe_allow_html=True)
     
-    # Create the HTML
+    # Create the HTML with proper state handling
     html = '<div class="stepper-container">'
     
     for i, label in enumerate(STEPS):
-        status = "complete" if i < current_step else "active" if i == current_step else ""
-        html += f'<div class="step {status}"><div class="step-number">{i + 1}</div><div class="step-label">{label}</div><div class="step-line"></div></div>'
+        if i < current_step:
+            status = "complete"
+        elif i == current_step:
+            status = "active"
+        else:
+            status = ""
+        
+        html += f'''
+            <div class="step {status}">
+                <div class="step-number">{i + 1}</div>
+                <div class="step-label">{label}</div>
+                <div class="step-line"></div>
+            </div>
+        '''
     
     html += '</div>'
     
@@ -155,6 +173,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -------------- Session State --------------
+if 'step_wizard_container' not in st.session_state:
+    st.session_state.step_wizard_container = None
 if 'analysis_complete' not in st.session_state:
     st.session_state.analysis_complete = False
 if 'current_step' not in st.session_state:
@@ -215,6 +235,9 @@ if topic != st.session_state.previous_input:
     st.session_state.tldr_summary = None
     st.session_state.refined_prompt = None
     st.session_state.framework = None
+    # Update step wizard to initial state
+    if st.session_state.step_wizard_container:
+        st.session_state.step_wizard_container.markdown(render_stepper(0), unsafe_allow_html=True)
 
 # If done, step=4
 if st.session_state.analysis_complete:
@@ -407,12 +430,31 @@ loops_num = {
 }.get(depth, 3)  # Default to 3 if depth not found
 
 # -------------- MAIN LOGIC --------------
+# Create step wizard container if it doesn't exist (only once)
+if not st.session_state.step_wizard_container:
+    st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+    st.session_state.step_wizard_container = st.empty()
+
+# Reset logic
+if topic != st.session_state.previous_input:
+    st.session_state.previous_input = topic
+    st.session_state.analysis_complete = False
+    st.session_state.current_step = 0
+    st.session_state.final_analysis = None
+    st.session_state.research_results = []
+    st.session_state.tldr_summary = None
+    st.session_state.refined_prompt = None
+    st.session_state.framework = None
+    # Update step wizard to initial state
+    if st.session_state.step_wizard_container:
+        st.session_state.step_wizard_container.markdown(render_stepper(0), unsafe_allow_html=True)
+
 if start_clicked:
     if not topic.strip():
         st.warning("Please enter a topic.")
         st.stop()
 
-    # Reset states
+    # Reset analysis states but keep the container
     st.session_state.update({
         'analysis_complete': False,
         'research_results': [],
@@ -420,10 +462,8 @@ if start_clicked:
         'current_step': 0
     })
     
-    # Create single step wizard container AFTER the Dive In button
-    st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)  # Add spacing
-    step_wizard = st.empty()  # Single container for step wizard
-    step_wizard.markdown(render_stepper(0), unsafe_allow_html=True)  # Initial state
+    # Update step wizard to initial state
+    st.session_state.step_wizard_container.markdown(render_stepper(0), unsafe_allow_html=True)
 
     try:
         # Step 1: Initial Analysis
@@ -440,7 +480,7 @@ if start_clicked:
 
         # Update Step 1 complete
         st.session_state.current_step = 1
-        step_wizard.markdown(render_stepper(1), unsafe_allow_html=True)
+        st.session_state.step_wizard_container.markdown(render_stepper(1), unsafe_allow_html=True)
 
         # Step 2: Framework Development
         refined_prompt, framework = generate_refined_prompt_and_framework(topic)
@@ -458,7 +498,7 @@ if start_clicked:
 
         # Update Step 2 complete
         st.session_state.current_step = 2
-        step_wizard.markdown(render_stepper(2), unsafe_allow_html=True)
+        st.session_state.step_wizard_container.markdown(render_stepper(2), unsafe_allow_html=True)
 
         # Step 3: Research Phase
         aspects = [line.strip() for line in framework.split("\n") 
@@ -495,7 +535,7 @@ if start_clicked:
         
         # Update Step 3 complete
         st.session_state.current_step = 3
-        step_wizard.markdown(render_stepper(3), unsafe_allow_html=True)
+        st.session_state.step_wizard_container.markdown(render_stepper(3), unsafe_allow_html=True)
 
         # Generate final report
         combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results_list)
@@ -531,7 +571,7 @@ if start_clicked:
         # Update final step complete
         st.session_state.current_step = 4
         st.session_state.analysis_complete = True
-        step_wizard.markdown(render_stepper(4), unsafe_allow_html=True)
+        st.session_state.step_wizard_container.markdown(render_stepper(4), unsafe_allow_html=True)
 
         # Show download button
         st.download_button(
