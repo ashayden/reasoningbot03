@@ -16,7 +16,7 @@ logging.basicConfig(
 st.markdown("""
 <style>
 /* Set font family for entire app */
-body {
+body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-ef, .st-eg, .st-eh, .st-ei, .st-ej, .st-ek, .st-el, .st-em, .st-en, .st-eo, .st-ep, .st-eq, .st-er, .st-es, .st-et, .st-eu, .st-ev, .st-ew, .st-ex, .st-ey, .st-ez, .st-fa, .st-fb, .st-fc, .st-fd, .st-fe, .st-ff, .st-fg, .st-fh, .st-fi, .st-fj, .st-fk, .st-fl, .st-fm, .st-fn, .st-fo, .st-fp, .st-fq, .st-fr, .st-fs, .st-ft, .st-fu, .st-fv, .st-fw, .st-fx, .st-fy, .st-fz, .st-g0, .st-g1, .st-g2, .st-g3, .st-g4, .st-g5, .st-g6, .st-g7, .st-g8, .st-g9, .st-ga, .st-gb, .st-gc, .st-gd, .st-ge, .st-gf, .st-gg, .st-gh, .st-gi, .st-gj, .st-gk, .st-gl, .st-gm, .st-gn, .st-go, .st-gp, .st-gq, .st-gr, .st-gs, .st-gt, .st-gu, .st-gv, .st-gw, .st-gx, .st-gy, .st-gz, .st-h0, .st-h1, .st-h2, .st-h3, .st-h4, .st-h5, .st-h6, .st-h7, .st-h8, .st-h9, .st-ha, .st-hb, .st-hc, .st-hd, .st-he, .st-hf, .st-hg, .st-hh, .st-hi, .st-hj, .st-hk, .st-hl, .st-hm, .st-hn, .st-ho, .st-hp, .st-hq, .st-hr, .st-hs, .st-ht, .st-hu, .st-hv, .st-hw, .st-hx, .st-hy, .st-hz, .st-i0, .st-i1, .st-i2, .st-i3, .st-i4, .st-i5, .st-i6, .st-i7, .st-i8, .st-i9, .st-ia, .st-ib, .st-ic, .st-id, .st-ie, .st-if, .st-ig, .st-ih, .st-ii, .st-ij, .st-ik, .st-il, .st-im, .st-in, .st-io, .st-ip, .st-iq, .st-ir, .st-is, .st-it, .st-iu, .st-iv, .st-iw, .st-ix, .st-iy, .st-iz, .st-j0, .st-j1, .st-j2, .st-j3, .st-j4, .st-j5, .st-j6, .st-j7, .st-j8, .st-j9, .st-ja, .st-jb, .st-jc, .st-jd, .st-je, .st-jf, .st-jg, .st-jh, .st-ji, .st-jj, .st-jk, .st-jl, .st-jm, .st-jn, .st-jo, .st-jp, .st-jq, .st-jr, .st-js, .st-jt, .st-ju, .st-jv, .st-jw, .st-jx, .st-jy, .st-jz {
     font-family: 'Roboto', sans-serif;
 }
 
@@ -45,9 +45,20 @@ body {
     margin-bottom: 1.5rem;
 }
 
-/* Style for the slider */
-.stSlider > div[data-baseweb="slider"] > div > div:nth-of-type(2) {
-    background-color: #ADD8E6 !important; /* Light blue color for slider */
+/* Style for the slider - remove background and change font*/
+.stSlider > div > div {
+    font-family: 'Roboto', sans-serif !important;
+}
+
+.stSlider > div > div:nth-child(3) {
+    background-color: transparent !important;
+}
+
+.stSlider > div > div:nth-child(3) > span {
+    color: #007bff; /* Or any color that contrasts well with your background */
+    background-color: transparent !important;
+    border: none !important;
+    font-family: 'Roboto', sans-serif !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -378,6 +389,7 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
         logging.error(f"Failed to conduct research in phase {iteration}: {e}")
     return None
 
+
 def create_download_pdf(refined_prompt, framework, current_analysis, final_analysis):
     """Create a PDF for download."""
     buffer = io.BytesIO()
@@ -475,6 +487,7 @@ if st.button("Start Analysis", key="start_button"):
                 # Agent 2: Conduct research through iterations
                 current_analysis = ""
                 aspects = []
+                research_placeholders = {}  # Create a dict to store placeholders for each research phase
 
                 if framework:
                     for line in framework.split("\n"):
@@ -505,12 +518,16 @@ if st.button("Start Analysis", key="start_button"):
                             (line for line in research_lines if line.strip()),
                             current_aspect,
                         )
-                        with placeholders["research"]:
+
+                        # Create a unique key for each research phase's placeholder
+                        research_phase_key = f"research_phase_{i}"
+                        if research_phase_key not in research_placeholders:
+                            research_placeholders[research_phase_key] = st.empty()
+
+                        with research_placeholders[research_phase_key]:
                             with st.expander(f"**{title}**", expanded=False):
                                 st.markdown("\n".join(research_lines[1:]))
-                                if progress_states["research"]["status"] == "complete":
-                                    pass  # Removed checkmark
-                                else:
+                                if progress_states["research"]["status"] != "complete":
                                     st.markdown("⏳ In progress...")
                     else:
                         with placeholders["research"]:
@@ -543,7 +560,7 @@ if st.button("Start Analysis", key="start_button"):
                                 # Create download button for PDF
                                 pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
                                 st.download_button(
-                                    label="Download Report as PDF",
+                                    label="⬇️ Download Report as PDF",
                                     data=pdf_buffer,
                                     file_name=f"{topic}_analysis_report.pdf",
                                     mime="application/pdf"
