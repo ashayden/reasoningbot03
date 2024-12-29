@@ -24,114 +24,104 @@ STEPS = [
 ########################################
 # STEP WIZARD RENDERING
 ########################################
-def render_stepper(current_step: int) -> None:
-    """
-    Renders a 5-step wizard horizontally, with a single line behind them
-    so circles appear aligned along that line.
-    current_step can be 0..4 referencing STEPS above.
-    """
-    # Clamp index from 0..4
-    current_step = max(0, min(current_step, len(STEPS)-1))
-
-    st.markdown(
-        """
+def render_stepper(current_step: int) -> str:
+    """Renders a 5-step wizard with proper styling."""
+    # Clamp current_step
+    current_step = max(0, min(current_step, 4))
+    
+    # Create the CSS and HTML
+    css = """
         <style>
-        /* Container: horizontally lays out steps, position:relative for line */
         .stepper-container {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          position: relative;
-          max-width: 800px;
-          margin: 2rem auto; /* center horizontally */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 2rem auto;
+            padding: 1rem 2rem;
+            max-width: 700px;
+            background: transparent;
+            position: relative;
         }
-
-        /* Single horizontal line behind all steps */
-        .step-line {
-          position: absolute;
-          top: 50%;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background-color: #444; /* line color */
-          z-index: 1;
-        }
-
-        /* Each step: flex:1 to distribute evenly */
         .step {
-          position: relative;
-          flex: 1;
-          text-align: center;
-          z-index: 2; /* above the line */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            flex: 1;
+            max-width: 140px;
+            margin: 0 0.5rem;
         }
-
-        /* Step circle */
         .step-number {
-          width: 36px;
-          height: 36px;
-          line-height: 36px;
-          border-radius: 50%;
-          border: 2px solid #666; /* default circle border */
-          background: #222;       /* default background */
-          color: #aaa;            /* default text color */
-          margin: 0 auto;
-          font-weight: bold;
-          transition: all 0.3s ease;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 8px;
+            z-index: 2;
+            position: relative;
+            transition: all 0.3s ease;
         }
-
-        /* Step label below the circle */
         .step-label {
-          margin-top: 0.3rem;
-          font-size: 0.85rem;
-          color: #ccc;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            max-width: 110px;
+            word-wrap: break-word;
+            position: relative;
+            z-index: 2;
+            line-height: 1.2;
+            margin-top: 4px;
         }
-
-        /* Completed step (green) */
-        .step.complete .step-number {
-          border-color: #28a745;
-          background-color: #28a745;
-          color: #fff;
+        .step-line {
+            position: absolute;
+            top: 18px;
+            left: calc(50% + 25px);
+            right: calc(-50% + 25px);
+            height: 2px;
+            background-color: rgba(255, 255, 255, 0.2);
+            z-index: 1;
         }
-        .step.complete .step-label {
-          color: #fff; /* green step text */
-          font-weight: 500;
-        }
-
-        /* Active step (blue) */
         .step.active .step-number {
-          border-color: #2439f7;
-          background-color: #2439f7;
-          color: #fff;
+            border-color: #2439f7;
+            color: #2439f7;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 0 4px rgba(36, 57, 247, 0.1);
         }
         .step.active .step-label {
-          color: #fff;
-          font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+        }
+        .step.complete .step-number {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+        .step.complete .step-line {
+            background-color: #28a745;
+        }
+        .step:last-child .step-line {
+            display: none;
         }
         </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # Build the HTML
-    html = ['<div class="stepper-container">', '<div class="step-line"></div>']
+    """
+    
+    # Create the HTML with minimal whitespace
+    html = '<div class="stepper-container">'
+    
     for i, label in enumerate(STEPS):
-        if i < current_step:
-            status_class = "complete"
-        elif i == current_step:
-            status_class = "active"
-        else:
-            status_class = ""
-
-        step_html = f"""
-          <div class="step {status_class}">
-            <div class="step-number">{i+1}</div>
-            <div class="step-label">{label}</div>
-          </div>
-        """
-        html.append(step_html)
-
-    html.append('</div>')
-    st.markdown("".join(html), unsafe_allow_html=True)
+        status = "complete" if i < current_step else "active" if i == current_step else ""
+        html += f'<div class="step {status}"><div class="step-number">{i + 1}</div><div class="step-label">{label}</div><div class="step-line"></div></div>'
+    
+    html += '</div>'
+    
+    # Return the complete HTML
+    return css + html
 
 ########################################
 # MAIN APP + LLM CODE
@@ -236,7 +226,8 @@ if st.session_state.analysis_complete:
     st.session_state.current_step = 4
 
 # -------------- Step Wizard --------------
-render_stepper(st.session_state.current_step)
+step_wizard = st.empty()
+step_wizard.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
 # Expanders for advanced customization
 with st.expander("**Advanced Prompt Customization**"):
@@ -331,7 +322,7 @@ if start_clicked:
         # Example: progress steps
         st.session_state.analysis_complete = False
         st.session_state.current_step = 0
-        render_stepper(st.session_state.current_step)
+        step_wizard.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
         # Step 0: random fact & summary
         # (Pretend to do LLM calls here)
@@ -345,7 +336,7 @@ if start_clicked:
 
         # Step 1: refine prompt
         st.session_state.current_step = 1
-        render_stepper(st.session_state.current_step)
+        step_wizard.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
         st.subheader("Step 2: Developing Framework")
 
         # Suppose agent1 returns these
@@ -357,7 +348,7 @@ if start_clicked:
 
         # Step 2: conduct research
         st.session_state.current_step = 2
-        render_stepper(st.session_state.current_step)
+        step_wizard.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
         st.subheader("Step 3: Conducting Research")
 
         # Suppose agent2 does multiple loops
@@ -366,7 +357,7 @@ if start_clicked:
         
         # Step 3: final report
         st.session_state.current_step = 3
-        render_stepper(st.session_state.current_step)
+        step_wizard.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
         st.subheader("Step 4: Final Report")
 
         final_report = f"Here is the final report about {topic}..."
@@ -379,7 +370,7 @@ if start_clicked:
         # Step 4: done
         st.session_state.current_step = 4
         st.session_state.analysis_complete = True
-        render_stepper(st.session_state.current_step)
+        step_wizard.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
         st.download_button(
             label="Download Report as PDF",
