@@ -23,48 +23,37 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
 /* Style for progress bar */
 .stProgress {
     width: 100% !important;
-    margin-bottom: 20px;
+    margin: 30px 0;
     background-color: rgba(0, 123, 255, 0.1);
     border-radius: 20px;
     padding: 0;
 }
 
 .stProgress > div > div > div > div {
-    background-color: #007bff !important;
+    background: linear-gradient(90deg, #007bff 0%, #007bff var(--progress), #28a745 var(--progress), #28a745 100%);
     border-radius: 20px;
     height: 12px;
+    transition: all 0.3s ease;
 }
 
 /* Style for the slider */
 .stSlider {
     width: 100% !important;
-    padding: 10px 0 30px 0;
+    padding: 20px 0;
 }
 
 .stSlider > div {
-    margin-bottom: 20px;
+    margin: 0 20px;
 }
 
-.stSlider > div > div {
-    font-family: 'Roboto', sans-serif !important;
-    font-size: 1.1rem !important;
-}
-
-.stSlider > div > div > div {
-    height: 20px !important;
-}
-
-.stSlider > div > div > div > div {
-    background-color: #007bff !important;
-}
-
-/* Make slider label text bigger and clearer */
+/* Adjust slider label position */
 .stSlider label {
+    order: 2;
     font-family: 'Roboto', sans-serif !important;
     font-size: 1.1rem !important;
     font-weight: 500 !important;
     color: #2c3e50 !important;
-    margin-bottom: 10px !important;
+    margin-top: 10px !important;
 }
 
 /* Style slider value text */
@@ -73,6 +62,17 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
     font-size: 1.1rem !important;
     font-weight: 500 !important;
     color: #007bff !important;
+}
+
+/* Add padding to main content */
+.main .block-container {
+    padding: 3rem 3rem 1rem !important;
+}
+
+/* Style for buttons */
+.stButton > button {
+    float: right;
+    margin-bottom: 20px;
 }
 
 /* Style for expander headers */
@@ -284,7 +284,9 @@ loops = st.select_slider(
     "How deep should we dive?",
     options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
     value="Lake",
+    label_visibility="collapsed"
 )
+st.caption("How deep should we dive?")
 
 # Convert the depth selection to a numerical value
 if loops == "Puddle":
@@ -526,8 +528,8 @@ if 'framework' not in st.session_state:
     st.session_state.framework = None
 
 # Main Execution
-# Create columns for buttons
-button_col = st.columns(1)[0]
+# Create columns for button
+_, _, button_col = st.columns([1, 1, 1])
 
 with button_col:
     start_button_clicked = st.button("🌊 Dive In", key="start_button")
@@ -557,10 +559,8 @@ if st.session_state.analysis_complete:
         with st.expander(f"**📋 Final Report**", expanded=False):
             st.markdown(st.session_state.final_analysis)
         
-        # Create columns for completion message and download button
-        msg_col, download_col = st.columns([1, 2])
-        with msg_col:
-            st.markdown("🥂 Analysis Complete")
+        # Create columns for download button only
+        _, download_col = st.columns([1, 2])
         with download_col:
             st.download_button(
                 label="⬇️ Download Report as PDF",
@@ -705,10 +705,26 @@ if start_button_clicked:
 
                 progress_bar.progress(100)
 
-                # Create columns for completion message and download button
-                msg_col, download_col = st.columns([1, 2])
-                with msg_col:
-                    st.markdown("🥂 Analysis Complete")
+                # Update progress bar color based on progress
+                progress_bar = progress_placeholder.progress(0)
+                st.markdown(
+                    f"""
+                    <style>
+                    .stProgress > div > div > div > div {{
+                        background: linear-gradient(90deg, 
+                            #007bff 0%, 
+                            #007bff {min(progress_bar.progress, 100)}%, 
+                            {('#28a745' if progress_bar.progress == 100 else '#007bff')} {min(progress_bar.progress, 100)}%, 
+                            {('#28a745' if progress_bar.progress == 100 else '#007bff')} 100%
+                        );
+                    }}
+                    </style>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                # Create columns for download button only
+                _, download_col = st.columns([1, 2])
                 with download_col:
                     st.download_button(
                         label="⬇️ Download Report as PDF",
