@@ -371,6 +371,127 @@ if st.session_state.analysis_complete:
                 use_container_width=True
             )
 
+def handle_response(response):
+    """Handle model response and extract text with more specific error handling."""
+    try:
+        if hasattr(response, "parts") and response.parts:
+            if text_part := next(
+                (part.text for part in response.parts if part.text), None
+            ):
+                return text_part.strip()
+            else:
+                logging.warning("Response parts exist, but no text part found.")
+        elif hasattr(response, "text"):
+            return response.text.strip()
+        else:
+            logging.warning("Response does not contain expected structure for text extraction.")
+    except Exception as e:
+        logging.error(f"Error extracting text from response: {e}")
+    return ""
+
+def generate_refined_prompt_and_framework(topic):
+    """Generate a refined prompt and investigation framework using Agent 1."""
+    try:
+        prompt_response = model.generate_content(
+            agent1_prompt.format(topic=topic),
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.7,
+                top_p=0.8,
+                top_k=40,
+                max_output_tokens=2048,
+            ),
+        )
+
+        agent1_response = handle_response(prompt_response)
+
+        # Extract refined prompt and framework from agent 1's response
+        if agent1_response:
+            parts = agent1_response.split("---")
+            if len(parts) >= 2:
+                # Clean up the refined prompt section
+                refined_prompt = parts[0].replace("Refined Prompt", "").strip()
+
+                # Clean up the framework section
+                framework = parts[1].strip()
+                if framework.startswith("Investigation Framework"):
+                    framework = framework[len("Investigation Framework"):].strip()
+
+                # Remove any stray colons from section headers
+                framework = framework.replace(
+                    "Core Question/Hypothesis:", "Core Question/Hypothesis"
+                )
+                framework = framework.replace(
+                    "Key Areas Requiring Investigation:", "Key Areas Requiring Investigation"
+                )
+
+                # Further clean up for framework formatting
+                framework_lines = framework.split("\n")
+                cleaned_framework_lines = []
+                for line in framework_lines:
+                    # Ensure consistent indentation for bullet points
+                    if line.lstrip().startswith("-"):
+                        cleaned_framework_lines.append("   " + line.lstrip())
+                    else:
+                        cleaned_framework_lines.append(line)
+                framework = "\n".join(cleaned_framework_lines)
+
+                logging.info(
+                    "Refined prompt and investigation framework generated successfully"
+                )
+                return refined_prompt, framework
+            else:
+                logging.warning(
+                    "Could not properly split the response from Agent 1 into refined prompt and framework."
+                )
+        else:
+            logging.warning("Agent 1 response was empty or invalid.")
+
+    except Exception as e:
+        logging.error(f"Failed to generate refined prompt and framework: {e}")
+    return None, None
+
+def conduct_research(refined_prompt, framework, previous_analysis, current_aspect, iteration):
+    """Conduct research and analysis using Agent 2."""
+    try:
+        prompt_response = model.generate_content(
+            agent2_prompt.format(
+                refined_prompt=refined_prompt,
+                framework=framework,
+                previous_analysis=previous_analysis,
+                current_aspect=current_aspect
+            ),
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.5,
+                top_p=0.7,
+                top_k=40,
+                max_output_tokens=2048,
+            ),
+        )
+
+        research = handle_response(prompt_response)
+        if research:
+            # Remove any iteration focus headers if they exist
+            research_lines = research.split("\n")
+            cleaned_research = []
+            skip_next = False
+            for line in research_lines:
+                if "Iteration Focus:" in line or "ITERATION FOCUS:" in line:
+                    skip_next = True
+                    continue
+                if skip_next:
+                    skip_next = False
+                    continue
+                cleaned_research.append(line)
+
+            research = "\n".join(cleaned_research).strip()
+            logging.info(f"Research phase {iteration} completed successfully")
+            return research
+        else:
+            logging.warning(f"Research phase {iteration} returned empty or invalid content")
+    except Exception as e:
+        logging.error(f"Failed to conduct research in phase {iteration}: {e}")
+    return None
+
 def generate_random_fact(topic):
     """Generate a random interesting fact related to the topic."""
     try:
@@ -418,6 +539,18 @@ def generate_quick_summary(topic):
     except Exception as e:
         logging.error(f"Failed to generate quick summary: {e}")
         return None
+
+# Convert the depth selection to a numerical value
+if loops == "Puddle":
+    loops_num = 1
+elif loops == "Lake":
+    loops_num = random.randint(2, 3)
+elif loops == "Ocean":
+    loops_num = random.randint(4, 6)
+elif loops == "Mariana Trench":
+    loops_num = random.randint(7, 10)
+else:
+    loops_num = 2  # Default value
 
 if start_button_clicked:
     if topic:
