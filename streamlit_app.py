@@ -26,94 +26,96 @@ STEPS = [
 # FUNCTION: RENDER STEPPER
 ########################################
 def render_stepper(current_step: int) -> None:
-    """
-    Renders a 5-step wizard in HTML/CSS.
-    current_step can be 0..4, referencing the STEPS above.
-    """
+    """Renders a 5-step wizard with proper styling."""
     # Clamp current_step
-    if current_step < 0:
-        current_step = 0
-    if current_step > 4:
-        current_step = 4
-
-    step_html = ""
+    current_step = max(0, min(current_step, 4))
+    
+    # Create the CSS
+    st.markdown("""
+        <style>
+        .stepper-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 2rem 0;
+            padding: 0 1rem;
+        }
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            flex: 1;
+        }
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #f0f2f6;
+            border: 2px solid #ccc;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 8px;
+            z-index: 1;
+        }
+        .step-label {
+            font-size: 0.85rem;
+            color: #666;
+            text-align: center;
+        }
+        .step-line {
+            position: absolute;
+            top: 16px;
+            left: calc(50% + 20px);
+            right: calc(-50% + 20px);
+            height: 2px;
+            background-color: #ccc;
+            z-index: 0;
+        }
+        .step.active .step-number {
+            border-color: #2439f7;
+            color: #2439f7;
+            background-color: #fff;
+        }
+        .step.complete .step-number {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+        .step.complete .step-line {
+            background-color: #28a745;
+        }
+        .step:last-child .step-line {
+            display: none;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # Create the HTML
+    html = '<div class="stepper-container">'
+    
     for i, label in enumerate(STEPS):
-        # Decide if step is 'complete', 'active', or upcoming
+        status = ""
         if i < current_step:
-            status_class = "complete"
+            status = "complete"
         elif i == current_step:
-            status_class = "active"
-        else:
-            status_class = ""
-
-        step_html += f"""
-        <div class="step {status_class}">
-            <div class="step-number">{i+1}</div>
-            <div class="step-label">{label}</div>
-        </div>
+            status = "active"
+            
+        html += f"""
+            <div class="step {status}">
+                <div class="step-number">{i + 1}</div>
+                <div class="step-label">{label}</div>
+                <div class="step-line"></div>
+            </div>
         """
-        # Connect lines except after last step
-        if i < len(STEPS) - 1:
-            step_html += """<div class="step-line"></div>"""
-
-    # Combine the HTML & CSS
-    final_html = f"""
-    <style>
-    .stepper-container {{
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 2rem;
-    }}
-    .step {{
-      flex: 1;
-      text-align: center;
-      position: relative;
-    }}
-    .step-line {{
-      flex: none;
-      width: 100px;
-      height: 2px;
-      background: #e0e0e0;
-      margin: 0 -50px;
-      z-index: -1;
-    }}
-    .step-number {{
-      margin: 0 auto;
-      width: 36px;
-      height: 36px;
-      line-height: 36px;
-      border-radius: 50%;
-      border: 2px solid #ccc;
-      background: #fff;
-      color: #999;
-      font-weight: bold;
-    }}
-    .step-label {{
-      margin-top: 0.5rem;
-      font-size: 0.85rem;
-      color: #666;
-    }}
-    /* Completed step = green */
-    .step.complete .step-number {{
-      border-color: #28a745;
-      background-color: #28a745;
-      color: #fff;
-    }}
-    /* Active step = accent color (blue) */
-    .step.active .step-number {{
-      border-color: #007bff;
-      color: #007bff;
-    }}
-    </style>
-
-    <div class="stepper-container">
-      {step_html}
-    </div>
-    """
-
-    # CRUCIAL: Use st.markdown(..., unsafe_allow_html=True) so HTML is rendered
-    st.markdown(final_html, unsafe_allow_html=True)
+    
+    html += '</div>'
+    
+    # Render the HTML
+    st.markdown(html, unsafe_allow_html=True)
 
 
 ########################################
