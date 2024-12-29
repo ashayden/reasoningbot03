@@ -112,22 +112,17 @@ def render_stepper(current_step: int) -> None:
     """, unsafe_allow_html=True)
     
     # Create the HTML with minimal whitespace and proper escaping
-    html = '<div class="stepper-container">'
+    html_parts = []
+    html_parts.append('<div class="stepper-container">')
     
     for i, label in enumerate(STEPS):
         status = "complete" if i < current_step else "active" if i == current_step else ""
-        html += f'''
-            <div class="step {status}">
-                <div class="step-number">{i + 1}</div>
-                <div class="step-label">{label}</div>
-                <div class="step-line"></div>
-            </div>
-        '''
+        html_parts.append(f'<div class="step {status}"><div class="step-number">{i + 1}</div><div class="step-label">{label}</div><div class="step-line"></div></div>')
     
-    html += '</div>'
+    html_parts.append('</div>')
     
     # Render the HTML
-    st.markdown(html, unsafe_allow_html=True)
+    st.markdown(''.join(html_parts), unsafe_allow_html=True)
 
 
 ########################################
