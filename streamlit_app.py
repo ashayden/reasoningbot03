@@ -165,12 +165,10 @@ st.markdown("""
 [data-testid="stExpander"] {
     border: none !important;
     box-shadow: none !important;
-    background-color: #2439f7 !important;
+    background-color: transparent !important;
     border-radius: 6px !important;
-    margin-bottom: 1rem !important;
-    width: auto !important;
-    min-width: 50px !important;
-    float: right !important;
+    margin: 0.5rem 0 !important;
+    width: 100% !important;
 }
 
 [data-testid="stExpander"] details {
@@ -182,12 +180,14 @@ st.markdown("""
     color: white !important;
     font-weight: 500 !important;
     letter-spacing: 0.5px !important;
-    padding: 0.5rem 1rem !important;
+    padding: 0.75rem 1.5rem !important;
     transition: all 0.2s ease-in-out !important;
     font-size: 1.2rem !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
+    background-color: #2439f7 !important;
+    border-radius: 6px !important;
 }
 
 [data-testid="stExpander"] summary:hover {
@@ -283,15 +283,24 @@ if topic != st.session_state.previous_input:
     st.session_state.framework = None
     st.session_state.previous_input = topic
 
-# Add expander for prompt customization
-with st.expander("☠️"):
-    st.markdown("### Customize Agent Prompts")
+# Create columns for button and expander
+_, _, button_col = st.columns([1, 1, 1])
+
+with button_col:
+    start_button_clicked = st.button("🌊 Dive In", key="start_button") or st.session_state.get("start_button_clicked", False)
+    # Reset the button state after processing
+    if st.session_state.get("start_button_clicked"):
+        st.session_state.start_button_clicked = False
     
-    # Agent 1 Prompt
-    st.markdown("#### Agent 1: Prompt Engineer")
-    agent1_prompt = st.text_area(
-        "Prompt for refining user input and generating investigation framework",
-        '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
+    # Add expander for prompt customization beneath the button
+    with st.expander("☠️"):
+        st.markdown("### Customize Agent Prompts")
+        
+        # Agent 1 Prompt
+        st.markdown("#### Agent 1: Prompt Engineer")
+        agent1_prompt = st.text_area(
+            "Prompt for refining user input and generating investigation framework",
+            '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
 
 USER'S TOPIC/QUESTION: {topic}
 
@@ -344,14 +353,14 @@ Note:
 - Use consistent indentation for bullet points
 - Add a blank line between numbered items
 - Use a hyphen (-) for bullet points''',
-        height=300,
-    )
+            height=300,
+        )
 
-    # Agent 2 Prompt
-    st.markdown("#### Agent 2: Researcher")
-    agent2_prompt = st.text_area(
-        "Prompt for conducting research and analysis",
-        '''Using the refined prompt and the established framework, continue researching and analyzing:
+        # Agent 2 Prompt
+        st.markdown("#### Agent 2: Researcher")
+        agent2_prompt = st.text_area(
+            "Prompt for conducting research and analysis",
+            '''Using the refined prompt and the established framework, continue researching and analyzing:
 
 REFINED PROMPT:
 {refined_prompt}
@@ -376,14 +385,14 @@ Then present your findings by:
 5. Noting any emerging implications
 
 Structure your response with the descriptive title on the first line, followed by your analysis.''',
-        height=300,
-    )
+            height=300,
+        )
 
-    # Agent 3 Prompt
-    st.markdown("#### Agent 3: Expert Analyst")
-    agent3_prompt = st.text_area(
-        "Prompt for final analysis and synthesis",
-        '''Based on the completed analysis of the topic:
+        # Agent 3 Prompt
+        st.markdown("#### Agent 3: Expert Analyst")
+        agent3_prompt = st.text_area(
+            "Prompt for final analysis and synthesis",
+            '''Based on the completed analysis of the topic:
 
 REFINED PROMPT:
 {refined_prompt}
@@ -412,8 +421,8 @@ I. [First Major Section]:
 
 Recommendations:
 [List specific, actionable recommendations based on the analysis]''',
-        height=300,
-    )
+            height=300,
+        )
 
 # Slider for research depth with descriptive options
 loops = st.select_slider(
@@ -421,15 +430,6 @@ loops = st.select_slider(
     options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
     value="Lake",
 )
-
-# Create columns for button
-_, _, button_col = st.columns([1, 1, 1])
-
-with button_col:
-    start_button_clicked = st.button("🌊 Dive In", key="start_button") or st.session_state.get("start_button_clicked", False)
-    # Reset the button state after processing
-    if st.session_state.get("start_button_clicked"):
-        st.session_state.start_button_clicked = False
 
 # Add progress bar placeholder before TL;DR
 progress_placeholder = st.empty()
