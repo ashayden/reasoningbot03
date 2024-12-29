@@ -176,6 +176,7 @@ st.markdown("""
 [data-testid="stExpander"] details {
     border: none !important;
     box-shadow: none !important;
+    background-color: transparent !important;
 }
 
 [data-testid="stExpander"] summary {
@@ -188,6 +189,7 @@ st.markdown("""
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
+    background-color: transparent !important;
 }
 
 [data-testid="stExpander"] summary:hover {
@@ -207,7 +209,6 @@ st.markdown("""
     width: 800px !important;
     max-width: 90vw !important;
     z-index: 1000 !important;
-    background-color: #0E1117 !important;
     padding: 1rem !important;
     border-radius: 6px !important;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
