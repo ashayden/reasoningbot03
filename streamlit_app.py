@@ -506,8 +506,10 @@ if start_button:
         st.session_state.random_fact = None
         st.session_state.current_step = 0
 
-        # Show initial stepper once, right after the button
-        render_stepper(st.session_state.current_step)
+        # Create a container for the step wizard
+        step_container = st.container()
+        with step_container:
+            render_stepper(st.session_state.current_step)
 
         # STEP 0: Random Fact & TL;DR
         st.session_state.random_fact = generate_random_fact(topic)
@@ -520,8 +522,11 @@ if start_button:
             with st.expander("💡 TL;DR", expanded=True):
                 st.markdown(st.session_state.tldr_summary)
 
-        # Mark Refining Prompt complete
+        # Mark Refining Prompt complete and update stepper
         st.session_state.current_step = 1
+        with step_container:
+            render_stepper(st.session_state.current_step)
+            st.experimental_rerun()
 
         # STEP 1: Framework Development
         refined_prompt, framework = generate_refined_prompt_and_framework(topic)
@@ -538,8 +543,11 @@ if start_button:
         with st.expander("🗺️ Investigation Framework", expanded=False):
             st.markdown(framework)
 
-        # Mark Developing Framework complete
+        # Mark Developing Framework complete and update stepper
         st.session_state.current_step = 2
+        with step_container:
+            render_stepper(st.session_state.current_step)
+            st.experimental_rerun()
 
         # STEP 2: Research
         current_analysis = ""
@@ -581,8 +589,11 @@ if start_button:
 
         st.session_state.research_results = research_results_list
 
-        # Mark Conducting Research complete
+        # Mark Conducting Research complete and update stepper
         st.session_state.current_step = 3
+        with step_container:
+            render_stepper(st.session_state.current_step)
+            st.experimental_rerun()
 
         # Generate final report
         combined_results = "\n\n".join(f"### {t}\n{c}" for t,c in research_results_list)
@@ -602,9 +613,11 @@ if start_button:
             with st.expander("📋 Final Report", expanded=True):
                 st.markdown(final_analysis)
 
-            # Mark Analysis Complete after final report is displayed
+            # Mark Analysis Complete and update stepper
             st.session_state.current_step = 4
-            render_stepper(st.session_state.current_step)
+            with step_container:
+                render_stepper(st.session_state.current_step)
+                st.experimental_rerun()
 
         except Exception as e:
             st.error("Error generating final report. Please try again.")
