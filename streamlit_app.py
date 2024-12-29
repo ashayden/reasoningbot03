@@ -187,9 +187,12 @@ topic = st.text_input(
     "Enter a topic or question:",
     placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
     key="topic_input",
-    on_change=lambda: st.session_state.update({"start_button_clicked": True}) 
-        if st.session_state.topic_input else None,
+    on_change=lambda: st.session_state.update({"start_button_clicked": True}) if st.session_state.topic_input else None,
 )
+
+# Handle Enter key press
+if topic and st.session_state.get("topic_input", "") != st.session_state.get("previous_input", ""):
+    st.session_state.start_button_clicked = True
 
 # Reset session state if input changes
 if topic != st.session_state.previous_input:
@@ -202,146 +205,13 @@ if topic != st.session_state.previous_input:
     st.session_state.framework = None
     st.session_state.previous_input = topic
 
-# --- UI/UX - Add expander for prompt details ---
-with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
-    # Agent Prompts
-    agent1_prompt = st.text_area(
-        "Agent 1 Prompt (Prompt Engineer)",
-        '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
+# Create columns for input and button
+col1, col2 = st.columns([4, 1])
 
-USER'S TOPIC/QUESTION: {topic}
-
-1.  **Prompt Refinement**
-    *   Analyze the user's input and identify areas where you can add more detail, specificity, and context.
-    *   Consider what background information or assumptions might be helpful to include.
-    *   Reformulate the user's input into a more comprehensive and well-defined prompt.
-
-2.  **Investigation Framework**
-    *   Based on your **refined prompt**, define a structured approach for investigating the topic.
-    *   Outline:
-        -   Core Question/Hypothesis
-        -   Key Areas Requiring Investigation
-        -   Critical Factors to Examine
-        -   Required Data and Information Sources
-        -   Potential Challenges or Limitations
-
-    *   Present this as a clear investigation framework that will guide further research and analysis.
-
-Format your response with appropriate spacing between sections:
-
-Refined Prompt
-[Your refined prompt here]
-
----
-
-Investigation Framework
-
-Core Question/Hypothesis
-
-[Your hypothesis here, which may wrap to multiple lines while maintaining proper alignment]
-
-Key Areas Requiring Investigation
-
-1. [Area Name]:
-   - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
-   - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
-   - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
-
-2. [Area Name]:
-   - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
-   - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
-   - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
-
-Note: 
-- Each section header should be on its own line
-- Leave a blank line between the header and its content
-- Each numbered item starts with a number followed by a period, space, and area name
-- Bullet points appear on new lines beneath the numbered item
-- Use consistent indentation for bullet points
-- Add a blank line between numbered items
-- Use a hyphen (-) for bullet points''',
-        key="agent1_prompt",
-        height=300,
-    )
-
-    agent2_prompt = st.text_area(
-        "Agent 2 Prompt (Researcher)",
-        '''Using the refined prompt and the established framework, continue researching and analyzing:
-
-REFINED PROMPT:
-{refined_prompt}
-
-FRAMEWORK:
-{framework}
-
-PREVIOUS ANALYSIS:
-{previous_analysis}
-
-CURRENT FOCUS:
-{current_aspect}
-
-Begin your response with a descriptive title that summarizes the focus area and its relation to the main topic.
-For example: "Economic Factors: Impact on Regional Development Trends"
-
-Then present your findings by:
-1. Gathering relevant data and evidence
-2. Analyzing new findings
-3. Identifying connections and patterns
-4. Updating conclusions based on new information
-5. Noting any emerging implications
-
-Structure your response with the descriptive title on the first line, followed by your analysis.''',
-        key="agent2_prompt",
-        height=300,
-    )
-
-    agent3_prompt = st.text_area(
-        "Agent 3 Prompt (Expert Analyst)",
-        '''Based on the completed analysis of the topic:
-
-REFINED PROMPT:
-{refined_prompt}
-
-FRAMEWORK:
-{system_prompt}
-
-ANALYSIS:
-{all_aspect_analyses}
-
-You are a leading expert in fields relevant to the topic. Provide an in-depth analysis as a recognized authority on this topic. Offer insights and conclusions based on your extensive knowledge and experience.
-
-Write a comprehensive report addressing the topic and/or answering the user's question. Include relevant statistics. Present the report in a neutral, objective, and informative tone, befitting an expert in the field.
-
-### Final Report
-
-[Title of Analysis]
-
-Executive Summary:
-[Provide a comprehensive overview of the key findings, challenges, and recommendations]
-
-I. [First Major Section]:
-[Detailed analysis with supporting evidence and data]
-
-[Continue with subsequent sections as needed]
-
-Recommendations:
-[List specific, actionable recommendations based on the analysis]''',
-        key="agent3_prompt",
-        height=300,
-    )
-
-# Slider for research depth with descriptive options
-loops = st.select_slider(
-    "How deep should we dive?",
-    options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
-    value="Lake",
-)
-
-# Create columns for button
-_, _, button_col = st.columns([1, 1, 1])
-
-with button_col:
-    start_button_clicked = st.button("🌊 Dive In", key="start_button")
+with col2:
+    start_button_clicked = st.button("🌊 Dive In", key="start_button", use_container_width=True)
+    if start_button_clicked:
+        st.session_state.start_button_clicked = True
 
 # Add progress bar placeholder before TL;DR
 progress_placeholder = st.empty()
@@ -381,6 +251,7 @@ if st.session_state.analysis_complete and topic:
             .stProgress > div > div > div > div {
                 background-color: #28a745 !important;
                 animation: none !important;
+                transition: background-color 0.3s ease-in-out !important;
             }
             </style>
             """,
