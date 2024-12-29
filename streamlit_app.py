@@ -18,7 +18,6 @@ STEPS = [
     "Refining Prompt",
     "Developing Framework",
     "Conducting Research",
-    "Final Report",
     "Analysis Complete"
 ]
 
@@ -507,11 +506,10 @@ if start_button:
         st.session_state.random_fact = None
         st.session_state.current_step = 0
 
-        # Show initial stepper
+        # Show initial stepper once
         render_stepper(st.session_state.current_step)
 
         # STEP 0: Random Fact & TL;DR
-        st.session_state.current_step = 0
         st.session_state.random_fact = generate_random_fact(topic)
         if st.session_state.random_fact:
             with st.expander("🎲 Random Fact", expanded=True):
@@ -522,13 +520,11 @@ if start_button:
             with st.expander("💡 TL;DR", expanded=True):
                 st.markdown(st.session_state.tldr_summary)
 
-        # Update stepper for completed step
+        # Mark Refining Prompt complete
         st.session_state.current_step = 1
         render_stepper(st.session_state.current_step)
 
         # STEP 1: Framework Development
-        st.session_state.current_step = 1
-
         refined_prompt, framework = generate_refined_prompt_and_framework(topic)
         if not refined_prompt or not framework:
             st.error("Could not generate refined prompt and framework. Please try again.")
@@ -543,9 +539,11 @@ if start_button:
         with st.expander("🗺️ Investigation Framework", expanded=False):
             st.markdown(framework)
 
-        # STEP 2: Research
+        # Mark Developing Framework complete
         st.session_state.current_step = 2
+        render_stepper(st.session_state.current_step)
 
+        # STEP 2: Research
         current_analysis = ""
         aspects = []
         research_results_list = []
@@ -585,8 +583,9 @@ if start_button:
 
         st.session_state.research_results = research_results_list
 
-        # STEP 3: Final Report
+        # Mark Conducting Research complete
         st.session_state.current_step = 3
+        render_stepper(st.session_state.current_step)
 
         # Generate final report
         combined_results = "\n\n".join(f"### {t}\n{c}" for t,c in research_results_list)
@@ -619,7 +618,6 @@ if start_button:
         st.session_state.pdf_buffer = pdf_bytes
 
         # Complete
-        st.session_state.current_step = 4
         st.session_state.analysis_complete = True
 
         st.download_button(
