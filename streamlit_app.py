@@ -195,13 +195,24 @@ st.markdown("<h1 class='main-title'>🤖</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subheader'>Multi-Agent Reasoning Assistant a003</p>", unsafe_allow_html=True)
 
 # Create a cleaner input section
-st.markdown("### Enter a topic or question")
 topic = st.text_input(
     "",
     placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
     key="topic_input",
     label_visibility="collapsed",
+    on_change=lambda: st.session_state.update({"start_button_clicked": True}) if st.session_state.topic_input else None,
 )
+
+# Reset session state if input changes
+if topic != st.session_state.previous_input:
+    st.session_state.analysis_complete = False
+    st.session_state.pdf_buffer = None
+    st.session_state.final_analysis = None
+    st.session_state.research_results = []
+    st.session_state.tldr_summary = None
+    st.session_state.refined_prompt = None
+    st.session_state.framework = None
+    st.session_state.previous_input = topic
 
 # Add expander for advanced settings
 with st.expander("⚙️ Advanced Settings"):
@@ -259,25 +270,6 @@ if 'framework' not in st.session_state:
     st.session_state.framework = None
 if 'previous_input' not in st.session_state:
     st.session_state.previous_input = ""
-
-# Input section with Enter key handling
-topic = st.text_input(
-    "Enter a topic or question:",
-    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
-    key="topic_input",
-    on_change=lambda: st.session_state.update({"start_button_clicked": True}) if st.session_state.topic_input else None,
-)
-
-# Reset session state if input changes
-if topic != st.session_state.previous_input:
-    st.session_state.analysis_complete = False
-    st.session_state.pdf_buffer = None
-    st.session_state.final_analysis = None
-    st.session_state.research_results = []
-    st.session_state.tldr_summary = None
-    st.session_state.refined_prompt = None
-    st.session_state.framework = None
-    st.session_state.previous_input = topic
 
 # Add expander for prompt customization
 with st.expander("                                                                                                                                                                                                ☠️"):
