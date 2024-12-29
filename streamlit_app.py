@@ -127,6 +127,28 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Initialize session state variables
+if 'analysis_complete' not in st.session_state:
+    st.session_state.analysis_complete = False
+if 'pdf_buffer' not in st.session_state:
+    st.session_state.pdf_buffer = None
+if 'final_analysis' not in st.session_state:
+    st.session_state.final_analysis = None
+if 'research_results' not in st.session_state:
+    st.session_state.research_results = []
+if 'tldr_summary' not in st.session_state:
+    st.session_state.tldr_summary = None
+if 'refined_prompt' not in st.session_state:
+    st.session_state.refined_prompt = None
+if 'framework' not in st.session_state:
+    st.session_state.framework = None
+if 'previous_input' not in st.session_state:
+    st.session_state.previous_input = ""
+if 'start_button_clicked' not in st.session_state:
+    st.session_state.start_button_clicked = False
+if 'random_fact' not in st.session_state:
+    st.session_state.random_fact = None
+
 # Get API key from Streamlit secrets
 try:
     api_key = st.secrets["GOOGLE_API_KEY"]
