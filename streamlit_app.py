@@ -96,6 +96,70 @@ st.markdown("""
 .element-container {
     margin-bottom: 1rem;
 }
+
+/* Button base styling */
+.stButton > button, [data-testid="stDownloadButton"] > button {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 6px;
+    border: none;
+    background-color: #2439f7;
+    color: white;
+    transition: all 0.2s ease-in-out;
+    box-shadow: none;
+    margin: 0.5rem 0;
+    text-transform: none;
+    letter-spacing: 0.5px;
+}
+
+/* Button hover effects */
+.stButton > button:hover, [data-testid="stDownloadButton"] > button:hover {
+    background-color: #1a2bc4;
+    transform: translateY(-1px);
+}
+
+/* Button active effects */
+.stButton > button:active, [data-testid="stDownloadButton"] > button:active {
+    transform: translateY(1px);
+}
+
+/* Expander hover animation */
+.streamlit-expanderHeader {
+    transition: background-color 0.2s ease-in-out, padding-left 0.2s ease-in-out;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+}
+
+.streamlit-expanderHeader:hover {
+    background-color: rgba(36, 57, 247, 0.1);
+    padding-left: 1.25rem;
+}
+
+/* Input field animations */
+.stTextInput > div > div > input {
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.stTextInput > div > div > input:focus {
+    border-color: #2439f7;
+    box-shadow: 0 0 0 1px #2439f7;
+}
+
+/* Progress bar animation */
+.stProgress > div > div > div > div {
+    transition: width 0.4s ease-in-out, background-color 0.3s ease-in-out;
+}
+
+/* Slider handle animation */
+.stSlider > div > div > div > div {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.stSlider > div > div > div > div:hover {
+    transform: scale(1.2);
+}
 </style>
 """, unsafe_allow_html=True)
 
