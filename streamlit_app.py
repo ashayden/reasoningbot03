@@ -420,6 +420,10 @@ else:
 ########################################
 # MAIN LOGIC WHEN USER CLICKS BUTTON
 ########################################
+# Create a container for the progress indicator at the top level
+progress_container = st.empty()
+
+# Main logic when button is clicked
 if start_button:
     if not topic.strip():
         st.warning("Please enter a topic.")
@@ -433,74 +437,80 @@ if start_button:
         'current_step': 0
     })
     
-    # Create progress indicator once at the top
-    render_progress(st.session_state.current_step)
+    # Show initial progress (Making a Plan active)
+    progress_container.empty()
+    progress_container.markdown(render_progress(st.session_state.current_step))
     
-    # Step 1: Initial Analysis
-    st.session_state.random_fact = generate_random_fact(topic)
-    st.session_state.tldr_summary = generate_quick_summary(topic)
-
-    if st.session_state.random_fact:
-        with st.expander("🎲 Random Fact", expanded=True):
-            st.markdown(st.session_state.random_fact)
-
-    if st.session_state.tldr_summary:
-        with st.expander("💡 TL;DR", expanded=True):
-            st.markdown(st.session_state.tldr_summary)
-
-    # Mark Step 1 complete and update to Step 2 AFTER insights are shown
-    st.session_state.current_step = 1
-    render_progress(st.session_state.current_step)
-
-    # Step 2: Framework Development
-    refined_prompt, framework = generate_refined_prompt_and_framework(topic)
-    if not refined_prompt or not framework:
-        st.error("Could not generate refined prompt and framework. Please try again.")
-        st.stop()
-
-    st.session_state.refined_prompt = refined_prompt
-    st.session_state.framework = framework
-
-    with st.expander("🎯 Refined Prompt", expanded=False):
-        st.markdown(refined_prompt)
-    with st.expander("🗺️ Investigation Framework", expanded=False):
-        st.markdown(framework)
-
-    # Update progress without re-rendering
-    st.session_state.current_step = 2
-
-    # Step 3: Research Phase
-    aspects = [line.strip() for line in framework.split("\n") 
-              if line.strip().startswith(tuple(f"{x}." for x in range(1,10)))]
-    
-    if not aspects:
-        st.error("No research aspects found in the framework. Please try again.")
-        st.stop()
-
-    current_analysis = ""
-    research_results_list = []
-
-    for i in range(loops_num):
-        aspect = aspects[i % len(aspects)]
-        research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
-        
-        if not research_text:
-            st.error("Research analysis failed. Please try again.")
-            st.stop()
-            
-        current_analysis += "\n\n" + research_text
-        lines = research_text.split("\n")
-        title = lines[0].strip() if lines else aspect
-        content = "\n".join(lines[1:]) if len(lines) > 1 else ""
-        research_results_list.append((title, content))
-
-        with st.expander(title, expanded=False):
-            st.markdown(content)
-
-    st.session_state.research_results = research_results_list
-
-    # Step 4: Final Analysis
     try:
+        # Step 1: Initial Analysis
+        st.session_state.random_fact = generate_random_fact(topic)
+        st.session_state.tldr_summary = generate_quick_summary(topic)
+
+        if st.session_state.random_fact:
+            with st.expander("🎲 Random Fact", expanded=True):
+                st.markdown(st.session_state.random_fact)
+
+        if st.session_state.tldr_summary:
+            with st.expander("💡 TL;DR", expanded=True):
+                st.markdown(st.session_state.tldr_summary)
+
+        # Update progress after initial insights (Making a Plan complete)
+        st.session_state.current_step = 1
+        progress_container.markdown(render_progress(st.session_state.current_step))
+
+        # Step 2: Framework Development
+        refined_prompt, framework = generate_refined_prompt_and_framework(topic)
+        if not refined_prompt or not framework:
+            st.error("Could not generate refined prompt and framework. Please try again.")
+            st.stop()
+
+        st.session_state.refined_prompt = refined_prompt
+        st.session_state.framework = framework
+
+        with st.expander("🎯 Refined Prompt", expanded=False):
+            st.markdown(refined_prompt)
+        with st.expander("🗺️ Investigation Framework", expanded=False):
+            st.markdown(framework)
+
+        # Update progress after framework (Developing Framework complete)
+        st.session_state.current_step = 2
+        progress_container.markdown(render_progress(st.session_state.current_step))
+
+        # Step 3: Research Phase
+        aspects = [line.strip() for line in framework.split("\n") 
+                if line.strip().startswith(tuple(f"{x}." for x in range(1,10)))]
+        
+        if not aspects:
+            st.error("No research aspects found in the framework. Please try again.")
+            st.stop()
+
+        current_analysis = ""
+        research_results_list = []
+
+        for i in range(loops_num):
+            aspect = aspects[i % len(aspects)]
+            research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
+            
+            if not research_text:
+                st.error("Research analysis failed. Please try again.")
+                st.stop()
+                
+            current_analysis += "\n\n" + research_text
+            lines = research_text.split("\n")
+            title = lines[0].strip() if lines else aspect
+            content = "\n".join(lines[1:]) if len(lines) > 1 else ""
+            research_results_list.append((title, content))
+
+            with st.expander(title, expanded=False):
+                st.markdown(content)
+
+        st.session_state.research_results = research_results_list
+
+        # Update progress after research (Conducting Research complete)
+        st.session_state.current_step = 3
+        progress_container.markdown(render_progress(st.session_state.current_step))
+
+        # Step 4: Final Analysis
         combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results_list)
         final_prompt = agent3_prompt.format(
             refined_prompt=refined_prompt,
@@ -523,9 +533,10 @@ if start_button:
         pdf_bytes = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
         st.session_state.pdf_buffer = pdf_bytes
 
-        # Update progress
+        # Update final progress (Analysis Complete)
         st.session_state.current_step = 4
         st.session_state.analysis_complete = True
+        progress_container.markdown(render_progress(st.session_state.current_step))
 
         # Show download button
         st.download_button(
@@ -537,6 +548,6 @@ if start_button:
         )
 
     except Exception as e:
-        logging.error(f"Final report error: {e}")
-        st.error("Error generating final report. Please try again.")
+        logging.error(f"Analysis error: {str(e)}")
+        st.error("An error occurred during analysis. Please try again.")
         st.stop()
