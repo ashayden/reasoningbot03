@@ -39,28 +39,11 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
 /* Style for the slider */
 .stSlider {
     width: 100% !important;
-    padding: 20px 0;
-}
-
-.stSlider > div {
-    margin: 0 20px;
-}
-
-/* Adjust slider label position */
-.stSlider label {
-    order: 2;
-    font-family: 'Roboto', sans-serif !important;
-    font-size: 1.1rem !important;
-    font-weight: 500 !important;
-    color: #2c3e50 !important;
-    margin-top: 10px !important;
 }
 
 /* Style slider value text */
 .stSlider > div > div:nth-child(3) > span {
     font-family: 'Roboto', sans-serif !important;
-    font-size: 1.1rem !important;
-    font-weight: 500 !important;
     color: #007bff !important;
 }
 
@@ -145,11 +128,40 @@ st.markdown("<h1 class='main-title'>🤖</h1>", unsafe_allow_html=True)  # Chang
 # --- Subheader ---
 st.markdown("<p class='subheader'>This bot uses multiple AI agents to analyze topics in depth with sophisticated reasoning.</p>", unsafe_allow_html=True)
 
+# Initialize session state for storing analysis results and previous input
+if 'analysis_complete' not in st.session_state:
+    st.session_state.analysis_complete = False
+if 'pdf_buffer' not in st.session_state:
+    st.session_state.pdf_buffer = None
+if 'final_analysis' not in st.session_state:
+    st.session_state.final_analysis = None
+if 'research_results' not in st.session_state:
+    st.session_state.research_results = []
+if 'tldr_summary' not in st.session_state:
+    st.session_state.tldr_summary = None
+if 'refined_prompt' not in st.session_state:
+    st.session_state.refined_prompt = None
+if 'framework' not in st.session_state:
+    st.session_state.framework = None
+if 'previous_input' not in st.session_state:
+    st.session_state.previous_input = ""
+
 # Input section
 topic = st.text_input(
     "Enter a topic or question:",
     placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
 )
+
+# Reset session state if input changes
+if topic != st.session_state.previous_input:
+    st.session_state.analysis_complete = False
+    st.session_state.pdf_buffer = None
+    st.session_state.final_analysis = None
+    st.session_state.research_results = []
+    st.session_state.tldr_summary = None
+    st.session_state.refined_prompt = None
+    st.session_state.framework = None
+    st.session_state.previous_input = topic
 
 # --- UI/UX - Add expander for prompt details ---
 with st.expander("**Advanced Prompt Customization**"):
@@ -284,250 +296,8 @@ loops = st.select_slider(
     "How deep should we dive?",
     options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
     value="Lake",
-    label_visibility="collapsed"
-)
-st.caption("How deep should we dive?")
-
-# Convert the depth selection to a numerical value
-if loops == "Puddle":
-    loops_num = 1
-elif loops == "Lake":
-    loops_num = random.randint(2, 3)
-elif loops == "Ocean":
-    loops_num = random.randint(4, 6)
-elif loops == "Mariana Trench":
-    loops_num = random.randint(7, 10)
-else:
-    loops_num = 2  # Default value
-
-def handle_response(response):
-    """Handle model response and extract text with more specific error handling."""
-    try:
-        if hasattr(response, "parts") and response.parts:
-            if text_part := next(
-                (part.text for part in response.parts if part.text), None
-            ):
-                return text_part.strip()
-            else:
-                logging.warning("Response parts exist, but no text part found.")
-        elif hasattr(response, "text"):
-            return response.text.strip()
-        else:
-            logging.warning("Response does not contain expected structure for text extraction.")
-    except Exception as e:
-        logging.error(f"Error extracting text from response: {e}")
-    return ""
-
-
-# Define default generation config
-default_generation_config = genai.types.GenerationConfig(
-    temperature=0.7, top_p=0.8, top_k=40, max_output_tokens=2048
 )
 
-# Create new GenerationConfig objects for other agents:
-agent2_config = genai.types.GenerationConfig(
-    temperature=0.5, top_p=0.7, top_k=40, max_output_tokens=2048
-)
-
-agent3_config = genai.types.GenerationConfig(
-    temperature=0.3, top_p=0.7, top_k=20, max_output_tokens=4096
-)
-
-def generate_quick_summary(topic):
-    """Generate a quick summary (TL;DR) using the model."""
-    try:
-        quick_summary_prompt = f"""
-        Provide a very brief, one to two-sentence TL;DR (Too Long; Didn't Read) overview of the following topic, incorporating emojis where relevant:
-        {topic}
-        """
-        response = model.generate_content(
-            quick_summary_prompt,
-            generation_config=default_generation_config,
-        )
-        summary = handle_response(response)
-        # Ensure summary is within 1-2 sentences
-        sentences = summary.split('.')
-        if len(sentences) > 2:
-            summary = '. '.join(sentences[:2]) + '.' if sentences[0] else ''
-        return summary.strip()
-    except Exception as e:
-        logging.error(f"Failed to generate quick summary: {e}")
-        return ""
-
-def generate_refined_prompt_and_framework(topic):
-    """Generate a refined prompt and investigation framework using Agent 1."""
-    try:
-        prompt_response = model.generate_content(
-            agent1_prompt.format(topic=topic),
-            generation_config=default_generation_config,
-        )
-
-        agent1_response = handle_response(prompt_response)
-
-        # Extract refined prompt and framework from agent 1's response
-        if agent1_response:
-            parts = agent1_response.split("---")
-            if len(parts) >= 2:
-                # Clean up the refined prompt section
-                refined_prompt = parts[0].replace("Refined Prompt", "").strip()
-
-                # Clean up the framework section
-                framework = parts[1].strip()
-                if framework.startswith("Investigation Framework"):
-                    framework = framework[len("Investigation Framework") :].strip()
-
-                # Remove any stray colons from section headers
-                framework = framework.replace(
-                    "Core Question/Hypothesis:", "Core Question/Hypothesis"
-                )
-                framework = framework.replace(
-                    "Key Areas Requiring Investigation:", "Key Areas Requiring Investigation"
-                )
-
-                # Further clean up for framework formatting
-                framework_lines = framework.split("\n")
-                cleaned_framework_lines = []
-                for line in framework_lines:
-                    # Ensure consistent indentation for bullet points
-                    if line.lstrip().startswith("-"):
-                        cleaned_framework_lines.append("   " + line.lstrip())
-                    else:
-                        cleaned_framework_lines.append(line)
-                framework = "\n".join(cleaned_framework_lines)
-
-                logging.info(
-                    "Refined prompt and investigation framework generated successfully"
-                )
-                return refined_prompt, framework
-            else:
-                logging.warning(
-                    "Could not properly split the response from Agent 1 into refined prompt and framework."
-                )
-        else:
-            logging.warning("Agent 1 response was empty or invalid.")
-
-    except Exception as e:
-        logging.error(f"Failed to generate refined prompt and framework: {e}")
-    return None, None
-
-
-def conduct_research(refined_prompt, framework, previous_analysis, current_aspect, iteration):
-    """Conduct research and analysis using Agent 2."""
-    try:
-        prompt_response = model.generate_content(
-            agent2_prompt.format(
-                refined_prompt=refined_prompt,
-                framework=framework,
-                previous_analysis=previous_analysis,
-                current_aspect=current_aspect
-            ),
-            generation_config=agent2_config,
-        )
-
-        research = handle_response(prompt_response)
-        if research:
-            # Remove any iteration focus headers if they exist
-            research_lines = research.split("\n")
-            cleaned_research = []
-            skip_next = False
-            for line in research_lines:
-                if "Iteration Focus:" in line or "ITERATION FOCUS:" in line:
-                    skip_next = True
-                    continue
-                if skip_next:
-                    skip_next = False
-                    continue
-                cleaned_research.append(line)
-
-            research = "\n".join(cleaned_research).strip()
-            logging.info(f"Research phase {iteration} completed successfully")
-            return research
-        else:
-            logging.warning(f"Research phase {iteration} returned empty or invalid content")
-    except Exception as e:
-        logging.error(f"Failed to conduct research in phase {iteration}: {e}")
-    return None
-
-
-def create_download_pdf(refined_prompt, framework, current_analysis, final_analysis):
-    """Create a PDF for download with proper Unicode handling."""
-    try:
-        buffer = io.BytesIO()
-        pdf = FPDF()
-        pdf.add_page()
-
-        # Set font and size for title
-        pdf.set_font('Helvetica', '', 16)
-        pdf.cell(0, 10, "Advanced Reasoning Bot Report", 0, 1, 'C')
-        pdf.ln(10)
-
-        # Set font for content
-        pdf.set_font('Helvetica', '', 12)
-
-        # Add framework
-        pdf.set_font('Helvetica', 'B', 14)
-        pdf.cell(0, 10, "Investigation Framework", 0, 1)
-        pdf.set_font('Helvetica', '', 12)
-        
-        # Clean and encode text
-        clean_framework = ''.join(char if ord(char) < 128 else '?' for char in framework)
-        pdf.multi_cell(0, 10, clean_framework)
-        pdf.ln(5)
-
-        # Add research phases
-        pdf.set_font('Helvetica', 'B', 14)
-        pdf.cell(0, 10, "Research Phases", 0, 1)
-        pdf.set_font('Helvetica', '', 12)
-        
-        # Clean and encode text
-        clean_analysis = ''.join(char if ord(char) < 128 else '?' for char in current_analysis)
-        pdf.multi_cell(0, 10, clean_analysis)
-        pdf.ln(5)
-
-        # Add final report
-        pdf.set_font('Helvetica', 'B', 14)
-        pdf.cell(0, 10, "Final Report", 0, 1)
-        pdf.set_font('Helvetica', '', 12)
-        
-        # Clean and encode text
-        clean_final = ''.join(char if ord(char) < 128 else '?' for char in final_analysis)
-        pdf.multi_cell(0, 10, clean_final)
-
-        pdf_output = pdf.output(dest='S').encode('latin-1')
-        buffer = io.BytesIO(pdf_output)
-        buffer.seek(0)
-        return buffer
-
-    except Exception as e:
-        logging.error(f"Error creating PDF: {e}")
-        # Return a simplified PDF with error message
-        buffer = io.BytesIO()
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font('Helvetica', '', 12)
-        pdf.cell(0, 10, "Error creating PDF report. Some characters could not be encoded.", 0, 1)
-        pdf_output = pdf.output(dest='S').encode('latin-1')
-        buffer = io.BytesIO(pdf_output)
-        buffer.seek(0)
-        return buffer
-
-# Initialize session state for storing analysis results
-if 'analysis_complete' not in st.session_state:
-    st.session_state.analysis_complete = False
-if 'pdf_buffer' not in st.session_state:
-    st.session_state.pdf_buffer = None
-if 'final_analysis' not in st.session_state:
-    st.session_state.final_analysis = None
-if 'research_results' not in st.session_state:
-    st.session_state.research_results = []
-if 'tldr_summary' not in st.session_state:
-    st.session_state.tldr_summary = None
-if 'refined_prompt' not in st.session_state:
-    st.session_state.refined_prompt = None
-if 'framework' not in st.session_state:
-    st.session_state.framework = None
-
-# Main Execution
 # Create columns for button
 _, _, button_col = st.columns([1, 1, 1])
 
