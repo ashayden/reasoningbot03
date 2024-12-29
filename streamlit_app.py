@@ -20,15 +20,30 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
     font-family: 'Roboto', sans-serif;
 }
 
-/* Style for expander headers */
-.streamlit-expanderHeader {
-    font-weight: bold;
-    font-size: 1.2rem; 
-}
-
 /* Style for progress bar */
 .stProgress > div > div > div > div {
     background-color: #5D1796; /* Change progress bar color to violet */
+    border-radius: 10px;
+    height: 10px;
+}
+
+.stProgress {
+    background-color: rgba(93, 23, 150, 0.1);
+    border-radius: 10px;
+    padding: 2px;
+}
+
+/* Style for expander headers */
+.streamlit-expanderHeader {
+    font-weight: bold;
+    font-size: 1.2rem;
+    padding: 10px 0;
+    border-radius: 5px;
+    transition: all 0.2s ease;
+}
+
+.streamlit-expanderHeader:hover {
+    background-color: rgba(93, 23, 150, 0.1);
 }
 
 /* Style for the main title (remove color to use default)*/
@@ -455,7 +470,7 @@ if start_button_clicked:
             # Quick Summary (TL;DR)
             tldr_summary = generate_quick_summary(topic)
             if tldr_summary:
-                with st.expander(f"**{progress_states['tldr']['label']}**", expanded=True):
+                with st.expander(f"**💡 {progress_states['tldr']['label']}**", expanded=True):
                     st.markdown(tldr_summary)
                 progress_bar.progress(20)
 
@@ -463,11 +478,11 @@ if start_button_clicked:
             refined_prompt, framework = generate_refined_prompt_and_framework(topic)
             if refined_prompt and framework:
                 # Display refined prompt
-                with st.expander(f"**{progress_states['refined_prompt']['label']}**", expanded=False):
+                with st.expander(f"**🎯 {progress_states['refined_prompt']['label']}**", expanded=False):
                     st.markdown(refined_prompt.lstrip(":\n").strip())
                 
                 # Display framework
-                with st.expander(f"**{progress_states['framework']['label']}**", expanded=False):
+                with st.expander(f"🗺️ {progress_states['framework']['label']}**", expanded=False):
                     st.markdown(framework.lstrip(": **\n").strip())
                 progress_bar.progress(40)
 
@@ -492,7 +507,24 @@ if start_button_clicked:
                         research_lines = research.split("\n")
                         title = next((line for line in research_lines if line.strip()), current_aspect)
                         research_content = "\n".join(research_lines[1:])
-                        research_expanders.append((title, research_content))
+                        # Add research emoji based on content
+                        if "economic" in title.lower() or "finance" in title.lower():
+                            emoji = "📊"
+                        elif "environment" in title.lower() or "climate" in title.lower():
+                            emoji = "🌍"
+                        elif "culture" in title.lower() or "social" in title.lower():
+                            emoji = "🎭"
+                        elif "history" in title.lower() or "heritage" in title.lower():
+                            emoji = "📜"
+                        elif "technology" in title.lower() or "innovation" in title.lower():
+                            emoji = "💻"
+                        elif "education" in title.lower() or "learning" in title.lower():
+                            emoji = "📚"
+                        elif "health" in title.lower() or "medical" in title.lower():
+                            emoji = "🏥"
+                        else:
+                            emoji = "🔍"
+                        research_expanders.append((f"{emoji} {title}", research_content))
                         progress_bar.progress(40 + int((i + 1) / loops_num * 40))
                     else:
                         raise Exception(f"Research phase {i + 1} failed")
@@ -516,13 +548,8 @@ if start_button_clicked:
                 # Create PDF buffer
                 pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
 
-                # Display research phases first
-                for title, content in research_expanders:
-                    with st.expander(f"**{title}**", expanded=False):
-                        st.markdown(content)
-
                 # Display final report last
-                with st.expander(f"**{progress_states['analysis']['label']}**", expanded=False):
+                with st.expander(f"📋 {progress_states['analysis']['label']}**", expanded=False):
                     st.markdown(final_analysis)
 
                 progress_bar.progress(100)
