@@ -13,6 +13,23 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+# Initialize LLM
+try:
+    api_key = st.secrets["GOOGLE_API_KEY"]
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-1.5-pro-latest")
+    agent3_config = genai.types.GenerationConfig(
+        temperature=0.7,
+        top_p=0.8,
+        top_k=40,
+        max_output_tokens=2048,
+    )
+except Exception as e:
+    st.error("Failed to initialize LLM: Check your API key")
+    logging.error(f"LLM initialization error: {str(e)}")
+    model = None
+    agent3_config = None
+
 # STEP DEFINITIONS
 STEPS = [
     "Refining Prompt",
@@ -122,6 +139,12 @@ def reset_analysis_state():
 ########################################
 # LLM FUNCTIONS
 ########################################
+def check_llm_initialized():
+    """Check if LLM is properly initialized."""
+    if model is None or agent3_config is None:
+        st.error("LLM not properly initialized. Please check your API key.")
+        st.stop()
+
 def handle_response(response) -> str:
     """Extract text from GenAI response safely."""
     try:
@@ -138,6 +161,7 @@ def handle_response(response) -> str:
 
 def generate_content(prompt: str, error_msg: str = "Generation failed", config=None) -> str:
     """Generate content with error handling and consistent configuration."""
+    check_llm_initialized()
     try:
         response = model.generate_content(prompt, generation_config=config or agent3_config)
         result = handle_response(response)
@@ -366,22 +390,11 @@ def render_ui_components():
 ########################################
 def main():
     """Main application logic."""
-    # Initialize state and LLM
+    # Initialize state
     state = init_session_state()
     
-    try:
-        api_key = st.secrets["GOOGLE_API_KEY"]
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-pro-latest")
-        agent3_config = genai.types.GenerationConfig(
-            temperature=0.7,
-            top_p=0.8,
-            top_k=40,
-            max_output_tokens=2048,
-        )
-    except Exception as e:
-        st.error("Failed to initialize LLM: Check your API key")
-        st.stop()
+    # Check LLM initialization
+    check_llm_initialized()
     
     # Render UI
     topic, depth, start_button, prompts = render_ui_components()
