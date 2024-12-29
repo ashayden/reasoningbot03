@@ -15,358 +15,205 @@ logging.basicConfig(
 # --- Custom CSS for Streamlit ---
 st.markdown("""
 <style>
-/* More compact spacing */
+/* Modern UI Theme */
+:root {
+    --primary-color: #2439f7;
+    --text-color: rgba(49, 51, 63, 0.9);
+    --text-color-secondary: rgba(49, 51, 63, 0.7);
+    --background-hover: rgba(36, 57, 247, 0.05);
+    --border-color: rgba(49, 51, 63, 0.1);
+    --shadow-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Base layout and spacing */
 .block-container {
-    padding-top: 2rem !important;
-    padding-bottom: 1rem !important;
-    max-width: 800px;
+    padding: 3rem 1rem !important;
+    max-width: 1000px !important;
+}
+
+/* Header styling */
+.main-title {
+    color: var(--text-color) !important;
+    text-align: center !important;
+    margin-bottom: 0.5rem !important;
+    font-size: 2.5rem !important;
+}
+
+.subheader {
+    font-size: 1.1rem !important;
+    color: var(--text-color-secondary) !important;
+    margin-bottom: 3rem !important;
+    text-align: center !important;
+    font-weight: 400 !important;
+    max-width: 600px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }
 
 /* Input field styling */
 .stTextInput > div > div > input {
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-    border-radius: 0.5rem;
+    font-size: 1rem !important;
+    padding: 0.75rem 1rem !important;
+    border-radius: 12px !important;
+    border: 2px solid var(--border-color) !important;
+    background-color: white !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.stTextInput > div > div > input:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 2px rgba(36, 57, 247, 0.1) !important;
+}
+
+.stTextInput > div > div > input::placeholder {
+    color: var(--text-color-secondary) !important;
+}
+
+/* Slider styling */
+.stSlider > div > div > div {
+    height: 0.3rem !important;
+}
+
+.stSlider > div > div > div > div {
+    height: 1.2rem !important;
+    width: 1.2rem !important;
+    background-color: white !important;
+    border: 2px solid var(--primary-color) !important;
+    box-shadow: 0 2px 4px var(--shadow-color) !important;
+    transition: transform 0.2s ease-in-out !important;
+}
+
+.stSlider > div > div > div > div:hover {
+    transform: scale(1.1) !important;
 }
 
 /* Button styling */
 .stButton > button {
-    width: 100%;
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-    font-weight: 500;
-    border-radius: 0.5rem;
-    margin: 0.5rem 0;
-    transition: all 0.2s;
+    width: 100% !important;
+    padding: 0.75rem 1.5rem !important;
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+    border-radius: 12px !important;
+    border: none !important;
+    background-color: var(--primary-color) !important;
+    color: white !important;
+    transition: all 0.2s ease-in-out !important;
+    box-shadow: 0 2px 4px var(--shadow-color) !important;
+}
+
+.stButton > button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px var(--shadow-color) !important;
+}
+
+/* Expander styling */
+[data-testid="stExpander"] {
+    border: none !important;
+    box-shadow: 0 2px 4px var(--shadow-color) !important;
+    border-radius: 12px !important;
+    margin-bottom: 1rem !important;
+    background-color: white !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+[data-testid="stExpander"]:hover {
+    box-shadow: 0 4px 8px var(--shadow-color) !important;
+}
+
+[data-testid="stExpander"] > div {
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
 }
 
 /* Progress bar styling */
 .stProgress > div > div > div > div {
     background: linear-gradient(90deg, 
-        #007bff 0%, 
-        #007bff 98%, 
-        #007bff 100%
-    );
-    background-size: 200% 100%;
-    animation: loading 2s linear infinite;
-    border-radius: 0.5rem;
-    height: 0.5rem !important;
+        var(--primary-color) 0%, 
+        var(--primary-color) 100%
+    ) !important;
+    height: 0.3rem !important;
+    border-radius: 999px !important;
 }
 
-@keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+/* Download button */
+[data-testid="stDownloadButton"] > button {
+    width: 100% !important;
+    padding: 0.75rem 1.5rem !important;
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+    border-radius: 12px !important;
+    border: 2px solid var(--primary-color) !important;
+    background-color: white !important;
+    color: var(--primary-color) !important;
+    transition: all 0.2s ease-in-out !important;
+    box-shadow: 0 2px 4px var(--shadow-color) !important;
+}
+
+[data-testid="stDownloadButton"] > button:hover {
+    background-color: var(--background-hover) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px var(--shadow-color) !important;
+}
+
+/* Text area styling */
+.stTextArea textarea {
+    border-radius: 12px !important;
+    border: 2px solid var(--border-color) !important;
+    padding: 1rem !important;
+    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace !important;
+    font-size: 0.9rem !important;
+    line-height: 1.5 !important;
+    background-color: white !important;
+    color: var(--text-color) !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.stTextArea textarea:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 2px rgba(36, 57, 247, 0.1) !important;
+}
+
+/* Results section styling */
+.results-section {
+    margin-top: 2rem !important;
+    padding: 1.5rem !important;
+    border-radius: 12px !important;
+    background-color: white !important;
+    box-shadow: 0 2px 4px var(--shadow-color) !important;
 }
 
 /* Completed progress bar */
 .progress-complete > div > div > div > div {
     background: #28a745 !important;
-    animation: none;
-}
-
-/* Expander styling */
-.streamlit-expanderHeader {
-    font-size: 1rem;
-    font-weight: 600;
-    padding: 0.75rem 0;
-    border-radius: 0.5rem;
-}
-
-/* Slider styling */
-.stSlider > div > div > div {
-    height: 0.5rem !important;
-}
-
-.stSlider > div > div > div > div {
-    height: 1rem !important;
-    width: 1rem !important;
-}
-
-/* Download button styling */
-[data-testid="stDownloadButton"] > button {
-    width: 100%;
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-    font-weight: 500;
-    border-radius: 0.5rem;
-    margin: 0.5rem 0;
-}
-
-/* Adjust spacing between sections */
-.element-container {
-    margin-bottom: 1rem;
-}
-
-/* Button base styling */
-.stButton > button, [data-testid="stDownloadButton"] > button {
-    width: 100%;
-    padding: 0.75rem 1.5rem;
-    font-size: 1rem;
-    font-weight: 500;
-    border-radius: 6px;
-    border: none;
-    background-color: #2439f7;
-    color: white;
-    transition: all 0.2s ease-in-out;
-    box-shadow: none;
-    margin: 0.5rem 0;
-    text-transform: none;
-    letter-spacing: 0.5px;
-}
-
-/* Button hover effects */
-.stButton > button:hover, [data-testid="stDownloadButton"] > button:hover {
-    background-color: #1a2bc4;
-    transform: translateY(-1px);
-}
-
-/* Button active effects */
-.stButton > button:active, [data-testid="stDownloadButton"] > button:active {
-    transform: translateY(1px);
-}
-
-/* Expander hover animation */
-.streamlit-expanderHeader {
-    transition: background-color 0.2s ease-in-out, padding-left 0.2s ease-in-out;
-    border-radius: 6px;
-    padding: 0.75rem 1rem;
-}
-
-.streamlit-expanderHeader:hover {
-    background-color: rgba(36, 57, 247, 0.1);
-    padding-left: 1.25rem;
-}
-
-/* Input field animations */
-.stTextInput > div > div > input {
-    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-.stTextInput > div > div > input:focus {
-    border-color: #2439f7;
-    box-shadow: 0 0 0 1px #2439f7;
-}
-
-/* Progress bar animation */
-.stProgress > div > div > div > div {
-    transition: width 0.4s ease-in-out, background-color 0.3s ease-in-out;
-}
-
-/* Slider handle animation */
-.stSlider > div > div > div > div {
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-.stSlider > div > div > div > div:hover {
-    transform: scale(1.2);
-}
-
-/* Advanced prompt customization button styling */
-[data-testid="stExpander"] {
-    border: none !important;
-    box-shadow: none !important;
-    background-color: transparent !important;
-    border-radius: 6px !important;
-    margin-bottom: 1rem !important;
-    width: auto !important;
-    min-width: 50px !important;
-    float: right !important;
-}
-
-/* Target the block container of the expander */
-[data-testid="stExpander"] > .st-emotion-cache-1q1n0ol {
-    background-color: transparent !important;
-}
-
-/* Target the expander content */
-[data-testid="stExpander"] > .st-emotion-cache-1ehh7ok {
-    background-color: transparent !important;
-}
-
-/* Target any div within expander */
-[data-testid="stExpander"] div {
-    background-color: transparent !important;
-}
-
-[data-testid="stExpander"] details {
-    border: none !important;
-    box-shadow: none !important;
-    background-color: transparent !important;
-}
-
-[data-testid="stExpander"] summary {
-    color: #2439f7 !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.5px !important;
-    padding: 0.5rem 1rem !important;
-    transition: all 0.2s ease-in-out !important;
-    font-size: 1.2rem !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    background-color: transparent !important;
-}
-
-[data-testid="stExpander"] summary:hover {
-    background-color: rgba(36, 57, 247, 0.1) !important;
-    transform: translateY(-1px) !important;
-}
-
-[data-testid="stExpander"] summary:active {
-    transform: translateY(1px) !important;
-}
-
-[data-testid="stExpander"] .streamlit-expanderContent {
-    border: none !important;
-    background-color: transparent !important;
-    position: absolute !important;
-    right: 0 !important;
-    width: 800px !important;
-    max-width: 90vw !important;
-    z-index: 1000 !important;
-    padding: 1rem !important;
-    border-radius: 6px !important;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
-}
-
-/* Target Streamlit's emotion classes */
-.st-emotion-cache-1y4p8pa {
-    background-color: transparent !important;
-}
-
-.st-emotion-cache-1gulkj3 {
-    background-color: transparent !important;
-}
-
-/* Minimal styling for text areas and inputs */
-[data-testid="stExpander"] textarea {
-    background-color: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 4px !important;
-    padding: 8px !important;
-    font-family: monospace !important;
-    transition: border-color 0.2s ease-in-out !important;
-}
-
-[data-testid="stExpander"] textarea:focus {
-    border-color: rgba(255, 255, 255, 0.2) !important;
-    box-shadow: none !important;
-    outline: none !important;
-}
-
-/* Subheader styling */
-.subheader {
-    font-size: 1.2rem !important;
-    color: rgba(250, 250, 250, 0.8) !important;
-    margin-bottom: 2rem !important;
-}
-
-/* Expander header with right-aligned emoji */
-[data-testid="stExpander"] summary {
-    color: #2439f7 !important;
-    font-weight: 500 !important;
-    padding: 0.5rem 1rem !important;
-    transition: all 0.2s ease-in-out !important;
-    font-size: 1.2rem !important;
-    background-color: transparent !important;
-    display: flex !important;
-    justify-content: flex-end !important;
-    align-items: center !important;
-    width: 100% !important;
-}
-
-/* Text color fixes for dark text on light background */
-.main-title {
-    color: rgba(49, 51, 63, 0.9) !important;
-    text-align: center !important;
-    margin-bottom: 0.5rem !important;
-}
-
-.subheader {
-    font-size: 1.2rem !important;
-    color: rgba(49, 51, 63, 0.8) !important;
-    margin-bottom: 2rem !important;
-    text-align: center !important;
-}
-
-/* Input label color */
-.stTextInput label, .stTextArea label {
-    color: rgba(49, 51, 63, 0.8) !important;
-}
-
-/* Slider label color */
-.stSlider label {
-    color: rgba(49, 51, 63, 0.8) !important;
-}
-
-/* Expander content text color */
-[data-testid="stExpander"] {
-    color: rgba(49, 51, 63, 0.9) !important;
-}
-
-/* Markdown text color */
-.stMarkdown {
-    color: rgba(49, 51, 63, 0.9) !important;
-}
-
-/* Text area styling */
-[data-testid="stExpander"] textarea {
-    background-color: rgba(255, 255, 255, 0.95) !important;
-    border: 1px solid rgba(49, 51, 63, 0.2) !important;
-    border-radius: 4px !important;
-    padding: 8px !important;
-    font-family: monospace !important;
-    transition: border-color 0.2s ease-in-out !important;
-    color: rgba(49, 51, 63, 0.9) !important;
-}
-
-[data-testid="stExpander"] textarea:focus {
-    border-color: rgba(49, 51, 63, 0.4) !important;
-    box-shadow: none !important;
-    outline: none !important;
-}
-
-/* Expander header with right-aligned emoji */
-[data-testid="stExpander"] summary {
-    color: rgba(49, 51, 63, 0.9) !important;
-    font-weight: 500 !important;
-    padding: 0.5rem 1rem !important;
-    transition: all 0.2s ease-in-out !important;
-    font-size: 1.2rem !important;
-    background-color: transparent !important;
-    display: flex !important;
-    justify-content: flex-end !important;
-    align-items: center !important;
-    width: 100% !important;
-}
-
-[data-testid="stExpander"] summary:hover {
-    background-color: rgba(49, 51, 63, 0.05) !important;
-}
-
-/* Headers inside expander */
-[data-testid="stExpander"] h3, 
-[data-testid="stExpander"] h4 {
-    color: rgba(49, 51, 63, 0.9) !important;
-    margin-bottom: 1rem !important;
-}
-
-/* Remove blue backgrounds */
-[data-testid="stExpander"],
-[data-testid="stExpander"] div,
-[data-testid="stExpander"] details,
-.st-emotion-cache-1y4p8pa,
-.st-emotion-cache-1gulkj3,
-.st-emotion-cache-1q1n0ol,
-.st-emotion-cache-1ehh7ok {
-    background-color: transparent !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# Update main title and subheader
+# Update main title and subheader with cleaner layout
 st.markdown("<h1 class='main-title'>🤖</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subheader'>Multi-Agent Reasoning Assistant a003</p>", unsafe_allow_html=True)
+
+# Create a cleaner input section
+st.markdown("### Enter a topic or question")
+topic = st.text_input(
+    "",
+    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
+    key="topic_input",
+    label_visibility="collapsed",
+)
+
+# Add expander for advanced settings
+with st.expander("⚙️ Advanced Settings"):
+    st.markdown("### Analysis Depth")
+    loops = st.select_slider(
+        "How thorough should the analysis be?",
+        options=["Quick", "Balanced", "Thorough", "Comprehensive"],
+        value="Balanced",
+    )
+    
+    st.markdown("### Agent Prompts")
+    # Agent prompts configuration...
 
 # Get API key from Streamlit secrets
 try:
