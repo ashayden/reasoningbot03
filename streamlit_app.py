@@ -6,13 +6,15 @@ import random
 import io
 from fpdf import FPDF
 
-# ------------------ GLOBAL CONFIG & LOGGING ------------------ #
+#######################################
+# GLOBAL CONFIG & LOGGING
+#######################################
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# --------------- STEP LABELS FOR THE WIZARD --------------- #
+# Define the 5 steps (labels) in your wizard
 STEPS = [
     "Refining Prompt",
     "Developing Framework",
@@ -21,38 +23,42 @@ STEPS = [
     "Analysis Complete"
 ]
 
-# ------------------ FUNCTION: RENDER STEPPER ------------------ #
+#######################################
+# FUNCTION: RENDER STEPPER
+#######################################
 def render_stepper(current_step: int) -> None:
     """
-    Render a 5-step progress wizard. 
+    Renders a 5-step progress wizard in HTML/CSS.
     current_step can be 0..4, corresponding to STEPS above.
     """
+    # Clamp current_step between 0 and 4 just to be safe
     if current_step < 0:
         current_step = 0
     if current_step > 4:
         current_step = 4
 
+    # Build each step as HTML
     step_html = ""
     for i, label in enumerate(STEPS):
-        # Determine if completed, active, or upcoming
+        # Decide if completed, active, or upcoming
         if i < current_step:
             status_class = "complete"   # completed step
         elif i == current_step:
             status_class = "active"     # current step
         else:
             status_class = ""           # future step
-        
+
         step_html += f"""
         <div class="step {status_class}">
             <div class="step-number">{i+1}</div>
             <div class="step-label">{label}</div>
         </div>
         """
-        # Add line except after the last step
+        # Add a connecting line except after the last step
         if i < len(STEPS) - 1:
             step_html += """<div class="step-line"></div>"""
 
-    # The CSS for the stepper
+    # Combine the HTML and CSS into one string
     final_html = f"""
     <style>
     .stepper-container {{
@@ -68,10 +74,10 @@ def render_stepper(current_step: int) -> None:
     }}
     .step-line {{
       flex: none;
-      width: 100px; 
+      width: 100px;
       height: 2px;
       background: #e0e0e0;
-      margin: 0 -50px; 
+      margin: 0 -50px;
       z-index: -1;
     }}
     .step-number {{
@@ -108,9 +114,14 @@ def render_stepper(current_step: int) -> None:
     </div>
     """
 
+    # IMPORTANT: Use st.markdown(..., unsafe_allow_html=True) to render HTML
     st.markdown(final_html, unsafe_allow_html=True)
 
-# ------------------ Inject Original CSS (Minus Old Bar) ------------------ #
+#######################################
+# ORIGINAL STREAMLIT + LLM CODE
+#######################################
+
+# Inject custom CSS (minus the old animated wave bar)
 st.markdown("""
 <style>
 /* Make container spacing more compact */
@@ -198,7 +209,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ------------------ Initialize Session State ------------------ #
+# Initialize session state
 if 'analysis_complete' not in st.session_state:
     st.session_state.analysis_complete = False
 if 'pdf_buffer' not in st.session_state:
@@ -220,11 +231,11 @@ if 'start_button_clicked' not in st.session_state:
 if 'random_fact' not in st.session_state:
     st.session_state.random_fact = None
 
-# We'll track which wizard step we're on via session_state.current_step
+# Track which wizard step we're on (0..4)
 if 'current_step' not in st.session_state:
     st.session_state.current_step = 0
 
-# ------------------ Set Up GenAI ------------------ #
+# Get API key from Streamlit secrets
 try:
     api_key = st.secrets["GOOGLE_API_KEY"]
 except Exception as e:
@@ -232,6 +243,7 @@ except Exception as e:
     st.error("⚠️ GOOGLE_API_KEY not found in Streamlit secrets! Make sure to add it in the Streamlit Cloud dashboard.")
     st.stop()
 
+# Configure LLM
 try:
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel("gemini-1.5-pro-latest")
@@ -252,19 +264,21 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ------------------ Input Section ------------------ #
+# Topic input
 topic = st.text_input(
     "Enter a topic or question:",
     placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
     key="topic_input",
-    on_change=lambda: st.session_state.update({"start_button_clicked": True}) if st.session_state.topic_input else None,
+    on_change=lambda: st.session_state.update({"start_button_clicked": True}) 
+                      if st.session_state.topic_input else None,
 )
 
+# Detect input changes
 if topic and st.session_state.get('topic_input', '') != st.session_state.get('previous_input', ''):
     st.session_state.start_button_clicked = True
 
-# If input changes, reset analysis
 if topic != st.session_state.previous_input:
+    # Reset relevant states
     st.session_state.analysis_complete = False
     st.session_state.pdf_buffer = None
     st.session_state.final_analysis = None
@@ -275,14 +289,14 @@ if topic != st.session_state.previous_input:
     st.session_state.previous_input = topic
     st.session_state.current_step = 0
 
-# --- If analysis is complete, let's mark the final step as done ---
+# If analysis is done, ensure step #5 is marked complete
 if st.session_state.analysis_complete:
-    st.session_state.current_step = 4  # "Analysis Complete"
+    st.session_state.current_step = 4
 
-# ------------------ Render the Step Wizard at the Top ------------------ #
+# ------------------ RENDER THE STEPPER ------------------ #
 render_stepper(st.session_state.current_step)
 
-# --- UI/UX - Add expander for prompt details ---
+# Expanders for customization
 with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
     agent1_prompt = st.text_area(
         "Agent 1 Prompt (Prompt Engineer)",
@@ -409,18 +423,19 @@ Recommendations:
         height=300,
     )
 
-# ------------------ Sliders / Buttons ------------------ #
+# Depth slider
 loops = st.select_slider(
     "How deep should we dive?",
     options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
     value="Lake",
 )
 
+# Button
 _, _, button_col = st.columns([1, 1, 1])
 with button_col:
     start_button_clicked = st.button("🌊 Dive In", key="start_button")
 
-# ------------------ Display Past Results (if complete) ------------------ #
+# Display results if analysis is done
 if st.session_state.analysis_complete and topic:
     with st.expander("🎲 Random Fact", expanded=True):
         st.markdown(
@@ -448,7 +463,7 @@ if st.session_state.analysis_complete and topic:
         with st.expander(f"📋 Final Report", expanded=False):
             st.markdown(st.session_state.final_analysis)
 
-    # Download
+    # PDF download
     _, download_col = st.columns([1, 2])
     with download_col:
         st.download_button(
@@ -461,22 +476,23 @@ if st.session_state.analysis_complete and topic:
             use_container_width=True
         )
 
-# ------------------ Utility Functions ------------------ #
+#######################################
+# UTILITY FUNCTIONS
+#######################################
 def handle_response(response):
-    """Handle model response and extract text with more specific error handling."""
+    """Extract text from Google GenAI response."""
     try:
         if hasattr(response, "parts") and response.parts:
-            # Return first text part found
-            if text_part := next((part.text for part in response.parts if part.text), None):
+            if text_part := next((p.text for p in response.parts if p.text), None):
                 return text_part.strip()
             else:
-                logging.warning("Response parts exist, but no text part found.")
+                logging.warning("Response parts exist, but no text found.")
         elif hasattr(response, "text"):
             return response.text.strip()
         else:
-            logging.warning("Response does not contain expected structure for text extraction.")
+            logging.warning("Response structure not recognized.")
     except Exception as e:
-        logging.error(f"Error extracting text from response: {e}")
+        logging.error(f"Error extracting text: {e}")
     return ""
 
 def generate_random_fact(topic):
@@ -502,7 +518,7 @@ Focus on surprising, lesser-known, or unusual aspects of the topic.
     return None
 
 def generate_quick_summary(topic):
-    """Generate a quick summary (TL;DR) using the model."""
+    """Generate a quick summary (TL;DR) for the topic."""
     try:
         quick_summary_prompt = f"""
 Provide a very brief, one to two-sentence TL;DR (Too Long; Didn't Read) overview of the following topic,
@@ -519,26 +535,24 @@ incorporating emojis where relevant:
             ),
         )
         summary = handle_response(response)
-        # Ensure summary is within 1-2 sentences
-        sentences = summary.split('.')
-        if len(sentences) > 2:
-            summary = '. '.join(sentences[:2]) + '.' if sentences[0] else ''
-        return summary.strip()
+        if summary:
+            # Keep within 1-2 sentences
+            sentences = summary.split('.')
+            if len(sentences) > 2:
+                summary = '. '.join(sentences[:2]) + '.' if sentences[0] else ''
+            return summary.strip()
     except Exception as e:
         logging.error(f"Failed to generate quick summary: {e}")
     return None
 
 def create_download_pdf(refined_prompt, framework, research_analysis, final_analysis):
-    """Create a PDF report from the analysis results."""
+    """Build a PDF from the analysis content."""
     try:
         def sanitize_text(text):
-            """Clean text for PDF compatibility."""
             if not text:
                 return ""
             text = text.replace('—', '-').replace('–', '-')
-            text = text.replace('"', '"')
             text = text.replace('’', "'").replace('‘', "'").replace('…', '...')
-            # Remove emojis / special chars outside ASCII
             return ''.join(char for char in text if ord(char) < 128)
 
         pdf = FPDF()
@@ -580,14 +594,15 @@ def create_download_pdf(refined_prompt, framework, research_analysis, final_anal
         return pdf.output(dest='S').encode('latin-1')
     except Exception as e:
         logging.error(f"Failed to create PDF: {e}")
+        # Return a simple PDF with error message
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Helvetica", size=12)
-        pdf.cell(0, 10, f"Error creating PDF report: {str(e)}", ln=True)
+        pdf.cell(0, 10, f"Error creating PDF: {str(e)}", ln=True)
         return pdf.output(dest='S').encode('latin-1')
 
 def generate_refined_prompt_and_framework(topic):
-    """Generate a refined prompt and framework using Agent 1."""
+    """Agent 1: refine prompt & generate framework."""
     try:
         prompt_response = model.generate_content(
             agent1_prompt.format(topic=topic),
@@ -607,29 +622,23 @@ def generate_refined_prompt_and_framework(topic):
                 if framework.startswith("Investigation Framework"):
                     framework = framework[len("Investigation Framework"):].strip()
 
-                # Fix formatting indentation
-                framework_lines = framework.split("\n")
-                cleaned_framework_lines = []
-                for line in framework_lines:
+                # Fix bullet indentation
+                lines = framework.split("\n")
+                cleaned = []
+                for line in lines:
                     if line.lstrip().startswith("-"):
-                        cleaned_framework_lines.append(" " + line.lstrip())
+                        cleaned.append(" " + line.lstrip())
                     else:
-                        cleaned_framework_lines.append(line)
-                framework = "\n".join(cleaned_framework_lines)
+                        cleaned.append(line)
+                framework = "\n".join(cleaned)
 
-                logging.info("Refined prompt & framework generated successfully")
                 return refined_prompt, framework
-            else:
-                logging.warning("Could not split Agent 1 response properly.")
-                return None, None
-        else:
-            logging.warning("Agent 1 response was empty.")
     except Exception as e:
         logging.error(f"Failed to generate refined prompt & framework: {e}")
     return None, None
 
 def conduct_research(refined_prompt, framework, previous_analysis, current_aspect, iteration):
-    """Conduct research and analysis using Agent 2."""
+    """Agent 2: conduct research for a given aspect."""
     try:
         prompt_response = model.generate_content(
             agent2_prompt.format(
@@ -647,27 +656,23 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
         )
         research = handle_response(prompt_response)
         if research:
-            research_lines = research.split("\n")
-            cleaned_research = []
+            lines = research.split("\n")
+            cleaned = []
             skip_next = False
-            for line in research_lines:
+            for line in lines:
                 if "Iteration Focus:" in line or "ITERATION FOCUS:" in line:
                     skip_next = True
                     continue
                 if skip_next:
                     skip_next = False
                     continue
-                cleaned_research.append(line)
-            research = "\n".join(cleaned_research).strip()
-            logging.info(f"Research phase {iteration} completed successfully.")
-            return research
-        else:
-            logging.warning(f"Research phase {iteration} returned no content.")
+                cleaned.append(line)
+            return "\n".join(cleaned).strip()
     except Exception as e:
-        logging.error(f"Failed to conduct research phase {iteration}: {e}")
+        logging.error(f"Failed in research iteration {iteration}: {e}")
     return None
 
-# Convert the depth selection to a numerical value
+# Convert slider selection to numeric loops
 if loops == "Puddle":
     loops_num = 1
 elif loops == "Lake":
@@ -679,80 +684,81 @@ elif loops == "Mariana Trench":
 else:
     loops_num = 2
 
-# ------------------ Main Button Logic ------------------ #
+#######################################
+# MAIN BUTTON LOGIC
+#######################################
 if start_button_clicked:
-    if topic:
-        # Reset relevant session states
+    if topic.strip():
+        # Clear session states
         st.session_state.analysis_complete = False
         st.session_state.research_results = []
         st.session_state.random_fact = None
 
-        # ------------------ STEP 0: Refining Prompt (Random Fact + Quick Summary) ------------------ #
+        # STEP 0: "Refining Prompt" 
         st.session_state.current_step = 0
         render_stepper(st.session_state.current_step)
-        st.write("**Step 1**: Refining Prompt (Generating random fact & quick summary)...")
+        st.write("**Step 1**: Refining Prompt (random fact & quick summary)...")
 
         try:
-            random_fact = generate_random_fact(topic)
-            if random_fact:
-                st.session_state.random_fact = random_fact
+            # Generate random fact
+            st.session_state.random_fact = generate_random_fact(topic)
+            if st.session_state.random_fact:
                 with st.expander("🎲 Random Fact", expanded=True):
-                    st.markdown(random_fact)
+                    st.markdown(st.session_state.random_fact)
 
-            tldr_summary = generate_quick_summary(topic)
-            if tldr_summary:
-                st.session_state.tldr_summary = tldr_summary
+            # Quick summary
+            st.session_state.tldr_summary = generate_quick_summary(topic)
+            if st.session_state.tldr_summary:
                 with st.expander("💡 TL;DR", expanded=True):
-                    st.markdown(tldr_summary)
+                    st.markdown(st.session_state.tldr_summary)
 
-            st.success("Prompt refinement step done.")
+            st.success("Prompt refinement complete.")
         except Exception as e:
             st.error(f"Refining prompt failed: {str(e)}")
-            logging.error(e)
             st.stop()
 
-        # ------------------ STEP 1: Developing Framework (Agent 1) ------------------ #
+        # STEP 1: "Developing Framework"
         st.session_state.current_step = 1
         render_stepper(st.session_state.current_step)
-        st.write("**Step 2**: Developing framework...")
+        st.write("**Step 2**: Developing framework (Agent 1)...")
 
         refined_prompt, framework = generate_refined_prompt_and_framework(topic)
         if refined_prompt and framework:
-            st.session_state.refined_prompt = refined_prompt.strip()
-            st.session_state.framework = framework.strip()
+            st.session_state.refined_prompt = refined_prompt
+            st.session_state.framework = framework
 
-            with st.expander(f"🎯 Refined Prompt", expanded=False):
-                st.markdown(st.session_state.refined_prompt)
-            with st.expander(f"🗺️ Investigation Framework", expanded=False):
-                st.markdown(st.session_state.framework)
+            with st.expander("🎯 Refined Prompt", expanded=False):
+                st.markdown(refined_prompt)
+            with st.expander("🗺️ Investigation Framework", expanded=False):
+                st.markdown(framework)
 
             st.success("Framework developed.")
         else:
-            st.warning("Could not develop framework from Agent 1. Stopping.")
+            st.error("Agent 1 did not return a refined prompt & framework. Stopping.")
             st.stop()
 
-        # ------------------ STEP 2: Conducting Research (Agent 2) ------------------ #
+        # STEP 2: "Conducting Research"
         st.session_state.current_step = 2
         render_stepper(st.session_state.current_step)
-        st.write("**Step 3**: Conducting research...")
+        st.write("**Step 3**: Conducting research (Agent 2)...")
 
         current_analysis = ""
         aspects = []
         research_expanders = []
 
-        # Extract aspects from framework lines that begin with "1.", "2.", "3.", etc.
-        for line in st.session_state.framework.split("\n"):
-            if line.strip().startswith(("1.", "2.", "3.", "4.")):
+        # Find aspects in the framework
+        for line in framework.split("\n"):
+            if line.strip().startswith(("1.", "2.", "3.", "4.", "5.")):
                 aspects.append(line.strip())
 
         for i in range(loops_num):
             current_aspect = random.choice(aspects) if aspects else "Current State and Trends"
             research = conduct_research(
-                refined_prompt=st.session_state.refined_prompt,
-                framework=st.session_state.framework,
-                previous_analysis=current_analysis,
-                current_aspect=current_aspect,
-                iteration=i+1
+                st.session_state.refined_prompt,
+                st.session_state.framework,
+                current_analysis,
+                current_aspect,
+                i+1
             )
             if research:
                 current_analysis += "\n\n" + research
@@ -760,7 +766,7 @@ if start_button_clicked:
                 title = next((ln for ln in lines if ln.strip()), current_aspect)
                 content = "\n".join(lines[1:])
 
-                # Simple emoji logic
+                # Assign an emoji
                 title_lower = title.lower()
                 if any(word in title_lower for word in ["extinct","survival","species","wildlife","bird","animal","habitat"]):
                     emoji = "🦅"
@@ -788,28 +794,28 @@ if start_button_clicked:
                     emoji = "🔮"
                 else:
                     emoji = "📝"
-                
+
                 research_expanders.append((f"{emoji} {title}", content))
             else:
-                st.error(f"Research phase {i+1} failed or returned no content.")
+                st.error(f"Research phase {i+1} failed. Stopping.")
                 st.stop()
 
-        # Show the research expanders
+        # Display research 
         for title, content in research_expanders:
             with st.expander(f"**{title}**", expanded=False):
                 st.markdown(content)
 
-        st.success("Research phase complete.")
+        st.success("Research complete.")
 
-        # ------------------ STEP 3: Final Report (Agent 3) ------------------ #
+        # STEP 3: "Final Report"
         st.session_state.current_step = 3
         render_stepper(st.session_state.current_step)
-        st.write("**Step 4**: Generating final report...")
+        st.write("**Step 4**: Generating final report (Agent 3)...")
 
         final_response = model.generate_content(
             agent3_prompt.format(
-                refined_prompt=st.session_state.refined_prompt,
-                system_prompt=st.session_state.framework,
+                refined_prompt=refined_prompt,
+                system_prompt=framework,
                 all_aspect_analyses=current_analysis,
             ),
             generation_config=agent3_config,
@@ -817,24 +823,21 @@ if start_button_clicked:
         final_analysis = handle_response(final_response)
         if final_analysis:
             st.session_state.final_analysis = final_analysis
-            with st.expander(f"📋 Final Report", expanded=False):
+            with st.expander("📋 Final Report", expanded=False):
                 st.markdown(final_analysis)
             st.success("Final report generated.")
         else:
-            st.error("Failed to generate final report.")
+            st.error("Agent 3 did not return a final report. Stopping.")
             st.stop()
 
-        # Create PDF
+        # Create PDF 
         pdf_buffer = create_download_pdf(
-            st.session_state.refined_prompt, 
-            st.session_state.framework, 
-            current_analysis, 
-            final_analysis
+            refined_prompt, framework, current_analysis, final_analysis
         )
         st.session_state.pdf_buffer = pdf_buffer
         st.session_state.research_results = research_expanders
 
-        # ------------------ STEP 4: Analysis Complete ------------------ #
+        # STEP 4: "Analysis Complete"
         st.session_state.current_step = 4
         st.session_state.analysis_complete = True
         render_stepper(st.session_state.current_step)
@@ -853,6 +856,5 @@ if start_button_clicked:
                 help="Download the complete analysis report as a PDF file",
                 use_container_width=True
             )
-
     else:
         st.warning("Please enter a topic to analyze.")
