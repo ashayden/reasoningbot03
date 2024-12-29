@@ -231,12 +231,17 @@ if topic != st.session_state.previous_input:
     st.session_state.framework = None
     st.session_state.previous_input = topic
 
-# --- UI/UX - Add expander for prompt details ---
-with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
-    # Agent Prompts
-    agent1_prompt = st.text_area(
-        "Agent 1 Prompt (Prompt Engineer)",
-        '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
+# Add modal trigger button for prompt customization
+if st.button("☠️ Advanced Prompt Customization ☠️"):
+    modal = st.modal("Advanced Prompt Customization")
+    with modal:
+        st.markdown("### Customize Agent Prompts")
+        
+        # Agent 1 Prompt
+        st.markdown("#### Agent 1: Prompt Engineer")
+        agent1_prompt = st.text_area(
+            "Prompt for refining user input and generating investigation framework",
+            '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
 
 USER'S TOPIC/QUESTION: {topic}
 
@@ -289,13 +294,14 @@ Note:
 - Use consistent indentation for bullet points
 - Add a blank line between numbered items
 - Use a hyphen (-) for bullet points''',
-        key="agent1_prompt",
-        height=300,
-    )
+            height=300,
+        )
 
-    agent2_prompt = st.text_area(
-        "Agent 2 Prompt (Researcher)",
-        '''Using the refined prompt and the established framework, continue researching and analyzing:
+        # Agent 2 Prompt
+        st.markdown("#### Agent 2: Researcher")
+        agent2_prompt = st.text_area(
+            "Prompt for conducting research and analysis",
+            '''Using the refined prompt and the established framework, continue researching and analyzing:
 
 REFINED PROMPT:
 {refined_prompt}
@@ -320,13 +326,14 @@ Then present your findings by:
 5. Noting any emerging implications
 
 Structure your response with the descriptive title on the first line, followed by your analysis.''',
-        key="agent2_prompt",
-        height=300,
-    )
+            height=300,
+        )
 
-    agent3_prompt = st.text_area(
-        "Agent 3 Prompt (Expert Analyst)",
-        '''Based on the completed analysis of the topic:
+        # Agent 3 Prompt
+        st.markdown("#### Agent 3: Expert Analyst")
+        agent3_prompt = st.text_area(
+            "Prompt for final analysis and synthesis",
+            '''Based on the completed analysis of the topic:
 
 REFINED PROMPT:
 {refined_prompt}
@@ -355,9 +362,10 @@ I. [First Major Section]:
 
 Recommendations:
 [List specific, actionable recommendations based on the analysis]''',
-        key="agent3_prompt",
-        height=300,
-    )
+            height=300,
+        )
+        
+        st.button("Close", on_click=modal.close)
 
 # Slider for research depth with descriptive options
 loops = st.select_slider(
