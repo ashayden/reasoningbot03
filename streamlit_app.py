@@ -284,12 +284,37 @@ st.markdown("""
 [data-testid="stExpander"] summary:hover {
     background-color: rgba(36, 57, 247, 0.1) !important;
 }
+
+/* Subheader styling */
+.subheader {
+    font-size: 1.2rem !important;
+    color: rgba(250, 250, 250, 0.8) !important;
+    margin-bottom: 2rem !important;
+}
+
+/* Expander header with right-aligned emoji */
+[data-testid="stExpander"] summary {
+    color: #2439f7 !important;
+    font-weight: 500 !important;
+    padding: 0.5rem 1rem !important;
+    transition: all 0.2s ease-in-out !important;
+    font-size: 1.2rem !important;
+    background-color: transparent !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+[data-testid="stExpander"] summary:hover {
+    background-color: rgba(36, 57, 247, 0.1) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # Update main title and subheader
 st.markdown("<h1 class='main-title'>🤖</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subheader'>This bot uses multiple AI agents to analyze topics in depth with sophisticated reasoning.</p>", unsafe_allow_html=True)
+st.markdown("<p class='subheader'>Multi-Agent Reasoning Assistant a003</p>", unsafe_allow_html=True)
 
 # Get API key from Streamlit secrets
 try:
@@ -356,7 +381,7 @@ if topic != st.session_state.previous_input:
     st.session_state.previous_input = topic
 
 # Add expander for prompt customization
-with st.expander("☠️"):
+with st.expander("                                                                                                                                                                                                ☠️"):
     st.markdown("### Customize Agent Prompts")
     
     # Agent 1 Prompt
