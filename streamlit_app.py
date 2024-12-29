@@ -312,17 +312,19 @@ with button_col:
 progress_placeholder = st.empty()
 
 # Display previous results if they exist
-if st.session_state.analysis_complete:
+if st.session_state.analysis_complete and topic:
     # Display random fact first
-    with st.expander("**🎲 Random Fact**", expanded=True):
-        st.markdown(generate_random_fact(topic))
+    with st.expander("🎲 Random Fact", expanded=True):
+        if 'random_fact' not in st.session_state:
+            st.session_state.random_fact = generate_random_fact(topic)
+        st.markdown(st.session_state.random_fact if st.session_state.random_fact else "Unable to generate random fact.")
     
     if st.session_state.tldr_summary:
-        with st.expander("**💡 TL;DR**", expanded=True):
+        with st.expander("💡 TL;DR", expanded=True):
             st.markdown(st.session_state.tldr_summary)
     
     if st.session_state.refined_prompt:
-        with st.expander(f"**🎯 Refined Prompt**", expanded=False):
+        with st.expander(f"🎯 Refined Prompt", expanded=False):
             st.markdown(st.session_state.refined_prompt)
     
     if st.session_state.framework:
@@ -591,14 +593,16 @@ if start_button_clicked:
         # Reset session state
         st.session_state.analysis_complete = False
         st.session_state.research_results = []
+        st.session_state.random_fact = None  # Reset random fact
         
         # Initialize progress bar
         progress_bar = st.progress(0)
         
         try:
-            # Display random fact first
+            # Generate and store random fact
             random_fact = generate_random_fact(topic)
             if random_fact:
+                st.session_state.random_fact = random_fact
                 with st.expander("🎲 Random Fact", expanded=True):
                     st.markdown(random_fact)
                 progress_bar.progress(10)
