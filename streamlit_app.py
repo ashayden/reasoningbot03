@@ -36,9 +36,11 @@ def render_stepper(current_step: int) -> None:
         .stepper-container {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin: 2rem 0;
+            justify-content: center;
+            margin: 2rem auto;
             padding: 0 1rem;
+            max-width: 800px;
+            position: relative;
         }
         .step {
             display: flex;
@@ -46,12 +48,13 @@ def render_stepper(current_step: int) -> None:
             align-items: center;
             position: relative;
             flex: 1;
+            min-width: 100px;
         }
         .step-number {
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background-color: #f0f2f6;
+            background-color: rgba(240, 242, 246, 0.8);
             border: 2px solid #ccc;
             color: #666;
             display: flex;
@@ -59,12 +62,18 @@ def render_stepper(current_step: int) -> None:
             justify-content: center;
             font-weight: bold;
             margin-bottom: 8px;
-            z-index: 1;
+            z-index: 2;
+            position: relative;
+            transition: all 0.3s ease;
         }
         .step-label {
             font-size: 0.85rem;
             color: #666;
             text-align: center;
+            max-width: 120px;
+            word-wrap: break-word;
+            position: relative;
+            z-index: 2;
         }
         .step-line {
             position: absolute;
@@ -73,12 +82,17 @@ def render_stepper(current_step: int) -> None:
             right: calc(-50% + 20px);
             height: 2px;
             background-color: #ccc;
-            z-index: 0;
+            z-index: 1;
         }
         .step.active .step-number {
             border-color: #2439f7;
             color: #2439f7;
-            background-color: #fff;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 0 4px rgba(36, 57, 247, 0.1);
+        }
+        .step.active .step-label {
+            color: #2439f7;
+            font-weight: 500;
         }
         .step.complete .step-number {
             background-color: #28a745;
@@ -94,28 +108,18 @@ def render_stepper(current_step: int) -> None:
         </style>
     """, unsafe_allow_html=True)
     
-    # Create the HTML
-    html = '<div class="stepper-container">'
+    # Create the HTML with minimal whitespace
+    html_parts = ['<div class="stepper-container">']
     
     for i, label in enumerate(STEPS):
-        status = ""
-        if i < current_step:
-            status = "complete"
-        elif i == current_step:
-            status = "active"
-            
-        html += f"""
-            <div class="step {status}">
-                <div class="step-number">{i + 1}</div>
-                <div class="step-label">{label}</div>
-                <div class="step-line"></div>
-            </div>
-        """
+        status = "complete" if i < current_step else "active" if i == current_step else ""
+        step_html = f'<div class="step {status}"><div class="step-number">{i + 1}</div><div class="step-label">{label}</div><div class="step-line"></div></div>'
+        html_parts.append(step_html)
     
-    html += '</div>'
+    html_parts.append('</div>')
     
     # Render the HTML
-    st.markdown(html, unsafe_allow_html=True)
+    st.markdown(''.join(html_parts), unsafe_allow_html=True)
 
 
 ########################################
