@@ -40,22 +40,19 @@ st.markdown("""
     transition: all 0.2s;
 }
 
-/* Progress bar styling */
+/* Progress bar styling with smoother animation */
 .stProgress > div > div > div > div {
-    background: linear-gradient(90deg, 
-        #007bff 0%, 
-        #007bff 98%, 
-        #007bff 100%
-    );
+    background: linear-gradient(to right, #007bff, #0056b3);
     background-size: 200% 100%;
-    animation: loading 2s linear infinite;
+    animation: moveGradient 2s linear infinite;
     border-radius: 0.5rem;
     height: 0.5rem !important;
 }
 
-@keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+@keyframes moveGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 /* Completed progress bar */
@@ -454,25 +451,6 @@ if start_button_clicked or st.session_state.get('start_button_clicked', False):
         progress_bar = st.progress(0)
         
         try:
-            # Display initial random fact
-            with fact_placeholder.container():
-                with st.expander("🎲 Random Fact", expanded=True):
-                    st.markdown(generate_random_fact(topic))
-            
-            # Start fact update loop in the background
-            def update_fact():
-                while not st.session_state.analysis_complete:
-                    time.sleep(8)  # Wait before showing new facts
-                    with fact_placeholder.container():
-                        with st.expander("🎲 Random Fact", expanded=True):
-                            st.markdown(generate_random_fact(topic))
-            
-            # Start the fact update thread
-            import threading
-            fact_thread = threading.Thread(target=update_fact)
-            fact_thread.daemon = True
-            fact_thread.start()
-
             # Quick Summary (TL;DR)
             tldr_summary = generate_quick_summary(topic)
             if tldr_summary:
@@ -480,10 +458,34 @@ if start_button_clicked or st.session_state.get('start_button_clicked', False):
                 st.session_state.tldr_summary = tldr_summary
                 with st.expander("💡 TL;DR", expanded=True):
                     st.markdown(tldr_summary)
+            
+            # Place random fact after progress bar
+            fact_placeholder = st.empty()
+            with fact_placeholder.container():
+                with st.expander("🎲 Random Fact", expanded=True):
+                    st.markdown(generate_random_fact(topic))
+            
+            # Start fact update loop in the background
+            def update_fact():
+                while not st.session_state.analysis_complete:
+                    time.sleep(8)
+                    try:
+                        with fact_placeholder.container():
+                            with st.expander("🎲 Random Fact", expanded=True):
+                                st.markdown(generate_random_fact(topic))
+                    except:
+                        pass  # Ignore errors during updates
+            
+            # Start the fact update thread
+            import threading
+            fact_thread = threading.Thread(target=update_fact)
+            fact_thread.daemon = True
+            fact_thread.start()
 
             # Agent 1: Refine prompt and generate framework
             refined_prompt, framework = generate_refined_prompt_and_framework(topic)
             if refined_prompt and framework:
+                progress_bar.progress(40)
                 st.session_state.refined_prompt = refined_prompt.lstrip(":\n").strip()
                 st.session_state.framework = framework.lstrip(": **\n").strip()
                 
@@ -494,7 +496,6 @@ if start_button_clicked or st.session_state.get('start_button_clicked', False):
                 # Display framework
                 with st.expander(f"**🗺️ Investigation Framework**", expanded=False):
                     st.markdown(st.session_state.framework)
-                progress_bar.progress(40)
 
                 # Agent 2: Conduct research through iterations
                 current_analysis = ""
