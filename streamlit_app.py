@@ -410,11 +410,10 @@ if start_clicked:
         'current_step': 0
     })
     
-    # Create step wizard container AFTER the Dive In button
+    # Create single step wizard container AFTER the Dive In button
     st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)  # Add spacing
-    step_container = st.container()
-    with step_container:
-        render_stepper(st.session_state.current_step)
+    step_container = st.empty()  # Use empty container to update in place
+    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
     # Step 1: Initial Analysis
     st.session_state.random_fact = generate_random_fact(topic)
@@ -430,8 +429,7 @@ if start_clicked:
 
     # Mark Step 1 complete
     st.session_state.current_step = 1
-    with step_container:
-        render_stepper(st.session_state.current_step)
+    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
     # Step 2: Framework Development
     refined_prompt, framework = generate_refined_prompt_and_framework(topic)
@@ -449,8 +447,7 @@ if start_clicked:
 
     # Mark Step 2 complete
     st.session_state.current_step = 2
-    with step_container:
-        render_stepper(st.session_state.current_step)
+    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
     # Step 3: Research Phase
     aspects = [line.strip() for line in framework.split("\n") 
@@ -484,8 +481,7 @@ if start_clicked:
 
     # Mark Step 3 complete
     st.session_state.current_step = 3
-    with step_container:
-        render_stepper(st.session_state.current_step)
+    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
     # Generate final report
     try:
@@ -519,11 +515,10 @@ if start_clicked:
         pdf_bytes = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
         st.session_state.pdf_buffer = pdf_bytes
 
-        # Mark analysis complete
+        # Mark analysis complete and update step wizard one final time
         st.session_state.current_step = 4
         st.session_state.analysis_complete = True
-        with step_container:
-            render_stepper(st.session_state.current_step)
+        step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
         # Show download button
         st.download_button(
