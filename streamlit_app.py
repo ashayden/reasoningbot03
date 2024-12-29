@@ -205,6 +205,24 @@ if topic != st.session_state.previous_input:
     st.session_state.framework = None
     st.session_state.previous_input = topic
 
+# Slider for research depth
+st.markdown("##### How deep should we dive?")
+st.markdown("*Select the depth of analysis*")
+
+loops = st.select_slider(
+    "",  # Empty label since we're using custom markdown above
+    options=["Lake", "Ocean"],
+    value="Lake",
+)
+
+# Convert slider selection to number of loops
+if loops == "Lake":
+    loops_num = random.randint(2, 3)
+elif loops == "Ocean":
+    loops_num = random.randint(4, 6)
+else:
+    loops_num = 2  # Default value
+
 # Create columns for input and button
 col1, col2 = st.columns([4, 1])
 
@@ -213,63 +231,23 @@ with col2:
     if start_button_clicked:
         st.session_state.start_button_clicked = True
 
-# Add progress bar placeholder before TL;DR
+# Add progress bar placeholder
 progress_placeholder = st.empty()
 
-# Display previous results if they exist
-if st.session_state.analysis_complete and topic:
-    # Display random fact first
-    with st.expander("🎲 Random Fact", expanded=True):
-        if 'random_fact' not in st.session_state:
-            st.session_state.random_fact = generate_random_fact(topic)
-        st.markdown(st.session_state.random_fact if st.session_state.random_fact else "Unable to generate random fact.")
-    
-    if st.session_state.tldr_summary:
-        with st.expander("💡 TL;DR", expanded=True):
-            st.markdown(st.session_state.tldr_summary)
-    
-    if st.session_state.refined_prompt:
-        with st.expander(f"🎯 Refined Prompt", expanded=False):
-            st.markdown(st.session_state.refined_prompt)
-    
-    if st.session_state.framework:
-        with st.expander(f"🗺️ Investigation Framework", expanded=False):
-            st.markdown(st.session_state.framework)
-    
-    for title, content in st.session_state.research_results:
-        with st.expander(f"**{title}**", expanded=False):
-            st.markdown(content)
-    
-    if st.session_state.final_analysis:
-        with st.expander(f"📋 Final Report", expanded=False):
-            st.markdown(st.session_state.final_analysis)
+# Main analysis workflow
+if st.session_state.get("start_button_clicked", False) and topic:
+    try:
+        # Initialize progress bar
+        progress_bar = st.progress(0)
         
-        # Update progress bar color after final report
-        st.markdown(
-            """
-            <style>
-            .stProgress > div > div > div > div {
-                background-color: #28a745 !important;
-                animation: none !important;
-                transition: background-color 0.3s ease-in-out !important;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
+        # Rest of your analysis code...
         
-        # Create columns for download button
-        _, download_col = st.columns([1, 2])
-        with download_col:
-            st.download_button(
-                label="⬇️ Download Report as PDF",
-                data=st.session_state.pdf_buffer,
-                file_name=f"{topic}_analysis_report.pdf",
-                mime="application/pdf",
-                key="download_button",
-                help="Download the complete analysis report as a PDF file",
-                use_container_width=True
-            )
+    except Exception as e:
+        st.error(f"Analysis failed: {str(e)}. Please try again.")
+        logging.error(f"Analysis failed: {e}")
+        st.session_state.analysis_complete = False
+else:
+    st.warning("Please enter a topic to analyze.")
 
 def generate_random_fact(topic):
     """Generate a random interesting fact related to the topic."""
@@ -509,18 +487,6 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
     except Exception as e:
         logging.error(f"Failed to conduct research in phase {iteration}: {e}")
     return None
-
-# Convert the depth selection to a numerical value
-if loops == "Puddle":
-    loops_num = 1
-elif loops == "Lake":
-    loops_num = random.randint(2, 3)
-elif loops == "Ocean":
-    loops_num = random.randint(4, 6)
-elif loops == "Mariana Trench":
-    loops_num = random.randint(7, 10)
-else:
-    loops_num = 2  # Default value
 
 if start_button_clicked:
     if topic:
