@@ -15,10 +15,10 @@ logging.basicConfig(
 
 # STEP LABELS FOR YOUR WIZARD
 STEPS = [
-    "Refining Prompt",
-    "Developing Framework",
-    "Conducting Research",
-    "Analysis Complete"
+    "Preparing",
+    "Developing",
+    "Researching",
+    "Complete"
 ]
 
 ########################################
