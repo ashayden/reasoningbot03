@@ -12,8 +12,12 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# --- Add Logo to Sidebar ---
-# add_logo("https://viso.ai/wp-content/uploads/2023/08/viso-logo-drop.svg", height=5) # Removed as requested
+# --- UI/UX - Add colored header ---
+colored_header(
+    label="Advanced Reasoning Bot 🤖",
+    description="This bot uses multiple AI agents to analyze topics in depth with sophisticated reasoning.",
+    color_name="violet-70",
+)
 
 # Get API key from Streamlit secrets
 try:
@@ -34,192 +38,158 @@ except Exception as e:
     st.error(f"⚠️ Error configuring Gemini API: {str(e)}")
     st.stop()
 
-# --- UI/UX - Add colored header ---
-colored_header(
-    label="Advanced Reasoning Bot 🤖",
-    description="This bot uses multiple AI agents to analyze topics in depth with sophisticated reasoning.",
-    color_name="violet-70",
+# Input section
+topic = st.text_input(
+    "Enter a topic or question:",
+    placeholder="e.g., 'What are the impacts of AI on the economy?'",
 )
 
-# Input section with UI/UX enhancements
-with st.container():
-    # Create columns for the topic input and the settings cog
-    topic_col, settings_col = st.columns([0.8, 0.2])
+# --- UI/UX - Add expander for prompt details ---
+with st.expander("Advanced Prompt Customization"):
+    # Agent Prompts
+    agent1_prompt = st.text_area(
+        "Agent 1 Prompt (Prompt Engineer)",
+        '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
 
-    with topic_col:
-        topic = st.text_input(
-            "Enter a topic or question:",
-            placeholder="e.g., 'What are the impacts of AI on the economy?'",
-            key="topic_input",
-            label_visibility="visible"  # Make sure the label is visible
-        )
+USER'S TOPIC/QUESTION: {topic}
 
-    with settings_col:
-        # Add a settings cog icon that triggers the expander
-        st.write("")  # Placeholder for vertical alignment
-        if st.button("⚙️", key="settings_button"):
-            pass  # Use pass to avoid any action, the expander state is handled below
+1.  **Prompt Refinement**
+    *   Analyze the user's input and identify areas where you can add more detail, specificity, and context.
+    *   Consider what background information or assumptions might be helpful to include.
+    *   Reformulate the user's input into a more comprehensive and well-defined prompt.
 
-    # Expander for Advanced Prompt Customization
-    with st.expander("Advanced Prompt Customization", expanded=False):
-        # Agent Prompts
-        agent1_prompt = st.text_area(
-            "Agent 1 Prompt (Prompt Engineer)",
-            '''You are an expert prompt engineer. Your task is to take a user's topic or question and refine it into a more specific and context-rich prompt. Then, based on this improved prompt, generate a structured investigation framework.
+2.  **Investigation Framework**
+    *   Based on your **refined prompt**, define a structured approach for investigating the topic.
+    *   Outline:
+        -   Core Question/Hypothesis
+        -   Key Areas Requiring Investigation
+        -   Critical Factors to Examine
+        -   Required Data and Information Sources
+        -   Potential Challenges or Limitations
 
-    USER'S TOPIC/QUESTION: {topic}
+    *   Present this as a clear investigation framework that will guide further research and analysis.
 
-    1.  **Prompt Refinement**
-        *   Analyze the user's input and identify areas where you can add more detail, specificity, and context.
-        *   Consider what background information or assumptions might be helpful to include.
-        *   Reformulate the user's input into a more comprehensive and well-defined prompt.
+Format your response with appropriate spacing between sections:
 
-    2.  **Investigation Framework**
-        *   Based on your **refined prompt**, define a structured approach for investigating the topic.
-        *   Outline:
-            -   Core Question/Hypothesis
-            -   Key Areas Requiring Investigation
-            -   Critical Factors to Examine
-            -   Required Data and Information Sources
-            -   Potential Challenges or Limitations
+Refined Prompt
+[Your refined prompt here]
 
-        *   Present this as a clear investigation framework that will guide further research and analysis.
+---
 
-    Format your response with appropriate spacing between sections:
+Investigation Framework
 
-    Refined Prompt
-    [Your refined prompt here]
+Core Question/Hypothesis
 
-    ---
+[Your hypothesis here, which may wrap to multiple lines while maintaining proper alignment]
 
-    Investigation Framework
+Key Areas Requiring Investigation
 
-    Core Question/Hypothesis
+1. [Area Name]:
+   - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
+   - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
+   - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
 
-    [Your hypothesis here, which may wrap to multiple lines while maintaining proper alignment]
+2. [Area Name]:
+   - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
+   - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
+   - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
 
-    Key Areas Requiring Investigation
-
-    1. [Area Name]:
-    - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
-    - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
-    - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
-
-    2. [Area Name]:
-    - [First point with detailed explanation that may wrap to multiple lines, with proper indentation for wrapped lines]
-    - [Second point with similarly detailed explanation, maintaining consistent indentation for wrapped text]
-    - [Third point following the same format, ensuring all wrapped lines align with the first line of the point]
-
-    Note: 
-    - Each section header should be on its own line
-    - Leave a blank line between the header and its content
-    - Each numbered item starts with a number followed by a period, space, and area name
-    - Bullet points appear on new lines beneath the numbered item
-    - Use consistent indentation for bullet points
-    - Add a blank line between numbered items
-    - Use a hyphen (-) for bullet points''',
-            key="agent1_prompt",
-            height=300,
-        )
-
-        agent2_prompt = st.text_area(
-            "Agent 2 Prompt (Researcher)",
-            '''Using the refined prompt and the established framework, continue researching and analyzing:
-
-    REFINED PROMPT:
-    {refined_prompt}
-
-    FRAMEWORK:
-    {framework}
-
-    PREVIOUS ANALYSIS:
-    {previous_analysis}
-
-    CURRENT FOCUS:
-    {current_aspect}
-
-    Begin your response with a descriptive title that summarizes the focus area and its relation to the main topic.
-    For example: "Economic Factors: Impact on Regional Development Trends"
-
-    Then present your findings by:
-    1. Gathering relevant data and evidence
-    2. Analyzing new findings
-    3. Identifying connections and patterns
-    4. Updating conclusions based on new information
-    5. Noting any emerging implications
-
-    Structure your response with the descriptive title on the first line, followed by your analysis.''',
-            key="agent2_prompt",
-            height=300,
-        )
-
-        agent3_prompt = st.text_area(
-            "Agent 3 Prompt (Expert Analyst)",
-            '''Based on the completed analysis of the topic:
-
-    REFINED PROMPT:
-    {refined_prompt}
-
-    FRAMEWORK:
-    {system_prompt}
-
-    ANALYSIS:
-    {all_aspect_analyses}
-
-    You are a leading expert in fields relevant to the topic. Provide an in-depth analysis as a recognized authority on this topic. Offer insights and conclusions based on your extensive knowledge and experience.
-
-    Write a comprehensive report addressing the topic and/or answering the user's question. Include relevant statistics. Present the report in a neutral, objective, and informative tone, befitting an expert in the field.
-
-    ### Analysis Results
-
-    [Title of Analysis]
-
-    Executive Summary:
-    [Provide a comprehensive overview of the key findings, challenges, and recommendations]
-
-    I. [First Major Section]:
-    [Detailed analysis with supporting evidence and data]
-
-    [Continue with subsequent sections as needed]
-
-    Recommendations:
-    [List specific, actionable recommendations based on the analysis]''',
-            key="agent3_prompt",
-            height=300,
-        )
-
-    # Move the slider outside the expander
-    loops = st.select_slider(
-        "How deep should we dive?",
-        options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
-        value="Lake",
-        key="loops_slider",
-        format_func=lambda x: {
-            "Puddle": "1",
-            "Lake": "2-3",
-            "Ocean": "4-6",
-            "Mariana Trench": "7-10",
-        }[x],
+Note: 
+- Each section header should be on its own line
+- Leave a blank line between the header and its content
+- Each numbered item starts with a number followed by a period, space, and area name
+- Bullet points appear on new lines beneath the numbered item
+- Use consistent indentation for bullet points
+- Add a blank line between numbered items
+- Use a hyphen (-) for bullet points''',
+        key="agent1_prompt",
+        height=300,
     )
 
-    # Convert the depth selection to a numerical value
-    if loops == "Puddle":
-        loops_num = 1
-    elif loops == "Lake":
-        loops_num = random.randint(2, 3)
-    elif loops == "Ocean":
-        loops_num = random.randint(4, 6)
-    elif loops == "Mariana Trench":
-        loops_num = random.randint(7, 10)
-    else:
-        loops_num = 2  # Default value
+    agent2_prompt = st.text_area(
+        "Agent 2 Prompt (Researcher)",
+        '''Using the refined prompt and the established framework, continue researching and analyzing:
 
-# Update the button to expand the prompt customization section
-if st.session_state.settings_button:
-    st.session_state.agent1_prompt_expander = not st.session_state.get(
-        "agent1_prompt_expander", False
+REFINED PROMPT:
+{refined_prompt}
+
+FRAMEWORK:
+{framework}
+
+PREVIOUS ANALYSIS:
+{previous_analysis}
+
+CURRENT FOCUS:
+{current_aspect}
+
+Begin your response with a descriptive title that summarizes the focus area and its relation to the main topic.
+For example: "Economic Factors: Impact on Regional Development Trends"
+
+Then present your findings by:
+1. Gathering relevant data and evidence
+2. Analyzing new findings
+3. Identifying connections and patterns
+4. Updating conclusions based on new information
+5. Noting any emerging implications
+
+Structure your response with the descriptive title on the first line, followed by your analysis.''',
+        key="agent2_prompt",
+        height=300,
     )
 
+    agent3_prompt = st.text_area(
+        "Agent 3 Prompt (Expert Analyst)",
+        '''Based on the completed analysis of the topic:
+
+REFINED PROMPT:
+{refined_prompt}
+
+FRAMEWORK:
+{system_prompt}
+
+ANALYSIS:
+{all_aspect_analyses}
+
+You are a leading expert in fields relevant to the topic. Provide an in-depth analysis as a recognized authority on this topic. Offer insights and conclusions based on your extensive knowledge and experience.
+
+Write a comprehensive report addressing the topic and/or answering the user's question. Include relevant statistics. Present the report in a neutral, objective, and informative tone, befitting an expert in the field.
+
+### Analysis Results
+
+[Title of Analysis]
+
+Executive Summary:
+[Provide a comprehensive overview of the key findings, challenges, and recommendations]
+
+I. [First Major Section]:
+[Detailed analysis with supporting evidence and data]
+
+[Continue with subsequent sections as needed]
+
+Recommendations:
+[List specific, actionable recommendations based on the analysis]''',
+        key="agent3_prompt",
+        height=300,
+    )
+
+# Slider for research depth with descriptive options
+loops = st.select_slider(
+    "How deep should we dive?",
+    options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
+    value="Lake",
+)
+
+# Convert the depth selection to a numerical value
+if loops == "Puddle":
+    loops_num = 1
+elif loops == "Lake":
+    loops_num = random.randint(2, 3)
+elif loops == "Ocean":
+    loops_num = random.randint(4, 6)
+elif loops == "Mariana Trench":
+    loops_num = random.randint(7, 10)
+else:
+    loops_num = 2  # Default value
 
 def handle_response(response):
     """Handle model response and extract text with more specific error handling."""
@@ -247,11 +217,11 @@ default_generation_config = genai.types.GenerationConfig(
 
 # Create new GenerationConfig objects for other agents:
 agent2_config = genai.types.GenerationConfig(
-    temperature=0.5, top_p=0.7, top_k=40, max_output_tokens=2048  # Increased max_output_tokens
+    temperature=0.5, top_p=0.7, top_k=40, max_output_tokens=2048
 )
 
 agent3_config = genai.types.GenerationConfig(
-    temperature=0.3, top_p=0.7, top_k=20, max_output_tokens=4096  # Increased max_output_tokens
+    temperature=0.3, top_p=0.7, top_k=20, max_output_tokens=4096
 )
 
 
@@ -351,9 +321,9 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
 
 
 # Main Execution
-if st.button("Start Analysis", key="start_button"):  # Added a key for the button
+if st.button("Start Analysis", key="start_button"):
     if topic:
-        progress_bar = st.progress(0, "Starting analysis...")  # Initialize progress bar
+        progress_bar = st.progress(0, "Starting analysis...")
 
         with st.spinner("Analyzing..."):
             # Agent 1: Refine prompt and generate framework
