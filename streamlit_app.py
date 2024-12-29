@@ -506,7 +506,7 @@ if start_button:
         st.session_state.random_fact = None
         st.session_state.current_step = 0
 
-        # Show initial stepper once
+        # Show initial stepper once, right after the button
         render_stepper(st.session_state.current_step)
 
         # STEP 0: Random Fact & TL;DR
@@ -522,7 +522,6 @@ if start_button:
 
         # Mark Refining Prompt complete
         st.session_state.current_step = 1
-        render_stepper(st.session_state.current_step)
 
         # STEP 1: Framework Development
         refined_prompt, framework = generate_refined_prompt_and_framework(topic)
@@ -541,7 +540,6 @@ if start_button:
 
         # Mark Developing Framework complete
         st.session_state.current_step = 2
-        render_stepper(st.session_state.current_step)
 
         # STEP 2: Research
         current_analysis = ""
@@ -585,7 +583,6 @@ if start_button:
 
         # Mark Conducting Research complete
         st.session_state.current_step = 3
-        render_stepper(st.session_state.current_step)
 
         # Generate final report
         combined_results = "\n\n".join(f"### {t}\n{c}" for t,c in research_results_list)
@@ -604,6 +601,11 @@ if start_button:
             st.session_state.final_analysis = final_analysis
             with st.expander("📋 Final Report", expanded=True):
                 st.markdown(final_analysis)
+
+            # Mark Analysis Complete after final report is displayed
+            st.session_state.current_step = 4
+            render_stepper(st.session_state.current_step)
+
         except Exception as e:
             st.error("Error generating final report. Please try again.")
             st.stop()
