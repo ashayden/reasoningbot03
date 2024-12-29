@@ -275,60 +275,60 @@ st.markdown("""
     width: 100% !important;
 }
 
-/* Text color fixes */
+/* Text color fixes for dark text on light background */
 .main-title {
-    color: rgba(250, 250, 250, 0.9) !important;
+    color: rgba(49, 51, 63, 0.9) !important;
     text-align: center !important;
     margin-bottom: 0.5rem !important;
 }
 
 .subheader {
     font-size: 1.2rem !important;
-    color: rgba(250, 250, 250, 0.8) !important;
+    color: rgba(49, 51, 63, 0.8) !important;
     margin-bottom: 2rem !important;
     text-align: center !important;
 }
 
 /* Input label color */
 .stTextInput label, .stTextArea label {
-    color: rgba(250, 250, 250, 0.8) !important;
+    color: rgba(49, 51, 63, 0.8) !important;
 }
 
 /* Slider label color */
 .stSlider label {
-    color: rgba(250, 250, 250, 0.8) !important;
+    color: rgba(49, 51, 63, 0.8) !important;
 }
 
 /* Expander content text color */
 [data-testid="stExpander"] {
-    color: rgba(250, 250, 250, 0.9) !important;
+    color: rgba(49, 51, 63, 0.9) !important;
 }
 
 /* Markdown text color */
 .stMarkdown {
-    color: rgba(250, 250, 250, 0.9) !important;
+    color: rgba(49, 51, 63, 0.9) !important;
 }
 
 /* Text area styling */
 [data-testid="stExpander"] textarea {
-    background-color: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(49, 51, 63, 0.2) !important;
     border-radius: 4px !important;
     padding: 8px !important;
     font-family: monospace !important;
     transition: border-color 0.2s ease-in-out !important;
-    color: rgba(250, 250, 250, 0.9) !important;
+    color: rgba(49, 51, 63, 0.9) !important;
 }
 
 [data-testid="stExpander"] textarea:focus {
-    border-color: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(49, 51, 63, 0.4) !important;
     box-shadow: none !important;
     outline: none !important;
 }
 
 /* Expander header with right-aligned emoji */
 [data-testid="stExpander"] summary {
-    color: rgba(250, 250, 250, 0.9) !important;
+    color: rgba(49, 51, 63, 0.9) !important;
     font-weight: 500 !important;
     padding: 0.5rem 1rem !important;
     transition: all 0.2s ease-in-out !important;
@@ -341,13 +341,13 @@ st.markdown("""
 }
 
 [data-testid="stExpander"] summary:hover {
-    background-color: rgba(250, 250, 250, 0.05) !important;
+    background-color: rgba(49, 51, 63, 0.05) !important;
 }
 
 /* Headers inside expander */
 [data-testid="stExpander"] h3, 
 [data-testid="stExpander"] h4 {
-    color: rgba(250, 250, 250, 0.9) !important;
+    color: rgba(49, 51, 63, 0.9) !important;
     margin-bottom: 1rem !important;
 }
 
