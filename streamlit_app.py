@@ -231,10 +231,9 @@ if topic != st.session_state.previous_input:
     st.session_state.framework = None
     st.session_state.previous_input = topic
 
-# Add modal trigger button for prompt customization
+# Add dialog trigger button for prompt customization
 if st.button("☠️ Advanced Prompt Customization ☠️"):
-    modal = st.modal("Advanced Prompt Customization")
-    with modal:
+    with st.dialog("Advanced Prompt Customization"):
         st.markdown("### Customize Agent Prompts")
         
         # Agent 1 Prompt
@@ -365,7 +364,7 @@ Recommendations:
             height=300,
         )
         
-        st.button("Close", on_click=modal.close)
+        st.button("Close", type="primary")
 
 # Slider for research depth with descriptive options
 loops = st.select_slider(
