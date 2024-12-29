@@ -308,6 +308,92 @@ def create_download_pdf(refined_prompt, framework, research_analysis, final_anal
 
     return pdf.output(dest='S').encode('latin-1')
 
+def generate_random_fact(topic: str) -> str:
+    """Generate a random interesting fact about the topic."""
+    try:
+        prompt = f"""Generate one interesting and surprising fact about {topic}.
+        Make it concise (1-2 sentences) and engaging.
+        Focus on lesser-known aspects that would intrigue readers."""
+        
+        response = model.generate_content(prompt)
+        return handle_response(response)
+    except Exception as e:
+        logging.error(f"Error generating random fact: {e}")
+        return None
+
+def generate_quick_summary(topic: str) -> str:
+    """Generate a quick TL;DR summary about the topic."""
+    try:
+        prompt = f"""Provide a brief, clear summary of {topic} in 2-3 sentences.
+        Focus on the most important aspects that someone should know.
+        Keep it factual and objective."""
+        
+        response = model.generate_content(prompt)
+        return handle_response(response)
+    except Exception as e:
+        logging.error(f"Error generating summary: {e}")
+        return None
+
+def generate_refined_prompt_and_framework(topic: str) -> tuple[str, str]:
+    """Generate a refined prompt and research framework."""
+    try:
+        prompt = f"""As an expert prompt engineer, analyze {topic} and create:
+        1. A refined, detailed prompt that will guide the research
+        2. A structured framework for investigation (4-5 key aspects to explore)
+        
+        Format your response exactly as:
+        
+        Refined Prompt:
+        [Your refined prompt here]
+        ---
+        [Your investigation framework with numbered points]"""
+        
+        response = model.generate_content(prompt)
+        text = handle_response(response)
+        
+        if not text or "Refined Prompt:" not in text or "---" not in text:
+            return None, None
+            
+        parts = text.split("---")
+        refined = parts[0].replace("Refined Prompt:", "").strip()
+        framework = parts[1].strip()
+        
+        return refined, framework
+    except Exception as e:
+        logging.error(f"Error generating framework: {e}")
+        return None, None
+
+def conduct_research(refined_prompt: str, framework: str, current_analysis: str, aspect: str, iteration: int) -> str:
+    """Conduct research on a specific aspect of the topic."""
+    try:
+        prompt = f"""Based on this refined prompt:
+        {refined_prompt}
+        
+        And this research framework:
+        {framework}
+        
+        Previous findings:
+        {current_analysis}
+        
+        Research this specific aspect (iteration {iteration}):
+        {aspect}
+        
+        Provide detailed findings in a clear, organized format.
+        Focus on factual information and cite sources where possible."""
+        
+        response = model.generate_content(prompt)
+        return handle_response(response)
+    except Exception as e:
+        logging.error(f"Error in research iteration {iteration}: {e}")
+        return None
+
+# Add loops_num variable
+loops_num = {
+    "Puddle": 2,
+    "Lake": 3,
+    "Ocean": 4,
+    "Mariana Trench": 5
+}.get(depth, 3)  # Default to 3 if depth not found
 
 # -------------- MAIN LOGIC --------------
 if start_clicked:
