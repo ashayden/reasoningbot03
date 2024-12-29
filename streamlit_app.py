@@ -115,13 +115,14 @@ st.markdown("""
     left: 50%;
     transform: translateX(-50%);
     bottom: -30px;
-    background: rgba(36, 57, 247, 0.9);
+    background: rgba(49, 51, 63, 0.9);
     color: white;
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 0.9rem;
     white-space: nowrap;
     z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -351,7 +352,20 @@ if st.session_state.analysis_complete and topic:
         with st.expander(f"📋 Final Report", expanded=False):
             st.markdown(st.session_state.final_analysis)
         
-        # Create columns for download button only
+        # Update progress bar color after final report
+        st.markdown(
+            """
+            <style>
+            .stProgress > div > div > div > div {
+                background-color: #28a745 !important;
+                animation: none !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        # Create columns for download button
         _, download_col = st.columns([1, 2])
         with download_col:
             st.download_button(
