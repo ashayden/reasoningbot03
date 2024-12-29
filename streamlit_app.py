@@ -593,6 +593,7 @@ if start_button_clicked:
                         key="download_button",
                         help="Download the complete analysis report as a PDF file",
                         use_container_width=True,
+                        on_click=None  # Prevent rerun on click
                     )
 
         except Exception as e:
