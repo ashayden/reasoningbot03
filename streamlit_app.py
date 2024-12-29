@@ -22,36 +22,98 @@ st.markdown("""
     max-width: 800px;
 }
 
-/* Minimal heading but with a subtle fade-on-hover tooltip */
+/* Main title and header styling */
 .main-title {
+    font-size: 2.5rem !important;
     color: rgba(49, 51, 63, 0.9) !important;
     text-align: center !important;
     margin-bottom: 0.5rem !important;
-    position: relative;
-    cursor: help; /* Show "help" cursor to indicate there's a tooltip. */
-}
-.main-title:hover::after {
-    content: attr(data-title); /* Show the hover text */
-    position: absolute;
-    top: 120%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(36, 57, 247, 0.9);
-    color: #fff;
-    padding: 6px 10px;
-    border-radius: 4px;
-    white-space: nowrap;
-    opacity: 0.95;
-    font-size: 0.85rem;
-    z-index: 999;
+    font-weight: 700 !important;
 }
 
-/* Subheader (optional) */
 .subheader {
     font-size: 1.2rem !important;
-    color: rgba(49, 51, 63, 0.8) !important;
+    color: rgba(49, 51, 63, 0.7) !important;
     text-align: center !important;
-    margin-bottom: 2rem !important;
+    margin-bottom: 3rem !important;
+}
+
+/* Input and button container */
+.stTextInput {
+    margin-bottom: 0 !important;
+}
+
+/* Button styling */
+.stButton > button {
+    height: 100% !important;
+    margin-top: 0 !important;
+    background-color: #2439f7 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 4px !important;
+    padding: 0.5rem 1rem !important;
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+    transition: background-color 0.2s ease-in-out !important;
+}
+
+.stButton > button:hover {
+    background-color: #1a2bc4 !important;
+}
+
+/* Slider styling */
+.stSlider {
+    padding: 1rem 0 3rem 0 !important;
+}
+
+.stSlider > div > div > div {
+    height: 4px !important;
+    background: linear-gradient(to right, 
+        rgba(36, 57, 247, 0.8) 0%, 
+        rgba(36, 57, 247, 0.8) var(--slider-progress), 
+        rgba(36, 57, 247, 0.1) var(--slider-progress), 
+        rgba(36, 57, 247, 0.1) 100%
+    ) !important;
+}
+
+.stSlider > div > div > div > div {
+    height: 24px !important;
+    width: 24px !important;
+    background-color: #2439f7 !important;
+    border: 2px solid white !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    transition: transform 0.2s ease-in-out !important;
+    position: relative !important;
+    top: -10px !important;
+    cursor: grab !important;
+}
+
+.stSlider > div > div > div > div:hover {
+    transform: scale(1.1) !important;
+}
+
+.stSlider > div > div > div > div:active {
+    cursor: grabbing !important;
+    transform: scale(1.05) !important;
+}
+
+/* Hide slider value display */
+.stSlider > div > div > div > div::after {
+    display: none !important;
+}
+
+/* Advanced settings in sidebar */
+.sidebar .streamlit-expanderHeader {
+    font-size: 1rem !important;
+    color: rgba(49, 51, 63, 0.8) !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0.5rem 0 !important;
+}
+
+.sidebar .streamlit-expanderContent {
+    border: none !important;
+    padding: 0.5rem 0 !important;
 }
 
 /* Minimal slider styling for "Puddle, Lake, Ocean, Mariana Trench" */
@@ -149,16 +211,54 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------------------------------------------------------------------------
-# Main Title (with hover text "Multi-Agent Reasoning Assistant a003")
-# ----------------------------------------------------------------------------------
-st.markdown(
-    "<h1 class='main-title' data-title='Multi-Agent Reasoning Assistant a003'>M.A.R.A.</h1>",
-    unsafe_allow_html=True
+# -------------
+# Main Layout
+# -------------
+
+st.markdown("<h1 class='main-title'>M.A.R.A.</h1>", unsafe_allow_html=True)
+st.markdown("<p class='subheader'>Your multi-agent reasoning interface</p>", unsafe_allow_html=True)
+
+# Slider for research depth
+st.markdown("##### How deep should we dive?")
+st.markdown("*Select the depth of analysis*")
+
+loops = st.select_slider(
+    "",  # Empty label since we're using custom markdown above
+    options=["Lake", "Ocean"],
+    value="Lake",
 )
 
-# Optional subheader
-st.markdown("<p class='subheader'>Your multi-agent reasoning interface</p>", unsafe_allow_html=True)
+# Create columns for input and button
+col1, col2 = st.columns([4, 1])
+
+with col1:
+    topic = st.text_input(
+        "Enter a topic or question:",
+        placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
+        key="topic_input",
+        on_change=lambda: st.session_state.update({"start_button_clicked": True}) 
+            if st.session_state.topic_input else None,
+    )
+
+with col2:
+    start_button_clicked = st.button("🌊 Dive In", key="start_button", use_container_width=True)
+    if start_button_clicked:
+        st.session_state.start_button_clicked = True
+
+# Convert slider selection to number of loops
+if loops == "Lake":
+    loops_num = random.randint(2, 3)
+elif loops == "Ocean":
+    loops_num = random.randint(4, 6)
+else:
+    loops_num = 2  # Default value
+
+# Advanced settings in sidebar
+with st.sidebar:
+    with st.expander("☠️ Advanced Settings"):
+        st.markdown("### Customize Agent Prompts")
+        
+        # Agent prompts...
 
 # ----------------------------------------------------------------------------------
 # Retrieve & Configure API
@@ -210,58 +310,6 @@ if 'start_button_clicked' not in st.session_state:
     st.session_state.start_button_clicked = False
 if 'random_fact' not in st.session_state:
     st.session_state.random_fact = None
-
-# ----------------------------------------------------------------------------------
-# Slider: "Puddle", "Lake", "Ocean", "Mariana Trench"
-# ----------------------------------------------------------------------------------
-loops = st.select_slider(
-    "How deep should we dive?",
-    options=["Puddle", "Lake", "Ocean", "Mariana Trench"],
-    value="Lake"
-)
-st.write(f"Selected depth: {loops}")
-
-# Convert slider selection to number of loops
-if loops == "Puddle":
-    loops_num = 1
-elif loops == "Lake":
-    loops_num = random.randint(2, 3)
-elif loops == "Ocean":
-    loops_num = random.randint(4, 6)
-elif loops == "Mariana Trench":
-    loops_num = random.randint(7, 10)
-else:
-    loops_num = 2  # Default
-
-# ----------------------------------------------------------------------------------
-# Text input
-# ----------------------------------------------------------------------------------
-topic = st.text_input(
-    "Enter a topic or question:",
-    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
-    key="topic_input",
-    on_change=lambda: st.session_state.update({"start_button_clicked": True})
-        if st.session_state.topic_input else None,
-)
-
-# If topic changes, reset states
-if topic != st.session_state.previous_input:
-    st.session_state.analysis_complete = False
-    st.session_state.pdf_buffer = None
-    st.session_state.final_analysis = None
-    st.session_state.research_results = []
-    st.session_state.tldr_summary = None
-    st.session_state.refined_prompt = None
-    st.session_state.framework = None
-    st.session_state.previous_input = topic
-
-# ----------------------------------------------------------------------------------
-# Button in the sidebar
-# ----------------------------------------------------------------------------------
-with st.sidebar:
-    start_button_clicked = st.button("🌊 Dive In", key="start_button")
-    if start_button_clicked:
-        st.session_state.start_button_clicked = True
 
 # ----------------------------------------------------------------------------------
 # Helper Functions (Your multi-agent logic, PDF creation, etc. remain the same)
