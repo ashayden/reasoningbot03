@@ -100,9 +100,13 @@ def init_session_state():
             'pdf_buffer': None,
             'previous_input': ""
         }
+    return st.session_state.state
 
 def reset_analysis_state():
     """Reset analysis-related state variables."""
+    if 'state' not in st.session_state:
+        init_session_state()
+    
     st.session_state.state.update({
         'current_step': 0,
         'analysis_complete': False,
@@ -363,12 +367,18 @@ def render_ui_components():
 def main():
     """Main application logic."""
     # Initialize state and LLM
-    init_session_state()
+    state = init_session_state()
     
     try:
         api_key = st.secrets["GOOGLE_API_KEY"]
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel("gemini-1.5-pro-latest")
+        agent3_config = genai.types.GenerationConfig(
+            temperature=0.7,
+            top_p=0.8,
+            top_k=40,
+            max_output_tokens=2048,
+        )
     except Exception as e:
         st.error("Failed to initialize LLM: Check your API key")
         st.stop()
@@ -377,13 +387,13 @@ def main():
     topic, depth, start_button, prompts = render_ui_components()
     
     # Handle topic change
-    if topic != st.session_state.state['previous_input']:
+    if topic != state.get('previous_input', ''):
         reset_analysis_state()
-        st.session_state.state['previous_input'] = topic
+        state['previous_input'] = topic
     
     # Create step wizard container
     step_container = st.empty()
-    step_container.markdown(render_stepper(st.session_state.state['current_step']), unsafe_allow_html=True)
+    step_container.markdown(render_stepper(state['current_step']), unsafe_allow_html=True)
     
     if start_button:
         if not topic.strip():
@@ -404,17 +414,17 @@ def main():
                 tldr_summary = generate_quick_summary(topic)
                 
                 if random_fact:
-                    st.session_state.state['random_fact'] = random_fact
+                    state['random_fact'] = random_fact
                     with st.expander("🎲 Random Fact", expanded=True):
                         st.markdown(random_fact)
                 
                 if tldr_summary:
-                    st.session_state.state['tldr_summary'] = tldr_summary
+                    state['tldr_summary'] = tldr_summary
                     with st.expander("💡 TL;DR", expanded=True):
                         st.markdown(tldr_summary)
             
-            st.session_state.state['current_step'] = 1
-            step_container.markdown(render_stepper(st.session_state.state['current_step']), unsafe_allow_html=True)
+            state['current_step'] = 1
+            step_container.markdown(render_stepper(state['current_step']), unsafe_allow_html=True)
             
             # Step 2: Framework Development
             with st.spinner("Developing research framework..."):
@@ -423,7 +433,7 @@ def main():
                     st.error("Framework generation failed. Please try again.")
                     st.stop()
                 
-                st.session_state.state.update({
+                state.update({
                     'refined_prompt': refined_prompt,
                     'framework': framework
                 })
@@ -433,8 +443,8 @@ def main():
                 with st.expander("🗺️ Investigation Framework", expanded=False):
                     st.markdown(framework)
             
-            st.session_state.state['current_step'] = 2
-            step_container.markdown(render_stepper(st.session_state.state['current_step']), unsafe_allow_html=True)
+            state['current_step'] = 2
+            step_container.markdown(render_stepper(state['current_step']), unsafe_allow_html=True)
             
             # Step 3: Research Phase
             aspects = [line.strip() for line in framework.split("\n") 
@@ -471,10 +481,10 @@ def main():
                         with st.expander(f"{i+1}. {title}", expanded=False):
                             st.markdown(content)
                 
-                st.session_state.state['research_results'] = research_results
+                state['research_results'] = research_results
             
-            st.session_state.state['current_step'] = 3
-            step_container.markdown(render_stepper(st.session_state.state['current_step']), unsafe_allow_html=True)
+            state['current_step'] = 3
+            step_container.markdown(render_stepper(state['current_step']), unsafe_allow_html=True)
             
             # Step 4: Final Analysis
             with st.spinner("Generating final analysis..."):
@@ -495,7 +505,7 @@ def main():
                     st.error("Final analysis failed. Please try again.")
                     st.stop()
                 
-                st.session_state.state['final_analysis'] = final_analysis
+                state['final_analysis'] = final_analysis
                 with st.expander("📋 Final Report", expanded=True):
                     st.markdown(final_analysis)
                 
@@ -505,7 +515,7 @@ def main():
                 )
                 
                 if pdf_bytes:
-                    st.session_state.state['pdf_buffer'] = pdf_bytes
+                    state['pdf_buffer'] = pdf_bytes
                     st.download_button(
                         label="⬇️ Download Report as PDF",
                         data=pdf_bytes,
@@ -515,11 +525,11 @@ def main():
                     )
             
             # Complete
-            st.session_state.state.update({
+            state.update({
                 'current_step': 4,
                 'analysis_complete': True
             })
-            step_container.markdown(render_stepper(st.session_state.state['current_step']), unsafe_allow_html=True)
+            step_container.markdown(render_stepper(state['current_step']), unsafe_allow_html=True)
             
         except Exception as e:
             logging.error(f"Analysis error: {str(e)}")
