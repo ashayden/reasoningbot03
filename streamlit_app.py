@@ -15,42 +15,46 @@ logging.basicConfig(
 # --- Custom CSS for Streamlit ---
 st.markdown("""
 <style>
-/* More compact spacing */
+/* Overall layout */
 .block-container {
-    padding-top: 2rem !important;
-    padding-bottom: 1rem !important;
+    padding: 2rem 1rem;
     max-width: 800px;
+    margin: auto;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Input field styling */
-.stTextInput > div > div > input {
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-    border-radius: 0.5rem;
+/* Typography */
+body, input, textarea, button {
+    font-family: 'Helvetica Neue', sans-serif;
+    color: #333;
 }
 
 /* Button styling */
 .stButton > button {
     width: 100%;
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1.2rem;
     font-size: 1rem;
     font-weight: 500;
-    border-radius: 0.5rem;
-    margin: 0.5rem 0;
-    transition: all 0.2s;
+    border-radius: 5px;
+    border: none;
+    background-color: #007bff;
+    color: white;
+    transition: background-color 0.3s ease;
+}
+
+.stButton > button:hover {
+    background-color: #0056b3;
 }
 
 /* Progress bar styling */
 .stProgress > div > div > div > div {
-    background: linear-gradient(90deg, 
-        #007bff 0%, 
-        #007bff 98%, 
-        #007bff 100%
-    );
+    background: linear-gradient(90deg, #007bff 0%, #007bff 98%, #007bff 100%);
     background-size: 200% 100%;
     animation: loading 2s linear infinite;
-    border-radius: 0.5rem;
-    height: 0.5rem !important;
+    border-radius: 5px;
+    height: 0.4rem !important;
 }
 
 @keyframes loading {
@@ -69,12 +73,18 @@ st.markdown("""
     font-size: 1rem;
     font-weight: 600;
     padding: 0.75rem 0;
-    border-radius: 0.5rem;
+    border-radius: 5px;
+    background-color: #e9ecef;
+    color: #007bff;
+}
+
+.streamlit-expanderHeader:hover {
+    background-color: #d6d8db;
 }
 
 /* Slider styling */
 .stSlider > div > div > div {
-    height: 0.5rem !important;
+    height: 0.4rem !important;
 }
 
 .stSlider > div > div > div > div {
@@ -85,11 +95,18 @@ st.markdown("""
 /* Download button styling */
 [data-testid="stDownloadButton"] > button {
     width: 100%;
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1.2rem;
     font-size: 1rem;
     font-weight: 500;
-    border-radius: 0.5rem;
-    margin: 0.5rem 0;
+    border-radius: 5px;
+    border: none;
+    background-color: #28a745;
+    color: white;
+    transition: background-color 0.3s ease;
+}
+
+[data-testid="stDownloadButton"] > button:hover {
+    background-color: #218838;
 }
 
 /* Adjust spacing between sections */
@@ -98,6 +115,10 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
+# Update main title and subheader
+st.markdown("<h1 style='text-align: center; font-size: 2.5rem;'>🤖 AI Analysis Bot</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 1.2rem; color: #666;'>Explore topics with depth and insight using AI-driven analysis.</p>", unsafe_allow_html=True)
 
 # Get API key from Streamlit secrets
 try:
@@ -125,12 +146,6 @@ except Exception as e:
     logging.error(f"Error configuring Gemini API: {e}")
     st.error(f"⚠️ Error configuring Gemini API: {str(e)}")
     st.stop()
-
-# --- Main Title ---
-st.markdown("<h1 class='main-title'>🤖</h1>", unsafe_allow_html=True)  # Changed title to just the robot emoji
-
-# --- Subheader ---
-st.markdown("<p class='subheader'>This bot uses multiple AI agents to analyze topics in depth with sophisticated reasoning.</p>", unsafe_allow_html=True)
 
 # Initialize session state for storing analysis results and previous input
 if 'analysis_complete' not in st.session_state:
