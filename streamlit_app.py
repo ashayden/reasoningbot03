@@ -24,119 +24,86 @@ STEPS = [
 # STEP WIZARD RENDERING
 ########################################
 def render_stepper(current_step: int) -> None:
-    """Renders a 4-step wizard with proper styling."""
-    # Clamp current_step between 0 and 4 (4 is complete state)
-    current_step = max(0, min(current_step, 4))
+    """Renders a 4-step wizard using Streamlit native components."""
+    # Create columns for each step
+    cols = st.columns([1, 0.2, 1, 0.2, 1, 0.2, 1])
     
-    # Create the CSS with improved transitions and states
-    st.markdown("""
-        <style>
-        div[data-testid="stMarkdownContainer"] > div {background: transparent !important;}
-        .stepper-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 1rem auto;
-            padding: 0.5rem;
-            max-width: 800px;
-            background: transparent !important;
-            position: relative;
-        }
-        .step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            flex: 1;
-            padding: 0 1rem;
-            background: transparent !important;
-        }
-        .step-number {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
+    # Style definitions
+    active_style = """
+        <div style="
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 2px solid #2439f7;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+        ">
+    """
+    complete_style = """
+        <div style="
+            background-color: #28a745;
+            border: 2px solid #28a745;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+        ">
+    """
+    inactive_style = """
+        <div style="
             background-color: rgba(255, 255, 255, 0.1);
             border: 2px solid rgba(255, 255, 255, 0.2);
             color: rgba(255, 255, 255, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 500;
-            font-size: 0.9rem;
-            position: relative;
-            z-index: 2;
-            transition: all 0.3s ease;
-        }
-        .step-label {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.6);
+            padding: 8px 16px;
+            border-radius: 20px;
             text-align: center;
-            margin-top: 0.5rem;
+            font-size: 0.9rem;
             font-weight: 400;
-            position: relative;
-            z-index: 2;
-            transition: all 0.3s ease;
-        }
-        .step-line {
-            position: absolute;
-            top: 16px;
-            left: calc(50% + 16px);
-            right: calc(-50% + 16px);
+        ">
+    """
+    connector_complete = """
+        <div style="
             height: 2px;
-            background: rgba(255, 255, 255, 0.2);
-            z-index: 1;
-            transition: background-color 0.3s ease;
-        }
-        .step.active .step-number {
-            background-color: rgba(255, 255, 255, 0.9);
-            border-color: #2439f7;
-            color: #2439f7;
-            box-shadow: 0 0 0 4px rgba(36, 57, 247, 0.1);
-        }
-        .step.active .step-label {
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 500;
-        }
-        .step.complete .step-number {
             background-color: #28a745;
-            border-color: #28a745;
-            color: white;
-        }
-        .step.complete .step-line {
-            background-color: #28a745;
-        }
-        .step.complete .step-label {
-            color: rgba(255, 255, 255, 0.9);
-        }
-        .step:last-child .step-line {
-            display: none;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+            margin-top: 20px;
+        "></div>
+    """
+    connector_incomplete = """
+        <div style="
+            height: 2px;
+            background-color: rgba(255, 255, 255, 0.2);
+            margin-top: 20px;
+        "></div>
+    """
     
-    # Create the HTML with proper state handling
-    html = '<div class="stepper-container">'
-    
-    for i, label in enumerate(STEPS):
+    # Render each step
+    for i, (col, label) in enumerate(zip(cols[::2], STEPS)):
+        # Determine step style
         if i < current_step:
-            status = "complete"
+            style = complete_style
         elif i == current_step:
-            status = "active"
+            style = active_style
         else:
-            status = ""
-        
-        html += f'''
-            <div class="step {status}">
-                <div class="step-number">{i + 1}</div>
-                <div class="step-label">{label}</div>
-                <div class="step-line"></div>
+            style = inactive_style
+            
+        # Render step
+        col.markdown(f"""
+            {style}
+                <div style="margin-bottom: 4px;">{i + 1}</div>
+                <div style="font-size: 0.8rem;">{label}</div>
             </div>
-        '''
-    
-    html += '</div>'
-    
-    # Render the HTML
-    st.markdown(html, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+        
+        # Render connector (except for last step)
+        if i < len(STEPS) - 1:
+            cols[i*2 + 1].markdown(
+                connector_complete if i < current_step else connector_incomplete,
+                unsafe_allow_html=True
+            )
 
 ########################################
 # MAIN APP + LLM CODE
@@ -171,14 +138,17 @@ st.markdown("""
   padding: 0.75rem 0;
   border-radius: 0.5rem;
 }
+/* Step wizard spacing */
+.step-wizard-container {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # -------------- Session State --------------
-# Centralize all state initialization
-if 'initialized' not in st.session_state:
-    st.session_state.update({
-        'initialized': True,
+if 'state' not in st.session_state:
+    st.session_state.state = {
         'analysis_complete': False,
         'current_step': 0,
         'research_results': [],
@@ -189,13 +159,12 @@ if 'initialized' not in st.session_state:
         'previous_topic': "",
         'analysis_started': False,
         'pdf_buffer': None,
-        'final_analysis': None,
-        'step_wizard_key': 0  # Used to force wizard recreation when needed
-    })
+        'final_analysis': None
+    }
 
 def reset_analysis_state():
     """Centralized function to reset analysis state."""
-    st.session_state.update({
+    st.session_state.state.update({
         'analysis_complete': False,
         'current_step': 0,
         'research_results': [],
@@ -205,8 +174,7 @@ def reset_analysis_state():
         'framework': None,
         'analysis_started': False,
         'pdf_buffer': None,
-        'final_analysis': None,
-        'step_wizard_key': st.session_state.step_wizard_key + 1  # Force wizard recreation
+        'final_analysis': None
     })
 
 # -------------- Configure LLM --------------
@@ -237,31 +205,25 @@ topic = st.text_input("Enter a topic or question:",
                       placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"')
 
 # If topic changes, reset
-if topic != st.session_state.previous_topic:
+if topic != st.session_state.state['previous_topic']:
     reset_analysis_state()
-    st.session_state.previous_topic = topic
+    st.session_state.state['previous_topic'] = topic
 
 # If done, step=4
-if st.session_state.analysis_complete:
-    st.session_state.current_step = 4
+if st.session_state.state['analysis_complete']:
+    st.session_state.state['current_step'] = 4
 
 # -------------- Step Wizard Container --------------
 def create_step_wizard():
-    """Creates and returns a step wizard container."""
-    container = st.container()
-    container.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
-    return container.empty()
+    """Creates a step wizard using native Streamlit components."""
+    return st.container()
 
 def update_step_wizard(container, step: int):
-    """Updates the step wizard with proper error handling."""
-    try:
-        # Ensure we're using a container for proper rendering
-        with container:
-            render_stepper(step)
-    except Exception as e:
-        logging.error(f"Error updating step wizard: {e}")
-        # Attempt recovery by recreating container
-        st.session_state.step_wizard_key += 1
+    """Updates the step wizard using native Streamlit components."""
+    with container:
+        st.markdown('<div class="step-wizard-container">', unsafe_allow_html=True)
+        render_stepper(step)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # Expanders for advanced customization
 with st.expander("**Advanced Prompt Customization**"):
@@ -445,10 +407,10 @@ loops_num = {
 }.get(depth, 3)  # Default to 3 if depth not found
 
 # -------------- MAIN LOGIC --------------
-# Topic change handling
-if topic != st.session_state.previous_topic:
+# Topic change handling (only once at the top)
+if topic != st.session_state.state['previous_topic']:
     reset_analysis_state()
-    st.session_state.previous_topic = topic
+    st.session_state.state['previous_topic'] = topic
 
 # Initialize analysis
 if start_clicked:
@@ -457,31 +419,29 @@ if start_clicked:
         st.stop()
     
     # Start new analysis
-    if not st.session_state.analysis_started:
-        st.session_state.analysis_started = True
+    if not st.session_state.state['analysis_started']:
+        st.session_state.state['analysis_started'] = True
         reset_analysis_state()
     
     try:
-        # Create step wizard in its own container
+        # Create step wizard
         step_container = create_step_wizard()
-        
-        # Initial state
         update_step_wizard(step_container, 0)
 
         # Step 1: Initial Analysis
-        st.session_state.random_fact = generate_random_fact(topic)
-        st.session_state.tldr_summary = generate_quick_summary(topic)
+        st.session_state.state['random_fact'] = generate_random_fact(topic)
+        st.session_state.state['tldr_summary'] = generate_quick_summary(topic)
 
-        if st.session_state.random_fact:
+        if st.session_state.state['random_fact']:
             with st.expander("🎲 Random Fact", expanded=True):
-                st.markdown(st.session_state.random_fact)
+                st.markdown(st.session_state.state['random_fact'])
 
-        if st.session_state.tldr_summary:
+        if st.session_state.state['tldr_summary']:
             with st.expander("💡 TL;DR", expanded=True):
-                st.markdown(st.session_state.tldr_summary)
+                st.markdown(st.session_state.state['tldr_summary'])
 
         # Update Step 1
-        st.session_state.current_step = 1
+        st.session_state.state['current_step'] = 1
         update_step_wizard(step_container, 1)
 
         # Step 2: Framework Development
@@ -490,8 +450,8 @@ if start_clicked:
             st.error("Could not generate refined prompt and framework. Please try again.")
             st.stop()
 
-        st.session_state.refined_prompt = refined_prompt
-        st.session_state.framework = framework
+        st.session_state.state['refined_prompt'] = refined_prompt
+        st.session_state.state['framework'] = framework
 
         with st.expander("🎯 Refined Prompt", expanded=False):
             st.markdown(refined_prompt)
@@ -499,7 +459,7 @@ if start_clicked:
             st.markdown(framework)
 
         # Update Step 2
-        st.session_state.current_step = 2
+        st.session_state.state['current_step'] = 2
         update_step_wizard(step_container, 2)
 
         # Step 3: Research Phase
@@ -533,10 +493,10 @@ if start_clicked:
             with st.expander(f"{i+1}. {title}", expanded=False):
                 st.markdown(content)
                 
-        st.session_state.research_results = research_results_list
+        st.session_state.state['research_results'] = research_results_list
         
         # Update Step 3
-        st.session_state.current_step = 3
+        st.session_state.state['current_step'] = 3
         update_step_wizard(step_container, 3)
 
         # Generate final report
@@ -562,17 +522,17 @@ if start_clicked:
             st.error("Could not generate final report. Please try again.")
             st.stop()
             
-        st.session_state.final_analysis = final_analysis
+        st.session_state.state['final_analysis'] = final_analysis
         with st.expander("📋 Final Report", expanded=True):
             st.markdown(final_analysis)
 
         # Create PDF
         pdf_bytes = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
-        st.session_state.pdf_buffer = pdf_bytes
+        st.session_state.state['pdf_buffer'] = pdf_bytes
 
         # Update final step
-        st.session_state.current_step = 4
-        st.session_state.analysis_complete = True
+        st.session_state.state['current_step'] = 4
+        st.session_state.state['analysis_complete'] = True
         update_step_wizard(step_container, 4)
 
         # Show download button
@@ -591,6 +551,6 @@ if start_clicked:
         st.stop()
 
 # Show existing step wizard if analysis is in progress
-elif st.session_state.analysis_started:
+elif st.session_state.state['analysis_started']:
     step_container = create_step_wizard()
-    update_step_wizard(step_container, st.session_state.current_step)
+    update_step_wizard(step_container, st.session_state.state['current_step'])
