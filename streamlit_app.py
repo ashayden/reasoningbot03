@@ -22,15 +22,16 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
 
 /* Style for progress bar */
 .stProgress > div > div > div > div {
-    background-color: #5D1796; /* Change progress bar color to violet */
-    border-radius: 10px;
-    height: 10px;
+    background-color: #007bff !important; /* Match the slider blue color */
+    border-radius: 20px;
+    height: 38px; /* Match the height of the Dive In button */
 }
 
 .stProgress {
-    background-color: rgba(93, 23, 150, 0.1);
-    border-radius: 10px;
-    padding: 2px;
+    background-color: rgba(0, 123, 255, 0.1);
+    border-radius: 20px;
+    padding: 0;
+    margin-top: 3px; /* Align with button */
 }
 
 /* Style for expander headers */
@@ -43,7 +44,7 @@ body, .stTextInput, .st-bb, .st-da, .st-ea, .st-eb, .st-ec, .st-ed, .st-ee, .st-
 }
 
 .streamlit-expanderHeader:hover {
-    background-color: rgba(93, 23, 150, 0.1);
+    background-color: rgba(0, 123, 255, 0.1);
 }
 
 /* Style for the main title (remove color to use default)*/
@@ -482,7 +483,7 @@ if start_button_clicked:
                     st.markdown(refined_prompt.lstrip(":\n").strip())
                 
                 # Display framework
-                with st.expander(f"🗺️ {progress_states['framework']['label']}**", expanded=False):
+                with st.expander(f"**🗺️ {progress_states['framework']['label']}**", expanded=False):
                     st.markdown(framework.lstrip(": **\n").strip())
                 progress_bar.progress(40)
 
@@ -549,7 +550,7 @@ if start_button_clicked:
                 pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
 
                 # Display final report last
-                with st.expander(f"📋 {progress_states['analysis']['label']}**", expanded=False):
+                with st.expander(f"**📋 {progress_states['analysis']['label']}**", expanded=False):
                     st.markdown(final_analysis)
 
                 progress_bar.progress(100)
