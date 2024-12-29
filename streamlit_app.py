@@ -61,7 +61,7 @@ st.markdown("""
 /* Completed progress bar */
 .progress-complete > div > div > div > div {
     background: #28a745 !important;
-    animation: none;
+    animation: none !important;
 }
 
 /* Expander styling */
@@ -742,7 +742,7 @@ if start_button_clicked:
                         """
                         <style>
                         .stProgress > div > div > div > div {
-                            background-color: #28a745 !important;
+                            background: #28a745 !important;
                         }
                         </style>
                         """,
