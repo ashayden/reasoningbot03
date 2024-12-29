@@ -182,32 +182,11 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Input section with Enter key handling
-topic = st.text_input(
-    "Enter a topic or question:",
-    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
-    key="topic_input",
-    on_change=lambda: st.session_state.update({"start_button_clicked": True}) if st.session_state.topic_input else None,
-)
-
-# Handle Enter key press
-if topic and st.session_state.get("topic_input", "") != st.session_state.get("previous_input", ""):
-    st.session_state.start_button_clicked = True
-
-# Reset session state if input changes
-if topic != st.session_state.previous_input:
-    st.session_state.analysis_complete = False
-    st.session_state.pdf_buffer = None
-    st.session_state.final_analysis = None
-    st.session_state.research_results = []
-    st.session_state.tldr_summary = None
-    st.session_state.refined_prompt = None
-    st.session_state.framework = None
-    st.session_state.previous_input = topic
-
 # Slider for research depth
 st.markdown("##### How deep should we dive?")
-st.markdown("*Select the depth of analysis*")
+
+# Add spacing
+st.markdown("<div style='height: 1rem'></div>", unsafe_allow_html=True)
 
 loops = st.select_slider(
     "",  # Empty label since we're using custom markdown above
@@ -215,39 +194,57 @@ loops = st.select_slider(
     value="Lake",
 )
 
-# Convert slider selection to number of loops
-if loops == "Lake":
-    loops_num = random.randint(2, 3)
-elif loops == "Ocean":
-    loops_num = random.randint(4, 6)
-else:
-    loops_num = 2  # Default value
+# Add spacing
+st.markdown("<div style='height: 2rem'></div>", unsafe_allow_html=True)
 
 # Create columns for input and button
 col1, col2 = st.columns([4, 1])
 
+with col1:
+    topic = st.text_input(
+        "Enter a topic or question:",
+        placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
+        key="topic_input",
+        on_change=lambda: st.session_state.update({"start_button_clicked": True}) if st.session_state.topic_input else None,
+    )
+
 with col2:
     start_button_clicked = st.button("🌊 Dive In", key="start_button", use_container_width=True)
-    if start_button_clicked:
-        st.session_state.start_button_clicked = True
 
-# Add progress bar placeholder
-progress_placeholder = st.empty()
+# Handle button click and Enter key
+if start_button_clicked or (topic and st.session_state.get("topic_input", "") != st.session_state.get("previous_input", "")):
+    st.session_state.start_button_clicked = True
+    
+    # Reset session state
+    st.session_state.analysis_complete = False
+    st.session_state.research_results = []
+    st.session_state.random_fact = None
+    st.session_state.pdf_buffer = None
+    st.session_state.final_analysis = None
+    st.session_state.tldr_summary = None
+    st.session_state.refined_prompt = None
+    st.session_state.framework = None
+    st.session_state.previous_input = topic
 
-# Main analysis workflow
-if st.session_state.get("start_button_clicked", False) and topic:
-    try:
-        # Initialize progress bar
-        progress_bar = st.progress(0)
-        
-        # Rest of your analysis code...
-        
-    except Exception as e:
-        st.error(f"Analysis failed: {str(e)}. Please try again.")
-        logging.error(f"Analysis failed: {e}")
-        st.session_state.analysis_complete = False
-else:
-    st.warning("Please enter a topic to analyze.")
+    if topic:
+        try:
+            # Initialize progress bar
+            progress_bar = st.progress(0)
+            
+            # Generate and store random fact
+            random_fact = generate_random_fact(topic)
+            if random_fact:
+                st.session_state.random_fact = random_fact
+                with st.expander("🎲 Random Fact", expanded=True):
+                    st.markdown(random_fact)
+                progress_bar.progress(10)
+            
+            # Rest of the analysis code...
+            
+        except Exception as e:
+            st.error(f"Analysis failed: {str(e)}. Please try again.")
+            logging.error(f"Analysis failed: {e}")
+            st.session_state.analysis_complete = False
 
 def generate_random_fact(topic):
     """Generate a random interesting fact related to the topic."""
@@ -487,171 +484,3 @@ def conduct_research(refined_prompt, framework, previous_analysis, current_aspec
     except Exception as e:
         logging.error(f"Failed to conduct research in phase {iteration}: {e}")
     return None
-
-if start_button_clicked:
-    if topic:
-        # Reset session state
-        st.session_state.analysis_complete = False
-        st.session_state.research_results = []
-        st.session_state.random_fact = None  # Reset random fact
-        
-        # Initialize progress bar
-        progress_bar = st.progress(0)
-        
-        try:
-            # Generate and store random fact
-            random_fact = generate_random_fact(topic)
-            if random_fact:
-                st.session_state.random_fact = random_fact
-                with st.expander("🎲 Random Fact", expanded=True):
-                    st.markdown(random_fact)
-                progress_bar.progress(10)
-            
-            # Quick Summary (TL;DR)
-            tldr_summary = generate_quick_summary(topic)
-            if tldr_summary:
-                progress_bar.progress(20)
-                st.session_state.tldr_summary = tldr_summary
-                with st.expander("💡 TL;DR", expanded=True):
-                    st.markdown(tldr_summary)
-
-            # Agent 1: Refine prompt and generate framework
-            refined_prompt, framework = generate_refined_prompt_and_framework(topic)
-            if refined_prompt and framework:
-                st.session_state.refined_prompt = refined_prompt.lstrip(":\n").strip()
-                st.session_state.framework = framework.lstrip(": **\n").strip()
-                
-                # Display refined prompt
-                with st.expander(f"🎯 Refined Prompt", expanded=False):
-                    st.markdown(st.session_state.refined_prompt)
-                
-                # Display framework
-                with st.expander(f"🗺️ Investigation Framework", expanded=False):
-                    st.markdown(st.session_state.framework)
-                progress_bar.progress(40)
-
-                # Agent 2: Conduct research through iterations
-                current_analysis = ""
-                aspects = []
-                research_expanders = []
-
-                # Extract aspects from framework
-                if framework:
-                    for line in framework.split("\n"):
-                        if line.strip().startswith(("1.", "2.", "3.", "4.")):
-                            aspects.append(line.strip())
-
-                # Conduct research phases
-                for i in range(loops_num):
-                    current_aspect = random.choice(aspects) if aspects else "Current State and Trends"
-                    research = conduct_research(refined_prompt, framework, current_analysis, current_aspect, i + 1)
-                    
-                    if research:
-                        current_analysis += "\n\n" + research
-                        research_lines = research.split("\n")
-                        title = next((line for line in research_lines if line.strip()), current_aspect)
-                        research_content = "\n".join(research_lines[1:])
-                        # Add research emoji based on content
-                        title_lower = title.lower()
-                        if any(word in title_lower for word in ["extinct", "survival", "species", "wildlife", "bird", "animal", "habitat"]):
-                            emoji = "🦅"
-                        elif any(word in title_lower for word in ["economic", "finance", "market", "cost", "price", "value"]):
-                            emoji = "📊"
-                        elif any(word in title_lower for word in ["environment", "climate", "ecosystem", "nature", "conservation"]):
-                            emoji = "🌍"
-                        elif any(word in title_lower for word in ["culture", "social", "community", "tradition", "heritage"]):
-                            emoji = "🎭"
-                        elif any(word in title_lower for word in ["history", "historical", "past", "timeline", "archive"]):
-                            emoji = "📜"
-                        elif any(word in title_lower for word in ["technology", "innovation", "digital", "software", "data"]):
-                            emoji = "💻"
-                        elif any(word in title_lower for word in ["education", "learning", "teaching", "study", "research"]):
-                            emoji = "📚"
-                        elif any(word in title_lower for word in ["health", "medical", "disease", "treatment", "care"]):
-                            emoji = "🏥"
-                        elif any(word in title_lower for word in ["evidence", "sighting", "observation", "search", "investigation"]):
-                            emoji = "🔍"
-                        elif any(word in title_lower for word in ["methodology", "approach", "technique", "method"]):
-                            emoji = "🔬"
-                        elif any(word in title_lower for word in ["debate", "controversy", "argument", "discussion"]):
-                            emoji = "💭"
-                        elif any(word in title_lower for word in ["future", "prediction", "forecast", "prospect"]):
-                            emoji = "🔮"
-                        else:
-                            emoji = "📝"
-                        research_expanders.append((f"{emoji} {title}", research_content))
-                        progress_bar.progress(40 + int((i + 1) / loops_num * 40))
-                    else:
-                        raise Exception(f"Research phase {i + 1} failed")
-
-                # Display research phases
-                for title, content in research_expanders:
-                    with st.expander(f"**{title}**", expanded=False):
-                        st.markdown(content)
-
-                # Agent 3: Generate final analysis
-                final_response = model.generate_content(
-                    agent3_prompt.format(
-                        refined_prompt=refined_prompt,
-                        system_prompt=framework,
-                        all_aspect_analyses=current_analysis,
-                    ),
-                    generation_config=agent3_config,
-                )
-                final_analysis = handle_response(final_response)
-
-                # Create PDF buffer
-                pdf_buffer = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
-
-                # Store research results in session state
-                st.session_state.research_results = research_expanders
-                
-                # Store final analysis in session state
-                st.session_state.final_analysis = final_analysis
-                
-                # Store PDF buffer in session state
-                st.session_state.pdf_buffer = pdf_buffer
-                
-                # Mark analysis as complete
-                st.session_state.analysis_complete = True
-
-                # Display final report last
-                with st.expander(f"📋 Final Report", expanded=False):
-                    st.markdown(final_analysis)
-
-                progress_bar.progress(100)
-
-                # Update progress bar color when complete
-                if st.session_state.analysis_complete:
-                    st.markdown(
-                        """
-                        <style>
-                        .stProgress > div > div > div > div {
-                            background-color: #28a745 !important;
-                            animation: none !important;
-                        }
-                        </style>
-                        """,
-                        unsafe_allow_html=True
-                    )
-
-                # Create columns for download button only
-                _, download_col = st.columns([1, 2])
-                with download_col:
-                    st.download_button(
-                        label="⬇️ Download Report as PDF",
-                        data=pdf_buffer,
-                        file_name=f"{topic}_analysis_report.pdf",
-                        mime="application/pdf",
-                        key="download_button",
-                        help="Download the complete analysis report as a PDF file",
-                        use_container_width=True
-                    )
-
-        except Exception as e:
-            st.error(f"Analysis failed: {str(e)}. Please try again.")
-            logging.error(f"Analysis failed: {e}")
-            st.session_state.analysis_complete = False
-
-    else:
-        st.warning("Please enter a topic to analyze.")
