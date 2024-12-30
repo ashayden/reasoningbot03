@@ -613,6 +613,69 @@ Keep the most relevant emojis and remove others while maintaining the meaning.''
         logging.error(e)
         return None
 
+def process_framework_output(raw_framework: str) -> str:
+    """Process and restructure raw LLM framework output into a clean, standardized format."""
+    try:
+        # Split into lines and clean up
+        lines = [line.strip() for line in raw_framework.split('\n') if line.strip()]
+        processed_lines = []
+        current_section = 0
+        in_section = False
+        
+        for line in lines:
+            # Handle main sections
+            if any(line.lower().startswith(p) for p in ['**1', '1.', '*1', '1)', '#1', 'section 1']):
+                current_section += 1
+                if processed_lines:
+                    processed_lines.extend(['', ''])  # Double spacing between sections
+                
+                # Extract and clean section title
+                title = line.replace('*', '').strip()
+                title = re.sub(r'^[\d.)\s]+', '', title)  # Remove leading numbers and punctuation
+                title = title.split(':', 1)[0] if ':' in title else title  # Remove anything after colon
+                processed_lines.append(f"**{current_section}.** {title.strip().upper()}")
+                in_section = True
+                continue
+            
+            # Handle primary points
+            if line.lstrip().startswith(('-', '•', '⚫', '○', '●')) or (len(line) > 2 and line[0].isalpha() and line[1] == ')'):
+                text = line.lstrip('-•⚫○●abcdefghijklmnopqrstuvwxyz) ')
+                if ':' in text:
+                    point, desc = text.split(':', 1)
+                    processed_lines.append(f"{current_section}.{len([l for l in processed_lines if l.startswith(f'{current_section}.')])+ 1}. {point.strip()}: {desc.strip()}")
+                else:
+                    processed_lines.append(f"{current_section}.{len([l for l in processed_lines if l.startswith(f'{current_section}.')])+ 1}. {text.strip()}")
+                continue
+            
+            # Handle sub-points
+            if line.startswith(('  ', '\t')) or line.lower().startswith(('i.', 'ii.', 'iii.')):
+                text = line.lstrip(' \t-•⚫○●ivxIVX.)')
+                parent_points = [l for l in processed_lines if l.startswith(f'{current_section}.') and not l.startswith(f'{current_section}.0')]
+                if parent_points:
+                    last_parent = parent_points[-1]
+                    parent_num = last_parent.split('.')[1].split()[0]
+                    sub_count = len([l for l in processed_lines if l.startswith(f'    {current_section}.{parent_num}.')])
+                    if ':' in text:
+                        point, desc = text.split(':', 1)
+                        processed_lines.append(f"    {current_section}.{parent_num}.{sub_count + 1}. {point.strip()}: {desc.strip()}")
+                    else:
+                        processed_lines.append(f"    {current_section}.{parent_num}.{sub_count + 1}. {text.strip()}")
+                continue
+            
+            # Handle additional text with proper indentation
+            if in_section and line:
+                processed_lines.append(f"        {line}")
+        
+        # Add final spacing
+        if processed_lines:
+            processed_lines.append('')
+        
+        return '\n'.join(processed_lines)
+        
+    except Exception as e:
+        logging.error(f"Framework processing error: {str(e)}")
+        return raw_framework  # Return original if processing fails
+
 def generate_refined_prompt_and_framework(topic):
     """Call Agent 1 to create and refine prompt + framework."""
     try:
@@ -659,8 +722,11 @@ Provide the enhanced framework maintaining the same overall structure but with a
         
         if not enhanced_framework:
             return refined_prompt, initial_framework
+        
+        # Process and restructure the framework
+        processed_framework = process_framework_output(enhanced_framework)
             
-        return refined_prompt, enhanced_framework
+        return refined_prompt, processed_framework
         
     except Exception as e:
         logging.error(f"Framework generation error: {str(e)}")
