@@ -324,32 +324,39 @@ Refined Prompt:
 
 Investigation Framework:
 
-**1.** [Main Section Title]
-- Primary Point: [Description]
-  - Supporting Detail: [Explanation]
-  - Additional Detail: [Explanation]
-- Secondary Point: [Description]
-  - Supporting Detail: [Explanation]
-  - Additional Detail: [Explanation]
+**1.** Main Topic Area
+- Core Concept or Finding
+  - Key supporting evidence or detail
+  - Additional context or implication
+- Related Aspect or Development
+  - Specific example or case study
+  - Impact or significance
 
-**2.** [Main Section Title]
-- Primary Point: [Description]
-  - Supporting Detail: [Explanation]
-  - Additional Detail: [Explanation]
-- Secondary Point: [Description]
-  - Supporting Detail: [Explanation]
-  - Additional Detail: [Explanation]
+**2.** Secondary Topic Area
+- Primary Analysis Point
+  - Factual evidence or data
+  - Interpretation or insight
+- Comparative Analysis
+  - Contrasting perspective
+  - Synthesis of findings
 
-[Continue with additional sections as needed]
+**3.** Broader Implications
+- Practical Applications
+  - Real-world example
+  - Implementation consideration
+- Future Directions
+  - Potential developments
+  - Areas for further study
 
-Required Formatting:
-1. Number each main section with bold numbers and periods (**1.**, **2.**, etc.)
-2. Use single dash (-) for all points
-3. Indent sub-points with two spaces
-4. Use colons to separate points from descriptions
-5. Include one blank line between main sections
-6. Each section should have 2-3 primary points
-7. Each primary point should have 2-3 supporting details''',
+Structure Requirements:
+1. Main sections: Bold numbers with period (**1.**)
+2. Primary points: Single dash with clear, concise statement
+3. Supporting details: Indented dash with specific evidence
+4. Spacing: One blank line between main sections
+5. Flow: Logical progression from specific to general
+6. Depth: 2-3 primary points per section, each with 2-3 supporting details
+7. Language: Clear, precise, and objective
+''',
         height=250
     )
     agent2_prompt = st.text_area(
