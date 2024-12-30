@@ -321,9 +321,25 @@ Format exactly:
 Refined Prompt:
 [Your refined prompt here]
 ---
-[Your enhanced investigation framework with numbered points, each containing multiple sub-aspects and considerations]
+Framework Format Requirements:
+**1. Main Section Title**
+- Key Point A: Description or elaboration
+- Key Point B: Description or elaboration
+  - Sub-point 1: Additional detail
+  - Sub-point 2: Additional detail
+
+**2. Main Section Title**
+- Key Point A: Description or elaboration
+- Key Point B: Description or elaboration
+  - Sub-point 1: Additional detail
+  - Sub-point 2: Additional detail
 
 Guidelines for framework enhancement:
+- Use bold (**) for main numbered sections
+- Use single dash (-) for key points
+- Use indented dashes (  -) for sub-points
+- Include descriptions after colons
+- Maintain consistent spacing (one line between main sections)
 - Each main point should have 2-3 sub-aspects to explore
 - Consider interconnections between points
 - Add specific areas of investigation under each point
@@ -764,47 +780,47 @@ if start_button or st.session_state.get('start_button_clicked', False):
         framework_lines = framework.split('\n')
         formatted_framework = []
         current_section = None
-        in_subpoints = False
         
         for line in framework_lines:
             line = line.strip()
             if not line:
                 continue
-            
-            # Main numbered sections
+                
+            # Main numbered sections (e.g., "1. Title")
             if line[0].isdigit() and '.' in line[:3]:
                 if current_section:
                     formatted_framework.append("")  # Add spacing between sections
                 current_section = line
-                # Format main section with bold
-                title = line.split(':', 1)[0] if ':' in line else line
-                desc = line.split(':', 1)[1].strip() if ':' in line else ""
-                formatted_framework.append(f"**{title}**{': ' + desc if desc else ''}")
-                in_subpoints = False
-                
-            # Key points (a., b., etc. or bullet points)
-            elif line[0].isalpha() and line[1] == '.' or line[0] in '-•⚫○●':
-                # Convert to consistent bullet point format
+                # Format main section with bold and proper spacing
                 parts = line.split(':', 1)
-                point = parts[0].lstrip('abcdefghijklmnopqrstuvwxyz.').lstrip('-•⚫○●').strip()
-                desc = parts[1].strip() if len(parts) > 1 else ""
-                formatted_framework.append(f"- {point}{': ' + desc if desc else ''}")
-                in_subpoints = False
+                title = parts[0].strip()
+                desc = f": {parts[1].strip()}" if len(parts) > 1 else ""
+                formatted_framework.append(f"**{title}**{desc}")
                 
-            # Sub-points (i., ii., etc. or indented points)
-            elif line.lower().startswith(('i.', 'ii.', 'iii.')) or (line[0] in '-•⚫○●' and in_subpoints):
+            # Lettered points (e.g., "a. Title" or "b. Title")
+            elif line[0].isalpha() and line[1] == '.':
                 parts = line.split(':', 1)
-                point = parts[0].lstrip('ivxIVX.').lstrip('-•⚫○●').strip()
-                desc = parts[1].strip() if len(parts) > 1 else ""
-                formatted_framework.append(f"  - {point}{': ' + desc if desc else ''}")
-                in_subpoints = True
+                point = parts[0].strip()
+                desc = f": {parts[1].strip()}" if len(parts) > 1 else ""
+                formatted_framework.append(f"- {point}{desc}")
                 
-            # Additional descriptions or details
+            # Sub-points (e.g., "i. Title" or "ii. Title")
+            elif line.lower().startswith(('i.', 'ii.', 'iii.')):
+                parts = line.split(':', 1)
+                point = parts[0].strip()
+                desc = f": {parts[1].strip()}" if len(parts) > 1 else ""
+                formatted_framework.append(f"  - {point}{desc}")
+                
+            # Additional descriptions or bullet points
             else:
-                # Add as plain text with proper indentation
-                indent = "  " if in_subpoints else ""
-                formatted_framework.append(f"{indent}{line}")
+                # Handle bullet points and maintain indentation
+                if line.startswith(('-', '•', '⚫', '○', '●')):
+                    line = line.lstrip('-•⚫○●').strip()
+                    formatted_framework.append(f"  - {line}")
+                else:
+                    formatted_framework.append(f"    {line}")
         
+        # Join with newlines and display
         st.markdown('\n'.join(formatted_framework))
 
     # Mark Step 2 complete
