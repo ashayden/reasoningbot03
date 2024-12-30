@@ -719,18 +719,25 @@ if start_button or st.session_state.get('start_button_clicked', False):
 
     if st.session_state.random_fact:
         with st.expander("🎲 Random Fact", expanded=True):
-            # Remove any verification text or commentary
+            # Extract only the fact content
             fact = st.session_state.random_fact
+            
+            # Remove verification statements and commentary
             if "Return unchanged:" in fact:
                 fact = fact.split("Return unchanged:", 1)[1].strip().strip('"')
             elif "The fact is" in fact:
                 fact = fact.split("The fact is", 1)[1].strip().strip('"')
             elif "The statement is" in fact:
                 fact = fact.split("The statement is", 1)[1].strip().strip('"')
-            elif any(qualifier in fact.lower() for qualifier in ["verifiable", "historically accurate", "objective", "avoids speculation", "accurate", "verified"]):
-                fact = fact.split("\n")[-1].strip().strip('"')
-            # Remove any remaining verification language at the start
+            
+            # Remove any verification language
+            lines = fact.split('\n')
+            fact = lines[-1] if len(lines) > 1 else fact
+            fact = fact.strip().strip('"')
+            
+            # Remove any remaining verification prefixes
             fact = fact.replace("This is verifiable: ", "").replace("This is accurate: ", "").strip()
+            
             st.markdown(fact)
 
     if st.session_state.tldr_summary:
