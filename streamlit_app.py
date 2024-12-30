@@ -313,11 +313,9 @@ with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
         '''You are an expert prompt engineer. Your task is to take the user's topic:
 {topic}
 
-1) Create a more refined prompt
-2) Provide an initial structured investigation framework
-3) Review and enhance the framework by adding depth and complexity to each point
+Create a refined prompt and structured investigation framework.
 
-Format your response exactly as:
+Format your response EXACTLY as follows:
 
 Refined Prompt:
 [Your refined prompt here]
@@ -326,22 +324,32 @@ Refined Prompt:
 
 Investigation Framework:
 
-**1.** Main Section Title
-- Primary Point: Description or explanation
-  - Supporting detail or specific aspect
-  - Additional detail or consideration
+**1.** [Main Section Title]
+- Primary Point: [Description]
+  - Supporting Detail: [Explanation]
+  - Additional Detail: [Explanation]
+- Secondary Point: [Description]
+  - Supporting Detail: [Explanation]
+  - Additional Detail: [Explanation]
 
-**2.** Main Section Title
-- Primary Point: Description or explanation
-  - Supporting detail or specific aspect
-  - Additional detail or consideration
+**2.** [Main Section Title]
+- Primary Point: [Description]
+  - Supporting Detail: [Explanation]
+  - Additional Detail: [Explanation]
+- Secondary Point: [Description]
+  - Supporting Detail: [Explanation]
+  - Additional Detail: [Explanation]
 
-Formatting Guidelines:
-1. Main Sections: Bold number with period (**1.**), followed by clear title
-2. Primary Points: Single dash (-) with colon after point
-3. Supporting Details: Indented with two spaces, single dash (-)
-4. Spacing: One blank line between main sections only
-5. Structure: 2-3 primary points per section, each with 2-3 supporting details''',
+[Continue with additional sections as needed]
+
+Required Formatting:
+1. Number each main section with bold numbers and periods (**1.**, **2.**, etc.)
+2. Use single dash (-) for all points
+3. Indent sub-points with two spaces
+4. Use colons to separate points from descriptions
+5. Include one blank line between main sections
+6. Each section should have 2-3 primary points
+7. Each primary point should have 2-3 supporting details''',
         height=250
     )
     agent2_prompt = st.text_area(
@@ -772,42 +780,63 @@ if start_button or st.session_state.get('start_button_clicked', False):
     with st.expander("🎯 Refined Prompt", expanded=False):
         st.markdown(refined_prompt)
     with st.expander("🗺️ Investigation Framework", expanded=False):
-        # Clean up and format the framework text
-        framework_lines = framework.split('\n')
-        formatted_framework = []
-        
-        for line in framework_lines:
-            line = line.strip()
-            if not line:
-                continue
-                
-            # Main numbered sections
-            if line[0].isdigit() and '.' in line[:3]:
-                if formatted_framework:  # Add spacing between sections
-                    formatted_framework.append("")
-                # Format: "**1.** Title"
-                parts = line.split('.', 1)
-                number = parts[0].strip()
-                rest = parts[1].strip() if len(parts) > 1 else ""
-                formatted_framework.append(f"**{number}.** {rest}")
-                
-            # Key points (first level)
-            elif line.startswith(('-', '•', '⚫', '○', '●')) or (line[0].isalpha() and line[1] == '.'):
-                # Remove any existing markers and clean the text
-                clean_line = line.lstrip('-•⚫○●abcdefghijklmnopqrstuvwxyz.').strip()
-                formatted_framework.append(f"- {clean_line}")
-                
-            # Sub-points (second level)
-            elif line.startswith(('  ', '\t')) or line.lower().startswith(('i.', 'ii.', 'iii.')):
-                # Remove any existing markers and clean the text
-                clean_line = line.lstrip(' \t-•⚫○●ivxIVX.').strip()
-                formatted_framework.append(f"  - {clean_line}")
+        def format_framework_text(framework: str) -> str:
+            """Process and format framework text with consistent styling."""
+            lines = framework.split('\n')
+            formatted_lines = []
+            current_section = 0
             
-            # Additional text
-            else:
-                formatted_framework.append(f"    {line}")
-        
-        st.markdown('\n'.join(formatted_framework))
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                # Handle main sections (numbered with or without asterisks)
+                if any(line.startswith(p) for p in ['**1.', '1.', '*1.', '**1']):
+                    current_section += 1
+                    if formatted_lines:
+                        formatted_lines.append('')  # Add spacing between sections
+                    # Extract title, removing any existing formatting
+                    title = line.replace('*', '').strip()
+                    if ':' in title:
+                        num, rest = title.split('.', 1)
+                        title = rest.split(':', 1)[0].strip()
+                    else:
+                        num, title = title.split('.', 1)
+                    formatted_lines.append(f"**{current_section}.** {title.strip()}")
+                    continue
+                    
+                # Handle primary points
+                if line[0].isalpha() and line[1] == ')' or line.startswith(('-', '•', '⚫', '○', '●')):
+                    # Clean the line of existing markers
+                    text = line.lstrip('-•⚫○●abcdefghijklmnopqrstuvwxyz) ')
+                    if ':' in text:
+                        point, desc = text.split(':', 1)
+                        formatted_lines.append(f"- {point.strip()}: {desc.strip()}")
+                    else:
+                        formatted_lines.append(f"- {text.strip()}")
+                    continue
+                    
+                # Handle sub-points (indented or with roman numerals)
+                if line.startswith(('  ', '\t')) or line.lower().startswith(('i.', 'ii.', 'iii.')):
+                    # Clean the line of existing markers
+                    text = line.lstrip(' \t-•⚫○●ivxIVX.)') 
+                    if ':' in text:
+                        point, desc = text.split(':', 1)
+                        formatted_lines.append(f"  - {point.strip()}: {desc.strip()}")
+                    else:
+                        formatted_lines.append(f"  - {text.strip()}")
+                    continue
+                    
+                # Handle any remaining text
+                formatted_lines.append(f"    {line}")
+                
+            return '\n'.join(formatted_lines)
+
+        # Update the framework display section
+        with st.expander("🗺️ Investigation Framework", expanded=False):
+            formatted_text = format_framework_text(framework)
+            st.markdown(formatted_text)
 
     # Mark Step 2 complete
     st.session_state.current_step = 2
