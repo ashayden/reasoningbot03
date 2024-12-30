@@ -1048,32 +1048,58 @@ if start_button or st.session_state.get('start_button_clicked', False):
                 
             current_analysis += "\n\n" + research_text
             
-            # Split into title and content
-            lines = research_text.split("\n", 1)
-            title = lines[0].strip() if lines else f"Research Point {i+1}"
-            content = lines[1].strip() if len(lines) > 1 else research_text
-            
-            # Process citations
-            processed_content, references = process_citations(content)
-            
-            # Store research results
-            research_results.append({
-                'title': title,
-                'content': processed_content,
-                'references': references
-            })
-            
-            # Display research block
-            with st.expander(f"{get_title_emoji(title)}{title}", expanded=False):
-                if processed_content:
-                    st.markdown(processed_content)
-                    if references:
-                        st.markdown("---")
-                        st.markdown("**References:**")
-                        st.markdown(references)
-                else:
-                    st.markdown("No research content available.")
-                    
+            try:
+                # Split into title and content, with better error handling
+                lines = research_text.split("\n")
+                title = "Research Point"  # Default title
+                content = research_text   # Default to full text
+                
+                # Find the first non-empty line for title
+                for line in lines:
+                    if line.strip():
+                        title = line.strip()
+                        # Remove the title line from content
+                        content = "\n".join(lines[lines.index(line) + 1:]).strip()
+                        break
+                
+                # If no content after title, use full text
+                if not content:
+                    content = research_text
+                
+                # Process citations with error handling
+                try:
+                    processed_content, references = process_citations(content)
+                except Exception as citation_error:
+                    logging.error(f"Citation processing error: {citation_error}")
+                    processed_content = content
+                    references = ""
+                
+                # Store research results
+                research_results.append({
+                    'title': title or f"Research Point {i+1}",
+                    'content': processed_content or "No content available.",
+                    'references': references
+                })
+                
+                # Display research block with error handling
+                safe_title = title or f"Research Point {i+1}"
+                with st.expander(f"{get_title_emoji(safe_title)}{safe_title}", expanded=False):
+                    if processed_content:
+                        st.markdown(processed_content)
+                        if references:
+                            st.markdown("---")
+                            st.markdown("**References:**")
+                            st.markdown(references)
+                    else:
+                        st.markdown("No research content available.")
+                        
+            except Exception as e:
+                logging.error(f"Error processing research block {i+1}: {str(e)}")
+                # Fallback display for errors
+                with st.expander(f"Research Point {i+1}", expanded=False):
+                    st.markdown("Error processing research content. Original text:")
+                    st.markdown(research_text)
+
         except Exception as e:
             logging.error(f"Error in research block {i+1}: {str(e)}")
             with st.expander(f"Research Point {i+1}", expanded=False):
