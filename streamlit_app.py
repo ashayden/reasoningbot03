@@ -478,7 +478,7 @@ def create_download_pdf(refined_prompt, framework, research_analysis, final_anal
             if not text:
                 return ""
             text = text.replace('—', '-').replace('–', '-')
-            text = text.replace('’', "'").replace('‘', "'").replace('…', '...')
+            text = text.replace(''', "'").replace(''', "'").replace('…', '...')
             return ''.join(char for char in text if ord(char) < 128)
 
         # Title
@@ -488,16 +488,9 @@ def create_download_pdf(refined_prompt, framework, research_analysis, final_anal
 
         # Refined prompt
         pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, "Refined Prompt", ln=True)
+        pdf.cell(0, 10, "Research Focus", ln=True)
         pdf.set_font("Helvetica", size=12)
         pdf.multi_cell(0, 10, sanitize_text(refined_prompt))
-        pdf.ln(10)
-
-        # Framework
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, "Investigation Framework", ln=True)
-        pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, sanitize_text(framework))
         pdf.ln(10)
 
         # Research analysis
