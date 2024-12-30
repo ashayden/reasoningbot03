@@ -727,8 +727,10 @@ if start_button or st.session_state.get('start_button_clicked', False):
                 fact = fact.split("The fact is", 1)[1].strip().strip('"')
             elif "The statement is" in fact:
                 fact = fact.split("The statement is", 1)[1].strip().strip('"')
-            elif any(qualifier in fact for qualifier in ["verifiable", "historically accurate", "objective", "avoids speculation"]):
+            elif any(qualifier in fact.lower() for qualifier in ["verifiable", "historically accurate", "objective", "avoids speculation", "accurate", "verified"]):
                 fact = fact.split("\n")[-1].strip().strip('"')
+            # Remove any remaining verification language at the start
+            fact = fact.replace("This is verifiable: ", "").replace("This is accurate: ", "").strip()
             st.markdown(fact)
 
     if st.session_state.tldr_summary:
