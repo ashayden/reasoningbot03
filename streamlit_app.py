@@ -704,7 +704,7 @@ if start_button or st.session_state.get('start_button_clicked', False):
 
     # Step 3: Research Phase
     def extract_research_aspects(framework: str) -> list:
-        """Extract research aspects from the framework."""
+        """Extract research aspects from the framework, handling both numbered points and bullet points."""
         aspects = []
         current_main_point = ""
         
@@ -714,10 +714,31 @@ if start_button or st.session_state.get('start_button_clicked', False):
                 continue
             
             # Match main numbered points (1., 2., etc.)
-            if line[0].isdigit() and line[1] == '.' and len(line) > 2:
-                current_main_point = line[2:].strip()
-                aspects.append(current_main_point)
-            
+            if line[0].isdigit() and '.' in line[:3]:
+                current_main_point = line[line.find('.')+1:].strip()
+                if current_main_point:
+                    aspects.append(current_main_point)
+            # Match bullet points and sub-points
+            elif line.startswith(('•', '-', '○', '·')) or (line[0].isalpha() and line[1] == '.'):
+                point = line[1:].strip() if line[1] == '.' else line[1:].strip()
+                if point and not point.lower().startswith(('i.', 'ii.', 'iii.')):
+                    aspects.append(point)
+                
+        # If we still have no aspects, try a more lenient approach
+        if not aspects:
+            for line in framework.split('\n'):
+                line = line.strip()
+                # Skip empty lines and roman numerals
+                if not line or line.lower().startswith(('i.', 'ii.', 'iii.')):
+                    continue
+                # Include any line that seems to be a point
+                if any(line.startswith(p) for p in ('•', '-', '○', '·')) or \
+                   (line[0].isdigit() and '.' in line[:3]) or \
+                   (line[0].isalpha() and line[1] == '.'):
+                    point = line.split('.', 1)[-1].strip()
+                    if point:
+                        aspects.append(point)
+        
         return aspects
 
     aspects = extract_research_aspects(framework)
@@ -725,8 +746,16 @@ if start_button or st.session_state.get('start_button_clicked', False):
     if not aspects:
         st.error("Framework parsing failed. Please try again.")
         logging.error(f"Failed to parse framework: {framework}")
+        # Log the actual content for debugging
+        logging.debug("Framework content:")
+        for line in framework.split('\n'):
+            logging.debug(f"Line: {repr(line)}")
         st.stop()
 
+    # Ensure we have enough aspects for the number of loops
+    if len(aspects) < loops_num:
+        aspects = aspects * (loops_num // len(aspects) + 1)
+    
     current_analysis = ""
     research_results_list = []
 
