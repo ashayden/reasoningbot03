@@ -725,6 +725,10 @@ if start_button or st.session_state.get('start_button_clicked', False):
                 fact = fact.split("Return unchanged:", 1)[1].strip().strip('"')
             elif "The fact is" in fact:
                 fact = fact.split("The fact is", 1)[1].strip().strip('"')
+            elif "The statement is" in fact:
+                fact = fact.split("The statement is", 1)[1].strip().strip('"')
+            elif any(qualifier in fact for qualifier in ["verifiable", "historically accurate", "objective", "avoids speculation"]):
+                fact = fact.split("\n")[-1].strip().strip('"')
             st.markdown(fact)
 
     if st.session_state.tldr_summary:
