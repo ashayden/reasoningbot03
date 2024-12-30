@@ -690,15 +690,15 @@ if start_button or st.session_state.get('start_button_clicked', False):
                 if current_section:
                     formatted_framework.append("")  # Add spacing between sections
                 current_section = line
-                formatted_framework.append(f"\n## {line}")
+                formatted_framework.append(f"\n# {line}")
                 
             # Lettered sub-points (e.g., "a. Investigate...")
             elif line[0].isalpha() and line[1] == '.':
-                formatted_framework.append(f"\n* {line}")
+                formatted_framework.append(f"* {line}")
                 
             # Roman numeral points (e.g., "i. Analyze...")
             elif line.lower().startswith(('i.', 'ii.', 'iii.')):
-                formatted_framework.append(f"    * {line}")
+                formatted_framework.append(f"  * {line}")
                 
             # Bullet points
             elif line.startswith(('•', '⚫', '○', '●', '-', '*')):
@@ -706,7 +706,7 @@ if start_button or st.session_state.get('start_button_clicked', False):
                 
             # Regular text (descriptions and details)
             else:
-                formatted_framework.append(f"  {line}")
+                formatted_framework.append(f"{line}")
         
         st.markdown('\n'.join(formatted_framework))
 
