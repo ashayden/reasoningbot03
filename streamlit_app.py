@@ -767,14 +767,30 @@ if start_button or st.session_state.get('start_button_clicked', False):
                 
             current_analysis += "\n\n" + research_text
             lines = research_text.split("\n")
-            title = lines[0].strip() if lines else aspect
+            
+            # Ensure valid title and content
+            title = lines[0].strip() if lines and lines[0].strip() else f"Research Aspect {i+1}"
             content = "\n".join(lines[1:]) if len(lines) > 1 else research_text
+            
+            # Validate title length and content
+            if len(title) > 100:  # Truncate very long titles
+                title = title[:97] + "..."
             
             research_results_list.append((title, content))
             
-            emoji = get_title_emoji(title)
-            with st.expander(f"{emoji} {title}", expanded=False):
-                st.markdown(content)
+            try:
+                emoji = get_title_emoji(title)
+                # Ensure emoji is valid
+                if not emoji or len(emoji) > 2:
+                    emoji = "📌"
+                
+                with st.expander(f"{emoji} {title}", expanded=False):
+                    st.markdown(content)
+            except Exception as e:
+                logging.error(f"Error displaying research block {i+1}: {str(e)}")
+                # Fallback display without emoji
+                with st.expander(f"Research Aspect {i+1}", expanded=False):
+                    st.markdown(content)
 
     st.session_state.research_results = research_results_list
 
