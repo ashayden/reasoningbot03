@@ -743,10 +743,6 @@ if start_button or st.session_state.get('start_button_clicked', False):
     if not aspects:
         st.error("Framework parsing failed. Please try again.")
         logging.error(f"Failed to parse framework: {framework}")
-        # Log the actual content for debugging
-        logging.debug("Framework content:")
-        for line in framework.split('\n'):
-            logging.debug(f"Line: {repr(line)}")
         st.stop()
 
     # Ensure we have enough aspects for the number of loops
@@ -758,62 +754,61 @@ if start_button or st.session_state.get('start_button_clicked', False):
 
     for i in range(loops_num):
         aspect = aspects[i % len(aspects)]
-        with st.status(f"Researching aspect {i+1}/{loops_num}: {aspect}"):
-            research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
+        research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
+        
+        if not research_text:
+            st.error(f"Research failed for aspect: {aspect}")
+            st.stop()
             
-            if not research_text:
-                st.error(f"Research failed for aspect: {aspect}")
-                st.stop()
-                
-            current_analysis += "\n\n" + research_text
-            lines = research_text.split("\n")
+        current_analysis += "\n\n" + research_text
+        lines = research_text.split("\n")
+        
+        try:
+            # Ensure valid title and content
+            title = lines[0].strip() if lines and lines[0].strip() else f"Research Point {i+1}"
+            content = "\n".join(lines[1:]) if len(lines) > 1 else research_text
             
+            # Clean and validate title
+            title = ''.join(c for c in title if c.isprintable() and ord(c) < 128)  # Remove non-ASCII chars
+            title = title.replace('"', '').replace("'", "")  # Remove quotes
+            title = ' '.join(title.split())  # Normalize whitespace
+            
+            if not title or len(title) < 1:
+                title = f"Research Point {i+1}"
+            elif len(title) > 100:
+                title = title[:97] + "..."
+            
+            # Clean and validate content
+            content = content.strip()
+            if not content:
+                content = "No content available."
+            
+            research_results_list.append((title, content))
+            
+            # Try to get emoji, with fallback
             try:
-                # Ensure valid title and content
-                title = lines[0].strip() if lines and lines[0].strip() else f"Research Point {i+1}"
-                content = "\n".join(lines[1:]) if len(lines) > 1 else research_text
+                emoji = get_title_emoji(title)
+                if not emoji or len(emoji) > 2 or not emoji.isprintable():
+                    emoji = "📌"
+                display_title = f"{emoji} {title}"
+            except:
+                display_title = f"📌 {title}"
+            
+            # Ensure display title is valid for Streamlit
+            display_title = display_title.encode('ascii', 'ignore').decode('ascii')
+            if not display_title or len(display_title) < 1:
+                display_title = f"Research Point {i+1}"
+            
+            # Display the expander
+            with st.expander(display_title, expanded=False):
+                st.markdown(content)
                 
-                # Clean and validate title
-                title = ''.join(c for c in title if c.isprintable() and ord(c) < 128)  # Remove non-ASCII chars
-                title = title.replace('"', '').replace("'", "")  # Remove quotes
-                title = ' '.join(title.split())  # Normalize whitespace
-                
-                if not title or len(title) < 1:
-                    title = f"Research Point {i+1}"
-                elif len(title) > 100:
-                    title = title[:97] + "..."
-                
-                # Clean and validate content
-                content = content.strip()
-                if not content:
-                    content = "No content available."
-                
-                research_results_list.append((title, content))
-                
-                # Try to get emoji, with fallback
-                try:
-                    emoji = get_title_emoji(title)
-                    if not emoji or len(emoji) > 2 or not emoji.isprintable():
-                        emoji = "📌"
-                    display_title = f"{emoji} {title}"
-                except:
-                    display_title = f"📌 {title}"
-                
-                # Ensure display title is valid for Streamlit
-                display_title = display_title.encode('ascii', 'ignore').decode('ascii')
-                if not display_title or len(display_title) < 1:
-                    display_title = f"Research Point {i+1}"
-                
-                # Display the expander
-                with st.expander(display_title, expanded=False):
-                    st.markdown(content)
-                    
-            except Exception as e:
-                logging.error(f"Error in research block {i+1}: {str(e)}")
-                # Fallback display with guaranteed safe values
-                fallback_title = f"Research Point {i+1}"
-                with st.expander(fallback_title, expanded=False):
-                    st.markdown("Error displaying research content. Please try again.")
+        except Exception as e:
+            logging.error(f"Error in research block {i+1}: {str(e)}")
+            # Fallback display with guaranteed safe values
+            fallback_title = f"Research Point {i+1}"
+            with st.expander(fallback_title, expanded=False):
+                st.markdown("Error displaying research content. Please try again.")
 
     st.session_state.research_results = research_results_list
 
