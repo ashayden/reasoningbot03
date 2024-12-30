@@ -653,6 +653,66 @@ def conduct_research(refined_prompt, framework, prev_analysis, aspect, iteration
         logging.error(e)
     return None
 
+def get_title_emoji(title: str) -> str:
+    """Select an emoji based on keywords in the research block title."""
+    # Convert title to lowercase for matching
+    title_lower = title.lower()
+    
+    # Common keywords and their corresponding emojis
+    keyword_emojis = {
+        # Analysis & Research
+        'analysis': '📊', 'research': '🔍', 'study': '📝', 'investigation': '🔎',
+        'findings': '📋', 'results': '📈', 'data': '📊', 'evidence': '🔍',
+        
+        # Development & Progress
+        'development': '📈', 'evolution': '🔄', 'progress': '⏩', 'growth': '🌱',
+        'advancement': '⬆️', 'improvement': '📈', 'innovation': '💡',
+        
+        # Historical & Time
+        'history': '📜', 'historical': '⌛', 'ancient': '🏺', 'timeline': '⏳',
+        'past': '⌛', 'modern': '🌆', 'future': '🔮', 'era': '📅',
+        
+        # Technical & Scientific
+        'technical': '⚙️', 'scientific': '🔬', 'engineering': '🛠️', 'mechanical': '⚙️',
+        'technology': '💻', 'design': '✏️', 'system': '🔧', 'process': '⚙️',
+        
+        # Impact & Effects
+        'impact': '💥', 'effect': '🎯', 'influence': '🔄', 'change': '🔄',
+        'transformation': '🔄', 'revolution': '💫', 'disruption': '💥',
+        
+        # Social & Cultural
+        'social': '👥', 'cultural': '🎭', 'society': '🌍', 'community': '👥',
+        'people': '👥', 'public': '🌐', 'population': '👥',
+        
+        # Economic & Business
+        'economic': '💰', 'business': '💼', 'market': '📊', 'commercial': '🏢',
+        'financial': '💵', 'trade': '🤝', 'industry': '🏭',
+        
+        # Environmental & Nature
+        'environmental': '🌿', 'nature': '🌳', 'ecological': '🌱', 'climate': '🌡️',
+        'natural': '🌿', 'earth': '🌍', 'environment': '🌱',
+        
+        # Comparison & Analysis
+        'comparison': '⚖️', 'contrast': '↔️', 'versus': '🆚', 'difference': '↔️',
+        'similarity': '🔄', 'pattern': '🔄', 'relationship': '🔗',
+        
+        # Problems & Solutions
+        'problem': '⚠️', 'solution': '💡', 'challenge': '🎯', 'issue': '⚠️',
+        'limitation': '⛔', 'barrier': '🚧', 'obstacle': '🚧',
+        
+        # Success & Achievement
+        'success': '🏆', 'achievement': '🎯', 'breakthrough': '💫', 'milestone': '🏁',
+        'accomplishment': '🎯', 'victory': '🏆', 'triumph': '🌟'
+    }
+    
+    # Check for keyword matches in the title
+    for keyword, emoji in keyword_emojis.items():
+        if keyword in title_lower:
+            return emoji
+    
+    # Default emoji if no keywords match
+    return '📌'
+
 # Convert slider selection to numeric loops
 if loops == "Puddle":
     loops_num = 1
@@ -923,8 +983,22 @@ if start_button or st.session_state.get('start_button_clicked', False):
             
             research_results_list.append((title, content))
             
-            # Display the expander with clean title
-            with st.expander(title, expanded=False):
+            # Try to get emoji, with fallback
+            try:
+                emoji = get_title_emoji(title)
+                if not emoji or len(emoji) > 2 or not emoji.isprintable():
+                    emoji = "📌"
+                display_title = f"{emoji} {title}"
+            except:
+                display_title = f"📌 {title}"
+            
+            # Ensure display title is valid for Streamlit
+            display_title = display_title.encode('ascii', 'ignore').decode('ascii')
+            if not display_title or len(display_title) < 1:
+                display_title = f"Research Point {i+1}"
+            
+            # Display the expander
+            with st.expander(display_title, expanded=False):
                 st.markdown(content)
                 
         except Exception as e:
