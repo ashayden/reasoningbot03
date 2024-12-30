@@ -326,7 +326,7 @@ Refined Prompt:
 
 Investigation Framework:
 
-**1. Main Section Title**
+**1.** Main Section Title
 - a. Key Point: Description
   - i. Sub-point detail
   - ii. Sub-point detail
@@ -334,7 +334,7 @@ Investigation Framework:
   - i. Sub-point detail
   - ii. Sub-point detail
 
-**2. Main Section Title**
+**2.** Main Section Title
 - a. Key Point: Description
   - i. Sub-point detail
   - ii. Sub-point detail
@@ -343,7 +343,7 @@ Investigation Framework:
   - ii. Sub-point detail
 
 Formatting Rules:
-1. Main sections: Bold numbers with periods (**1.**, **2.**)
+1. Main sections: Bold only the number and period (e.g., "**1.**")
 2. Key points: Use letters with periods (a., b.)
 3. Sub-points: Use roman numerals with periods (i., ii.)
 4. Always use colons before descriptions
@@ -794,10 +794,15 @@ if start_button or st.session_state.get('start_button_clicked', False):
             if line[0].isdigit() and '.' in line[:3]:
                 if formatted_framework:  # Add spacing between sections
                     formatted_framework.append("")
-                # Format: "**1. Title**"
-                title = line.split(':', 1)[0].strip()
-                desc = line.split(':', 1)[1].strip() if ':' in line else ""
-                formatted_framework.append(f"**{title}**{': ' + desc if desc else ''}")
+                # Format: Bold only the numbered part (e.g., "**1.** Title")
+                parts = line.split('.', 1)
+                number = parts[0].strip()
+                rest = parts[1].strip() if len(parts) > 1 else ""
+                if ':' in rest:
+                    title, desc = rest.split(':', 1)
+                    formatted_framework.append(f"**{number}.** {title.strip()}: {desc.strip()}")
+                else:
+                    formatted_framework.append(f"**{number}.** {rest}")
                 
             # Key points (a., b., etc.)
             elif line[0].isalpha() and line[1] == '.':
