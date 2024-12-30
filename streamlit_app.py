@@ -614,83 +614,106 @@ Keep the most relevant emojis and remove others while maintaining the meaning.''
         return None
 
 def process_framework_output(raw_framework: str) -> str:
-    """Process and restructure raw LLM framework output into a clean, standardized format."""
+    """Process raw LLM framework output into a structured, machine-readable format."""
     try:
-        # Split into lines and clean up
         lines = [line.strip() for line in raw_framework.split('\n') if line.strip()]
-        processed_lines = []
+        processed = []
         current_section = 0
-        in_section = False
         
         for line in lines:
-            # Handle main sections
+            # Main section headers
             if any(line.lower().startswith(p) for p in ['**1', '1.', '*1', '1)', '#1', 'section 1']):
                 current_section += 1
-                if processed_lines:
-                    processed_lines.extend(['', ''])  # Double spacing between sections
-                
-                # Extract and clean section title
-                title = line.replace('*', '').strip()
-                title = re.sub(r'^[\d.)\s]+', '', title)  # Remove leading numbers and punctuation
-                title = title.split(':', 1)[0] if ':' in title else title  # Remove anything after colon
-                processed_lines.append(f"**{current_section}.** {title.strip().upper()}")
-                in_section = True
+                title = re.sub(r'^[*\d.)\s]+', '', line).split(':', 1)[0].strip().upper()
+                processed.append(f"SECTION_{current_section}:{title}")
                 continue
             
-            # Handle primary points
+            # Primary research points
             if line.lstrip().startswith(('-', '•', '⚫', '○', '●')) or (len(line) > 2 and line[0].isalpha() and line[1] == ')'):
                 text = line.lstrip('-•⚫○●abcdefghijklmnopqrstuvwxyz) ')
                 if ':' in text:
                     point, desc = text.split(':', 1)
-                    processed_lines.append(f"{current_section}.{len([l for l in processed_lines if l.startswith(f'{current_section}.')])+ 1}. {point.strip()}: {desc.strip()}")
+                    processed.append(f"POINT_{current_section}.{len([l for l in processed if l.startswith(f'POINT_{current_section}')])+ 1}:{point.strip()}|{desc.strip()}")
                 else:
-                    processed_lines.append(f"{current_section}.{len([l for l in processed_lines if l.startswith(f'{current_section}.')])+ 1}. {text.strip()}")
+                    processed.append(f"POINT_{current_section}.{len([l for l in processed if l.startswith(f'POINT_{current_section}')])+ 1}:{text.strip()}")
                 continue
             
-            # Handle sub-points
+            # Supporting details and sub-points
             if line.startswith(('  ', '\t')) or line.lower().startswith(('i.', 'ii.', 'iii.')):
                 text = line.lstrip(' \t-•⚫○●ivxIVX.)')
-                parent_points = [l for l in processed_lines if l.startswith(f'{current_section}.') and not l.startswith(f'{current_section}.0')]
+                parent_points = [l for l in processed if l.startswith(f'POINT_{current_section}')]
                 if parent_points:
-                    last_parent = parent_points[-1]
-                    parent_num = last_parent.split('.')[1].split()[0]
-                    sub_count = len([l for l in processed_lines if l.startswith(f'    {current_section}.{parent_num}.')])
+                    parent_num = parent_points[-1].split(':')[0].split('_')[1]
+                    sub_count = len([l for l in processed if l.startswith(f'SUB_{current_section}.{parent_num}')])
                     if ':' in text:
                         point, desc = text.split(':', 1)
-                        processed_lines.append(f"    {current_section}.{parent_num}.{sub_count + 1}. {point.strip()}: {desc.strip()}")
+                        processed.append(f"SUB_{current_section}.{parent_num}.{sub_count + 1}:{point.strip()}|{desc.strip()}")
                     else:
-                        processed_lines.append(f"    {current_section}.{parent_num}.{sub_count + 1}. {text.strip()}")
+                        processed.append(f"SUB_{current_section}.{parent_num}.{sub_count + 1}:{text.strip()}")
                 continue
             
-            # Handle additional text with proper indentation
-            if in_section and line:
-                processed_lines.append(f"        {line}")
+            # Additional context or metadata
+            if line:
+                processed.append(f"META_{current_section}:{line.strip()}")
         
-        # Add final spacing
-        if processed_lines:
-            processed_lines.append('')
-        
-        return '\n'.join(processed_lines)
+        return '\n'.join(processed)
         
     except Exception as e:
         logging.error(f"Framework processing error: {str(e)}")
-        return raw_framework  # Return original if processing fails
+        return raw_framework
+
+def extract_research_aspects(framework: str) -> list:
+    """Extract research aspects from machine-readable framework format."""
+    aspects = []
+    
+    for line in framework.split('\n'):
+        if not line.strip():
+            continue
+            
+        # Extract points from structured format
+        if line.startswith('POINT_'):
+            try:
+                content = line.split(':', 1)[1]
+                if '|' in content:
+                    point, desc = content.split('|', 1)
+                    aspects.append((point.strip(), desc.strip()))
+                else:
+                    aspects.append((content.strip(), ''))
+            except:
+                continue
+                
+        # Include relevant metadata
+        elif line.startswith('META_'):
+            try:
+                content = line.split(':', 1)[1].strip()
+                if len(content) > 10:  # Only include substantial metadata
+                    aspects.append((content, ''))
+            except:
+                continue
+    
+    return [aspect[0] for aspect in aspects if aspect[0]]  # Return only point titles
 
 def generate_refined_prompt_and_framework(topic):
-    """Call Agent 1 to create and refine prompt + framework."""
+    """Generate structured research framework optimized for agent processing."""
     try:
-        # Initial framework generation
-        initial_prompt = f'''As an expert prompt engineer, analyze this topic and create:
-1. A refined, detailed prompt
-2. An initial structured framework for investigation
+        initial_prompt = f'''Analyze this topic and create:
+1. A refined research prompt
+2. A structured investigation framework
 
 Topic: {topic}
 
-Format your response exactly as:
+Framework Requirements:
+1. Use clear section markers (SECTION_1, SECTION_2, etc.)
+2. Each point should have a clear identifier (POINT_1.1, POINT_1.2, etc.)
+3. Include supporting details with parent references (SUB_1.1.1, SUB_1.1.2, etc.)
+4. Add relevant metadata with META_ prefix
+5. Use pipe symbol (|) to separate point titles from descriptions
+
+Format:
 Refined Prompt:
-[Your refined prompt here]
+[prompt]
 ---
-[Your investigation framework with numbered points]'''
+[structured framework]'''
 
         initial_resp = model.generate_content(initial_prompt)
         initial_result = handle_response(initial_resp)
@@ -702,29 +725,8 @@ Refined Prompt:
         refined_prompt = parts[0].replace("Refined Prompt:", "").strip()
         initial_framework = parts[1].strip()
         
-        # Framework refinement
-        refinement_prompt = f'''As an expert analyst, review and enhance this investigation framework by adding depth and complexity to each point.
-
-Original Framework:
-{initial_framework}
-
-Guidelines:
-1. Add 2-3 specific sub-aspects under each main point
-2. Include both obvious and non-obvious angles
-3. Consider interconnections between points
-4. Ensure comprehensive coverage while maintaining focus
-5. Add specific areas of investigation under each point
-
-Provide the enhanced framework maintaining the same overall structure but with added depth and detail.'''
-
-        refinement_resp = model.generate_content(refinement_prompt)
-        enhanced_framework = handle_response(refinement_resp)
-        
-        if not enhanced_framework:
-            return refined_prompt, initial_framework
-        
-        # Process and restructure the framework
-        processed_framework = process_framework_output(enhanced_framework)
+        # Process framework into structured format
+        processed_framework = process_framework_output(initial_framework)
             
         return refined_prompt, processed_framework
         
