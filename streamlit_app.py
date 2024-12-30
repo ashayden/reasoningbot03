@@ -327,30 +327,21 @@ Refined Prompt:
 Investigation Framework:
 
 **1.** Main Section Title
-- a. Key Point: Description
-  - i. Sub-point detail
-  - ii. Sub-point detail
-- b. Key Point: Description
-  - i. Sub-point detail
-  - ii. Sub-point detail
+- Primary Point: Description or explanation
+  - Supporting detail or specific aspect
+  - Additional detail or consideration
 
 **2.** Main Section Title
-- a. Key Point: Description
-  - i. Sub-point detail
-  - ii. Sub-point detail
-- b. Key Point: Description
-  - i. Sub-point detail
-  - ii. Sub-point detail
+- Primary Point: Description or explanation
+  - Supporting detail or specific aspect
+  - Additional detail or consideration
 
-Formatting Rules:
-1. Main sections: Bold only the number and period (e.g., "**1.**")
-2. Key points: Use letters with periods (a., b.)
-3. Sub-points: Use roman numerals with periods (i., ii.)
-4. Always use colons before descriptions
-5. Maintain consistent indentation
-6. Include one blank line between main sections
-7. Each main section should have 2-3 key points
-8. Each key point should have 2-3 sub-points''',
+Formatting Guidelines:
+1. Main Sections: Bold number with period (**1.**), followed by clear title
+2. Primary Points: Single dash (-) with colon after point
+3. Supporting Details: Indented with two spaces, single dash (-)
+4. Spacing: One blank line between main sections only
+5. Structure: 2-3 primary points per section, each with 2-3 supporting details''',
         height=250
     )
     agent2_prompt = st.text_area(
@@ -794,32 +785,23 @@ if start_button or st.session_state.get('start_button_clicked', False):
             if line[0].isdigit() and '.' in line[:3]:
                 if formatted_framework:  # Add spacing between sections
                     formatted_framework.append("")
-                # Format: Bold only the numbered part (e.g., "**1.** Title")
+                # Format: "**1.** Title"
                 parts = line.split('.', 1)
                 number = parts[0].strip()
                 rest = parts[1].strip() if len(parts) > 1 else ""
-                if ':' in rest:
-                    title, desc = rest.split(':', 1)
-                    formatted_framework.append(f"**{number}.** {title.strip()}: {desc.strip()}")
-                else:
-                    formatted_framework.append(f"**{number}.** {rest}")
+                formatted_framework.append(f"**{number}.** {rest}")
                 
-            # Key points (a., b., etc.)
-            elif line[0].isalpha() and line[1] == '.':
-                # Format: "- Point: Description"
-                point = line.split(':', 1)[0].strip()
-                desc = line.split(':', 1)[1].strip() if ':' in line else ""
-                formatted_framework.append(f"- {point}{': ' + desc if desc else ''}")
+            # Key points (first level)
+            elif line.startswith(('-', '•', '⚫', '○', '●')) or (line[0].isalpha() and line[1] == '.'):
+                # Remove any existing markers and clean the text
+                clean_line = line.lstrip('-•⚫○●abcdefghijklmnopqrstuvwxyz.').strip()
+                formatted_framework.append(f"- {clean_line}")
                 
-            # Sub-points
+            # Sub-points (second level)
             elif line.startswith(('  ', '\t')) or line.lower().startswith(('i.', 'ii.', 'iii.')):
-                # Format: "  - Point: Description"
-                point = line.lstrip(' \ti.').strip()
-                if ':' in point:
-                    point_parts = point.split(':', 1)
-                    formatted_framework.append(f"  - {point_parts[0].strip()}: {point_parts[1].strip()}")
-                else:
-                    formatted_framework.append(f"  - {point}")
+                # Remove any existing markers and clean the text
+                clean_line = line.lstrip(' \t-•⚫○●ivxIVX.').strip()
+                formatted_framework.append(f"  - {clean_line}")
             
             # Additional text
             else:
