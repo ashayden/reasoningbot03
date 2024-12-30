@@ -788,10 +788,10 @@ if start_button or st.session_state.get('start_button_clicked', False):
         st.markdown(refined_prompt)
 
     with st.expander("🗺️ Investigation Framework", expanded=False):
-        def format_framework_text(framework: str) -> str:
-            """Process and format framework text with consistent styling."""
-            lines = framework.split('\n')
-            formatted_lines = []
+        def normalize_framework_text(text: str) -> list:
+            """Convert any framework text into a normalized structure."""
+            lines = text.split('\n')
+            normalized = []
             current_section = 0
             
             for line in lines:
@@ -799,47 +799,75 @@ if start_button or st.session_state.get('start_button_clicked', False):
                 if not line:
                     continue
                     
-                # Handle main sections (numbered with or without asterisks)
-                if any(line.startswith(p) for p in ['**1.', '1.', '*1.', '**1']):
+                # Detect main sections
+                if any(line.lower().startswith(p) for p in ['**1', '1.', '*1', '1)', '#1']):
                     current_section += 1
-                    if formatted_lines:
-                        formatted_lines.append('')  # Add spacing between sections
-                    # Extract title, removing any existing formatting
+                    # Extract title, removing any formatting
                     title = line.replace('*', '').strip()
-                    if ':' in title:
-                        num, rest = title.split('.', 1)
-                        title = rest.split(':', 1)[0].strip()
-                    else:
-                        num, title = title.split('.', 1)
-                    formatted_lines.append(f"**{current_section}.** {title.strip()}")
+                    title = ''.join(c for c in title if c.isprintable())
+                    # Remove numbering and special characters
+                    title = ' '.join(title.split()[1:]) if title.split() else ''
+                    normalized.append(('section', current_section, title))
                     continue
                     
-                # Handle primary points
-                if line[0].isalpha() and line[1] == ')' or line.startswith(('-', '•', '⚫', '○', '●')):
-                    # Clean the line of existing markers
+                # Detect primary points
+                if line.lstrip().startswith(('-', '•', '⚫', '○', '●')) or (line[0].isalpha() and line[1] == ')'):
                     text = line.lstrip('-•⚫○●abcdefghijklmnopqrstuvwxyz) ')
-                    if ':' in text:
-                        point, desc = text.split(':', 1)
-                        formatted_lines.append(f"- {point.strip()}: {desc.strip()}")
-                    else:
-                        formatted_lines.append(f"- {text.strip()}")
+                    normalized.append(('primary', text))
                     continue
                     
-                # Handle sub-points (indented or with roman numerals)
+                # Detect sub-points
                 if line.startswith(('  ', '\t')) or line.lower().startswith(('i.', 'ii.', 'iii.')):
-                    # Clean the line of existing markers
-                    text = line.lstrip(' \t-•⚫○●ivxIVX.)') 
-                    if ':' in text:
-                        point, desc = text.split(':', 1)
-                        formatted_lines.append(f"  - {point.strip()}: {desc.strip()}")
-                    else:
-                        formatted_lines.append(f"  - {text.strip()}")
+                    text = line.lstrip(' \t-•⚫○●ivxIVX.)')
+                    normalized.append(('sub', text))
                     continue
                     
-                # Handle any remaining text
-                formatted_lines.append(f"    {line}")
+                # Other content becomes additional text
+                normalized.append(('text', line))
+            
+            return normalized
+
+        def format_framework_text(framework: str) -> str:
+            """Format framework text according to the template."""
+            try:
+                # Normalize the input
+                normalized = normalize_framework_text(framework)
+                if not normalized:
+                    return "Error: Could not parse framework structure."
                 
-            return '\n'.join(formatted_lines)
+                # Format according to template
+                formatted_lines = []
+                current_section = None
+                
+                for item in normalized:
+                    if item[0] == 'section':
+                        if formatted_lines:
+                            formatted_lines.append('')  # Add spacing between sections
+                        formatted_lines.append(f"**{item[1]}.** {item[2]}")
+                        current_section = item[1]
+                        
+                    elif item[0] == 'primary':
+                        if ':' in item[1]:
+                            point, desc = item[1].split(':', 1)
+                            formatted_lines.append(f"- {point.strip()}: {desc.strip()}")
+                        else:
+                            formatted_lines.append(f"- {item[1].strip()}")
+                            
+                    elif item[0] == 'sub':
+                        if ':' in item[1]:
+                            point, desc = item[1].split(':', 1)
+                            formatted_lines.append(f"  - {point.strip()}: {desc.strip()}")
+                        else:
+                            formatted_lines.append(f"  - {item[1].strip()}")
+                            
+                    elif item[0] == 'text':
+                        formatted_lines.append(f"    {item[1]}")
+                
+                return '\n'.join(formatted_lines)
+                
+            except Exception as e:
+                logging.error(f"Framework formatting error: {str(e)}")
+                return "Error: Failed to format framework. Please try again."
 
         # Format and display the framework
         formatted_text = format_framework_text(framework)
