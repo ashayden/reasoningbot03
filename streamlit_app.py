@@ -367,14 +367,44 @@ FRAMEWORK:
 ALL RESEARCH RESULTS:
 {research_results}
 
-You are an expert in this field. Provide a comprehensive final report covering:
-- Key insights
-- Conclusions
-- Supporting evidence
-- Recommendations
+You are an expert analyst. Provide a comprehensive final report with the following structure:
 
-Write in a neutral, authoritative tone.
-''',
+1. Executive Summary
+- A concise overview of the investigation and key findings (2-3 paragraphs)
+
+2. Key Insights
+- Bullet-pointed list of the most important discoveries and conclusions
+- Focus on actionable and noteworthy findings
+- Include surprising or counter-intuitive insights
+
+3. Analysis
+[Scale analysis depth based on research loops]
+- Synthesize major concepts and themes from the research
+- Examine relationships between different aspects
+- Support claims with evidence from the research
+- Address any contradictions or nuances found
+
+4. Supplementary Synthesis
+[Dynamic section based on topic and research depth]
+Choose relevant elements from:
+- Recommendations for action or further investigation
+- Implications of the findings
+- Counter-arguments or alternative perspectives
+- Significance and broader impact
+- Limitations of current understanding
+- Future trends or developments
+
+5. Conclusion
+- Summarize the most important takeaways
+- Place findings in broader context
+- Highlight remaining questions or areas for future research
+
+6. Further Learning
+- List key sources referenced in the analysis
+- Recommend additional reading materials
+- Suggest related topics for deeper investigation
+
+Write in a clear, authoritative tone. Support all major claims with evidence from the research.''',
         height=250
     )
 
