@@ -779,6 +779,7 @@ if start_button or st.session_state.get('start_button_clicked', False):
 
     with st.expander("🎯 Refined Prompt", expanded=False):
         st.markdown(refined_prompt)
+
     with st.expander("🗺️ Investigation Framework", expanded=False):
         def format_framework_text(framework: str) -> str:
             """Process and format framework text with consistent styling."""
@@ -833,10 +834,9 @@ if start_button or st.session_state.get('start_button_clicked', False):
                 
             return '\n'.join(formatted_lines)
 
-        # Update the framework display section
-        with st.expander("🗺️ Investigation Framework", expanded=False):
-            formatted_text = format_framework_text(framework)
-            st.markdown(formatted_text)
+        # Format and display the framework
+        formatted_text = format_framework_text(framework)
+        st.markdown(formatted_text)
 
     # Mark Step 2 complete
     st.session_state.current_step = 2
