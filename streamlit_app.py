@@ -678,25 +678,36 @@ if start_button or st.session_state.get('start_button_clicked', False):
         # Clean up the framework text and ensure proper markdown formatting
         framework_lines = framework.split('\n')
         formatted_framework = []
+        current_section = None
         
         for line in framework_lines:
             line = line.strip()
             if not line:
                 continue
                 
-            # Main numbered points (e.g., "1. Market Positioning:")
+            # Main numbered sections (e.g., "1. Market Positioning:")
             if line[0].isdigit() and '.' in line[:3]:
-                formatted_framework.append(f"\n### {line}")
-            # Main bullet points (e.g., "• Target Demographics:")
-            elif line.startswith(('•', '⚫', '○', '●', '-')):
-                formatted_framework.append(f"\n**{line[1:].strip()}**")
-            # Italicized sub-points (e.g., "Psychographic segmentation:")
-            elif ':' in line and not line[0].isdigit():
-                parts = line.split(':', 1)
-                formatted_framework.append(f"* *{parts[0].strip()}*:{parts[1] if len(parts) > 1 else ''}")
+                if current_section:
+                    formatted_framework.append("")  # Add spacing between sections
+                current_section = line
+                formatted_framework.append(f"## {line}")
+                
+            # Main bullet points with asterisks
+            elif line.startswith(('•', '⚫', '○', '●', '-', '*')):
+                # Check if it's a sub-point (has indentation or special markers)
+                content = line[1:].strip()
+                if content.startswith(('**', 'i.', 'ii.', 'iii.')):
+                    formatted_framework.append(f"  * {content}")
+                else:
+                    formatted_framework.append(f"* {content}")
+                    
             # Regular text (descriptions and details)
             else:
-                formatted_framework.append(f"  {line}")
+                # If line starts with quotes or special markers, treat as a sub-point
+                if line.startswith('"') or line.startswith('**'):
+                    formatted_framework.append(f"  * {line}")
+                else:
+                    formatted_framework.append(line)
         
         st.markdown('\n'.join(formatted_framework))
 
