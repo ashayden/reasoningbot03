@@ -21,112 +21,93 @@ STEPS = [
     "Complete"
 ]
 
-########################################
-# FUNCTION: RENDER STEPPER
-########################################
-def render_stepper(current_step: int) -> str:
-    """Renders a 5-step wizard with proper styling."""
-    # Clamp current_step
-    current_step = max(0, min(current_step, 4))
-    
-    # Create the CSS and HTML
-    html = """
-        <style>
-        .stepper-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin: 2rem auto;
-            padding: 1rem 2rem;
-            max-width: 700px;
-            background: transparent;
-            position: relative;
-        }
-        .step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            flex: 1;
-            max-width: 140px;
-            margin: 0 0.5rem;
-        }
-        .step-number {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            color: rgba(255, 255, 255, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-bottom: 8px;
-            z-index: 2;
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        .step-label {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.6);
-            text-align: center;
-            max-width: 110px;
-            word-wrap: break-word;
-            position: relative;
-            z-index: 2;
-            line-height: 1.2;
-            margin-top: 4px;
-        }
-        .step-line {
-            position: absolute;
-            top: 18px;
-            left: calc(50% + 25px);
-            right: calc(-50% + 25px);
-            height: 2px;
-            background-color: rgba(255, 255, 255, 0.2);
-            z-index: 1;
-        }
-        .step.active .step-number {
-            border-color: #2439f7;
-            color: #2439f7;
-            background-color: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 0 0 4px rgba(36, 57, 247, 0.1);
-        }
-        .step.active .step-label {
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 500;
-        }
-        .step.complete .step-number {
-            background-color: #28a745;
-            border-color: #28a745;
-            color: white;
-        }
-        .step.complete .step-line {
-            background-color: #28a745;
-        }
-        .step:last-child .step-line {
-            display: none;
-        }
-        </style>
-    """
-    
-    # Create the HTML with minimal whitespace
-    html_parts = [
-        '<div class="stepper-container">',
-        *[f'<div class="step {status}"><div class="step-number">{i + 1}</div><div class="step-label">{label}</div><div class="step-line"></div></div>'
-          for i, label in enumerate(STEPS)
-          for status in ["complete" if i < current_step else "active" if i == current_step else ""]],
-        '</div>'
-    ]
-    
-    # Return the complete HTML
-    return html + ''.join(html_parts)
+# --- Main Title ---
+st.markdown(
+    "<h1 class='main-title' data-title='Multi-Agent Reasoning Assistant a003'>M.A.R.A.</h1>",
+    unsafe_allow_html=True
+)
 
+# Initialize session state
+if 'analysis_complete' not in st.session_state:
+    st.session_state.analysis_complete = False
+if 'current_step' not in st.session_state:
+    st.session_state.current_step = 0
+if 'pdf_buffer' not in st.session_state:
+    st.session_state.pdf_buffer = None
+if 'final_analysis' not in st.session_state:
+    st.session_state.final_analysis = None
+if 'research_results' not in st.session_state:
+    st.session_state.research_results = []
+if 'tldr_summary' not in st.session_state:
+    st.session_state.tldr_summary = None
+if 'refined_prompt' not in st.session_state:
+    st.session_state.refined_prompt = None
+if 'framework' not in st.session_state:
+    st.session_state.framework = None
+if 'previous_input' not in st.session_state:
+    st.session_state.previous_input = ""
+if 'start_button_clicked' not in st.session_state:
+    st.session_state.start_button_clicked = False
+if 'random_fact' not in st.session_state:
+    st.session_state.random_fact = None
 
-########################################
-# ORIGINAL STREAMLIT + LLM CODE
-########################################
+def reset_all_states():
+    """Reset all session states to their initial values."""
+    st.session_state.update({
+        'analysis_complete': False,
+        'current_step': 0,
+        'pdf_buffer': None,
+        'final_analysis': None,
+        'research_results': [],
+        'tldr_summary': None,
+        'refined_prompt': None,
+        'framework': None,
+        'random_fact': None,
+        'start_button_clicked': False,
+        'previous_input': ""
+    })
+
+def handle_enter():
+    """Handle enter key press in topic input."""
+    if st.session_state.topic_input and st.session_state.topic_input.strip():
+        if st.session_state.topic_input != st.session_state.get('previous_input', ''):
+            reset_all_states()
+        st.session_state.start_button_clicked = True
+        st.experimental_rerun()
+
+# Update the topic input section
+topic = st.text_input(
+    "Enter a topic or question:",
+    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
+    key="topic_input",
+    on_change=handle_enter
+)
+
+# Update the topic change handler
+if topic != st.session_state.get('previous_input', ''):
+    st.session_state.previous_input = topic
+    reset_all_states()
+    st.experimental_rerun()
+
+# Get your GenAI key
+try:
+    api_key = st.secrets["GOOGLE_API_KEY"]
+except Exception as e:
+    st.error(f"GOOGLE_API_KEY not found in secrets: {e}")
+    st.stop()
+
+try:
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-1.5-pro-latest")
+    agent3_config = genai.types.GenerationConfig(
+        temperature=0.7,
+        top_p=0.8,
+        top_k=40,
+        max_output_tokens=2048,
+    )
+except Exception as e:
+    st.error(f"Error configuring Gemini API: {e}")
+    st.stop()
 
 # Inject custom CSS (with no old wave bar)
 st.markdown("""
@@ -215,101 +196,6 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
-
-# Move reset_all_states function definition before it's used
-def reset_all_states():
-    """Reset all session states to their initial values."""
-    st.session_state.update({
-        'analysis_complete': False,
-        'current_step': 0,
-        'pdf_buffer': None,
-        'final_analysis': None,
-        'research_results': [],
-        'tldr_summary': None,
-        'refined_prompt': None,
-        'framework': None,
-        'random_fact': None,
-        'start_button_clicked': False,
-        'previous_input': ""
-    })
-
-# Update the enter key handler
-def handle_enter():
-    """Handle enter key press in topic input."""
-    if st.session_state.topic_input and st.session_state.topic_input.strip():
-        if st.session_state.topic_input != st.session_state.get('previous_input', ''):
-            reset_all_states()
-        st.session_state.start_button_clicked = True
-
-# Update the topic input section
-topic = st.text_input(
-    "Enter a topic or question:",
-    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
-    key="topic_input",
-    on_change=handle_enter
-)
-
-# Update the topic change handler
-if topic != st.session_state.get('previous_input', ''):
-    st.session_state.previous_input = topic
-    reset_all_states()
-    st.experimental_rerun()
-
-# Initialize session state
-if 'analysis_complete' not in st.session_state:
-    st.session_state.analysis_complete = False
-if 'current_step' not in st.session_state:
-    st.session_state.current_step = 0
-if 'pdf_buffer' not in st.session_state:
-    st.session_state.pdf_buffer = None
-if 'final_analysis' not in st.session_state:
-    st.session_state.final_analysis = None
-if 'research_results' not in st.session_state:
-    st.session_state.research_results = []
-if 'tldr_summary' not in st.session_state:
-    st.session_state.tldr_summary = None
-if 'refined_prompt' not in st.session_state:
-    st.session_state.refined_prompt = None
-if 'framework' not in st.session_state:
-    st.session_state.framework = None
-if 'previous_input' not in st.session_state:
-    st.session_state.previous_input = ""
-if 'start_button_clicked' not in st.session_state:
-    st.session_state.start_button_clicked = False
-if 'random_fact' not in st.session_state:
-    st.session_state.random_fact = None
-
-# Get your GenAI key
-try:
-    api_key = st.secrets["GOOGLE_API_KEY"]
-except Exception as e:
-    st.error(f"GOOGLE_API_KEY not found in secrets: {e}")
-    st.stop()
-
-try:
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-pro-latest")
-    agent3_config = genai.types.GenerationConfig(
-        temperature=0.7,
-        top_p=0.8,
-        top_k=40,
-        max_output_tokens=2048,
-    )
-except Exception as e:
-    st.error(f"Error configuring Gemini API: {e}")
-    st.stop()
-
-# --- Main Title ---
-st.markdown(
-    "<h1 class='main-title' data-title='Multi-Agent Reasoning Assistant a003'>M.A.R.A.</h1>",
-    unsafe_allow_html=True
-)
-
-# ============ USER INPUT TOPIC ============
-
-# If analysis is done, show step #5
-if st.session_state.analysis_complete:
-    st.session_state.current_step = 4
 
 # ---------- EXPANDERS FOR PROMPTS ----------
 with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
@@ -633,6 +519,117 @@ elif loops == "Mariana Trench":
     loops_num = random.randint(7, 10)
 else:
     loops_num = 2
+
+########################################
+# FUNCTION: RENDER STEPPER
+########################################
+def render_stepper(current_step: int) -> str:
+    """Renders a 5-step wizard with proper styling."""
+    # Clamp current_step
+    current_step = max(0, min(current_step, 4))
+    
+    # Create the CSS and HTML
+    html = """
+        <style>
+        .stepper-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 2rem auto;
+            padding: 1rem 2rem;
+            max-width: 700px;
+            background: transparent;
+            position: relative;
+        }
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            flex: 1;
+            max-width: 140px;
+            margin: 0 0.5rem;
+        }
+        .step-number {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 8px;
+            z-index: 2;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .step-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            max-width: 110px;
+            word-wrap: break-word;
+            position: relative;
+            z-index: 2;
+            line-height: 1.2;
+            margin-top: 4px;
+        }
+        .step-line {
+            position: absolute;
+            top: 18px;
+            left: calc(50% + 25px);
+            right: calc(-50% + 25px);
+            height: 2px;
+            background-color: rgba(255, 255, 255, 0.2);
+            z-index: 1;
+        }
+        .step.active .step-number {
+            border-color: #2439f7;
+            color: #2439f7;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 0 4px rgba(36, 57, 247, 0.1);
+        }
+        .step.active .step-label {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+        }
+        .step.complete .step-number {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+        .step.complete .step-line {
+            background-color: #28a745;
+        }
+        .step:last-child .step-line {
+            display: none;
+        }
+        </style>
+    """
+    
+    # Create the HTML with minimal whitespace
+    html_parts = [
+        '<div class="stepper-container">',
+        *[f'<div class="step {status}"><div class="step-number">{i + 1}</div><div class="step-label">{label}</div><div class="step-line"></div></div>'
+          for i, label in enumerate(STEPS)
+          for status in ["complete" if i < current_step else "active" if i == current_step else ""]],
+        '</div>'
+    ]
+    
+    # Return the complete HTML
+    return html + ''.join(html_parts)
+
+# If analysis is done, show step #5
+if st.session_state.analysis_complete:
+    st.session_state.current_step = 4
+
+# Create progress indicator if analysis has started
+if st.session_state.start_button_clicked or st.session_state.current_step > 0:
+    step_container = st.empty()
+    step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
 ########################################
 # MAIN LOGIC WHEN USER CLICKS BUTTON
