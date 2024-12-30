@@ -774,7 +774,10 @@ if start_button or st.session_state.get('start_button_clicked', False):
                 content = "\n".join(lines[1:]) if len(lines) > 1 else research_text
                 
                 # Clean and validate title
-                title = ''.join(c for c in title if c.isprintable())  # Remove non-printable chars
+                title = ''.join(c for c in title if c.isprintable() and ord(c) < 128)  # Remove non-ASCII chars
+                title = title.replace('"', '').replace("'", "")  # Remove quotes
+                title = ' '.join(title.split())  # Normalize whitespace
+                
                 if not title or len(title) < 1:
                     title = f"Research Point {i+1}"
                 elif len(title) > 100:
@@ -796,15 +799,20 @@ if start_button or st.session_state.get('start_button_clicked', False):
                 except:
                     display_title = f"📌 {title}"
                 
+                # Ensure display title is valid for Streamlit
+                display_title = display_title.encode('ascii', 'ignore').decode('ascii')
+                if not display_title or len(display_title) < 1:
+                    display_title = f"Research Point {i+1}"
+                
                 # Display the expander
                 with st.expander(display_title, expanded=False):
                     st.markdown(content)
                     
             except Exception as e:
                 logging.error(f"Error in research block {i+1}: {str(e)}")
-                # Fallback display with safe values
-                safe_title = f"Research Point {i+1}"
-                with st.expander(safe_title, expanded=False):
+                # Fallback display with guaranteed safe values
+                fallback_title = f"Research Point {i+1}"
+                with st.expander(fallback_title, expanded=False):
                     st.markdown("Error displaying research content. Please try again.")
 
     st.session_state.research_results = research_results_list
