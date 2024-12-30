@@ -675,18 +675,56 @@ if start_button or st.session_state.get('start_button_clicked', False):
     with st.expander("🎯 Refined Prompt", expanded=False):
         st.markdown(refined_prompt)
     with st.expander("🗺️ Investigation Framework", expanded=False):
-        st.markdown(framework)
+        # Clean up the framework text and ensure proper markdown formatting
+        framework_lines = framework.split('\n')
+        formatted_framework = []
+        
+        for line in framework_lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Main points (numbered)
+            if line[0].isdigit() and line[1] == '.':
+                formatted_framework.append(f"\n**{line}**")
+            # Sub-points (lettered)
+            elif line[0].isalpha() and line[1] == '.':
+                formatted_framework.append(f"* {line[2:].strip()}")
+            # Sub-sub-points (roman numerals or other)
+            elif line.startswith(('i.', 'ii.', 'iii.')):
+                formatted_framework.append(f"  * {line}")
+            else:
+                formatted_framework.append(line)
+        
+        st.markdown('\n'.join(formatted_framework))
 
     # Mark Step 2 complete
     st.session_state.current_step = 2
     step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
     # Step 3: Research Phase
-    aspects = [line.strip() for line in framework.split("\n") 
-              if line.strip().startswith(tuple(f"{x}." for x in range(1,10)))]
+    def extract_research_aspects(framework: str) -> list:
+        """Extract research aspects from the framework."""
+        aspects = []
+        current_main_point = ""
+        
+        for line in framework.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Match main numbered points (1., 2., etc.)
+            if line[0].isdigit() and line[1] == '.' and len(line) > 2:
+                current_main_point = line[2:].strip()
+                aspects.append(current_main_point)
+            
+        return aspects
+
+    aspects = extract_research_aspects(framework)
     
     if not aspects:
-        st.error("No research aspects found in the framework. Please try again.")
+        st.error("Framework parsing failed. Please try again.")
+        logging.error(f"Failed to parse framework: {framework}")
         st.stop()
 
     current_analysis = ""
@@ -694,21 +732,23 @@ if start_button or st.session_state.get('start_button_clicked', False):
 
     for i in range(loops_num):
         aspect = aspects[i % len(aspects)]
-        research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
-        
-        if not research_text:
-            st.error("Research analysis failed. Please try again.")
-            st.stop()
+        with st.status(f"Researching aspect {i+1}/{loops_num}: {aspect}"):
+            research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
             
-        current_analysis += "\n\n" + research_text
-        lines = research_text.split("\n")
-        title = lines[0].strip() if lines else aspect
-        content = "\n".join(lines[1:]) if len(lines) > 1 else ""
-        research_results_list.append((title, content))
-
-        emoji = get_title_emoji(title)
-        with st.expander(f"{emoji} {title}", expanded=False):
-            st.markdown(content)
+            if not research_text:
+                st.error(f"Research failed for aspect: {aspect}")
+                st.stop()
+                
+            current_analysis += "\n\n" + research_text
+            lines = research_text.split("\n")
+            title = lines[0].strip() if lines else aspect
+            content = "\n".join(lines[1:]) if len(lines) > 1 else research_text
+            
+            research_results_list.append((title, content))
+            
+            emoji = get_title_emoji(title)
+            with st.expander(f"{emoji} {title}", expanded=False):
+                st.markdown(content)
 
     st.session_state.research_results = research_results_list
 
