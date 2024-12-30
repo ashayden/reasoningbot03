@@ -689,35 +689,50 @@ def process_framework_output(raw_framework: str) -> str:
         return raw_framework
 
 def extract_research_aspects(framework: str) -> list:
-    """Extract research aspects from machine-readable framework format."""
+    """Extract research aspects from the framework text."""
     aspects = []
     
-    for line in framework.split('\n'):
-        if not line.strip():
-            continue
+    try:
+        # Split into lines and clean up
+        lines = [line.strip() for line in framework.split('\n') if line.strip()]
+        
+        for line in lines:
+            # Skip empty lines and metadata
+            if not line or line.startswith('META_') or line.startswith('SUB_'):
+                continue
             
-        # Extract points from structured format
-        if line.startswith('POINT_'):
-            try:
-                content = line.split(':', 1)[1]
-                if '|' in content:
-                    point, desc = content.split('|', 1)
-                    aspects.append((point.strip(), desc.strip()))
-                else:
-                    aspects.append((content.strip(), ''))
-            except:
+            # Handle section markers
+            if line.startswith('SECTION_'):
+                section = line.split(':', 1)[1].strip() if ':' in line else ''
+                if section:
+                    aspects.append(section)
                 continue
-                
-        # Include relevant metadata
-        elif line.startswith('META_'):
-            try:
-                content = line.split(':', 1)[1].strip()
-                if len(content) > 10:  # Only include substantial metadata
-                    aspects.append((content, ''))
-            except:
+            
+            # Handle point markers
+            if line.startswith('POINT_'):
+                point = line.split(':', 1)[1].strip() if ':' in line else ''
+                if '|' in point:
+                    point = point.split('|', 1)[0].strip()
+                if point:
+                    aspects.append(point)
                 continue
+            
+            # Fallback for non-structured content
+            if ':' in line and not line.lower().startswith(('i.', 'ii.', 'iii.')):
+                point = line.split(':', 1)[0].strip()
+                point = point.lstrip('•⚫○●-*').strip()
+                if len(point) > 3 and not point.lower().startswith(('and', 'or', 'but', 'the')):
+                    aspects.append(point)
     
-    return [aspect[0] for aspect in aspects if aspect[0]]  # Return only point titles
+    except Exception as e:
+        logging.error(f"Error extracting research aspects: {str(e)}")
+        return ["Research Point"]  # Fallback aspect
+    
+    # Ensure we have at least one aspect
+    if not aspects:
+        aspects = ["Research Point"]
+    
+    return aspects
 
 def generate_refined_prompt_and_framework(topic):
     """Generate structured research framework without citations."""
@@ -1009,84 +1024,63 @@ if start_button or st.session_state.get('start_button_clicked', False):
     step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
     # Step 3: Research Phase
-    def extract_research_aspects(framework: str) -> list:
-        """Extract research aspects from the framework."""
-        aspects = []
-        
-        for line in framework.split('\n'):
-            line = line.strip()
-            if not line:
-                continue
-            
-            # Extract main numbered sections
-            if line[0].isdigit() and '.' in line[:3]:
-                point = line[line.find('.')+1:].strip()
-                if point and ':' in point:
-                    point = point.split(':', 1)[0].strip()
-                if point:
-                    aspects.append(point)
-                    continue
-                
-            # Extract bullet points and labeled sections
-            if ':' in line:
-                # Skip sub-points (usually implementation details)
-                if line.lower().startswith(('i.', 'ii.', 'iii.')):
-                    continue
-                # Get the main point before the colon
-                point = line.split(':', 1)[0].strip()
-                # Remove bullet points and other markers
-                point = point.lstrip('•⚫○●-').strip()
-                # Skip if it's too short or looks like a sub-point
-                if len(point) > 3 and not point.lower().startswith(('and', 'or', 'but', 'the')):
-                    aspects.append(point)
-        
-        return aspects
+    current_analysis = ""
+    research_results = []  # Changed from research_results_list for clarity
 
     aspects = extract_research_aspects(framework)
     
-    if not aspects:
-        st.error("Framework parsing failed. Please try again.")
-        logging.error(f"Failed to parse framework: {framework}")
-        st.stop()
-
     # Ensure we have enough aspects for the number of loops
     if len(aspects) < loops_num:
         aspects = aspects * (loops_num // len(aspects) + 1)
     
-    current_analysis = ""
-    research_results_list = []
+    # Deduplicate aspects while maintaining order
+    seen = set()
+    aspects = [x for x in aspects if not (x in seen or seen.add(x))]
 
     for i in range(loops_num):
-        aspect = aspects[i % len(aspects)]
-        research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
-        
-        if not research_text:
-            st.error(f"Research failed for aspect: {aspect}")
-            st.stop()
-            
-        current_analysis += "\n\n" + research_text
-        lines = research_text.split("\n")
-        
         try:
-            # Ensure valid title and content
-            title = lines[0].strip() if lines and lines[0].strip() else f"Research Point {i+1}"
-            content, refs = process_citations(research_text)
+            aspect = aspects[i % len(aspects)]
+            research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
             
-            with st.expander(f"{get_title_emoji(title)}{title}", expanded=False):
-                st.markdown(content)
-                if refs:
-                    st.markdown("---")
-                    st.markdown("**References:**")
-                    st.markdown(refs)
+            if not research_text:
+                st.error(f"Research failed for aspect: {aspect}")
+                continue
                 
+            current_analysis += "\n\n" + research_text
+            
+            # Split into title and content
+            lines = research_text.split("\n", 1)
+            title = lines[0].strip() if lines else f"Research Point {i+1}"
+            content = lines[1].strip() if len(lines) > 1 else research_text
+            
+            # Process citations
+            processed_content, references = process_citations(content)
+            
+            # Store research results
+            research_results.append({
+                'title': title,
+                'content': processed_content,
+                'references': references
+            })
+            
+            # Display research block
+            with st.expander(f"{get_title_emoji(title)}{title}", expanded=False):
+                if processed_content:
+                    st.markdown(processed_content)
+                    if references:
+                        st.markdown("---")
+                        st.markdown("**References:**")
+                        st.markdown(references)
+                else:
+                    st.markdown("No research content available.")
+                    
         except Exception as e:
             logging.error(f"Error in research block {i+1}: {str(e)}")
-            # Fallback display with guaranteed safe values
-            fallback_title = f"Research Point {i+1}"
-            with st.expander(fallback_title, expanded=False):
+            with st.expander(f"Research Point {i+1}", expanded=False):
                 st.markdown("Error displaying research content. Please try again.")
+            continue
 
-    st.session_state.research_results = research_results_list
+    st.session_state.research_results = research_results
 
     # Mark Step 3 complete
     st.session_state.current_step = 3
@@ -1094,7 +1088,12 @@ if start_button or st.session_state.get('start_button_clicked', False):
 
     # Step 4: Final Analysis
     try:
-        combined_results = "\n\n".join(f"### {t}\n{c}" for t, c in research_results_list)
+        combined_results = "\n\n".join(
+            f"### {result['title']}\n{result['content']}\n\nReferences:\n{result['references']}" 
+            for result in research_results 
+            if result['content']
+        )
+        
         final_prompt = agent3_prompt.format(
             refined_prompt=refined_prompt,
             framework=framework,
