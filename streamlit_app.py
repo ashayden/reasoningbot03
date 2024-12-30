@@ -685,29 +685,28 @@ if start_button or st.session_state.get('start_button_clicked', False):
             if not line:
                 continue
                 
-            # Main numbered sections (e.g., "1. Market Positioning:")
+            # Main numbered sections (e.g., "1. Material Science and Manufacturing:")
             if line[0].isdigit() and '.' in line[:3]:
                 if current_section:
                     formatted_framework.append("")  # Add spacing between sections
                 current_section = line
-                formatted_framework.append(f"## {line}")
+                formatted_framework.append(f"\n## {line}")
                 
-            # Main bullet points with asterisks
+            # Lettered sub-points (e.g., "a. Investigate...")
+            elif line[0].isalpha() and line[1] == '.':
+                formatted_framework.append(f"\n* {line}")
+                
+            # Roman numeral points (e.g., "i. Analyze...")
+            elif line.lower().startswith(('i.', 'ii.', 'iii.')):
+                formatted_framework.append(f"    * {line}")
+                
+            # Bullet points
             elif line.startswith(('•', '⚫', '○', '●', '-', '*')):
-                # Check if it's a sub-point (has indentation or special markers)
-                content = line[1:].strip()
-                if content.startswith(('**', 'i.', 'ii.', 'iii.')):
-                    formatted_framework.append(f"  * {content}")
-                else:
-                    formatted_framework.append(f"* {content}")
-                    
+                formatted_framework.append(f"* {line[1:].strip()}")
+                
             # Regular text (descriptions and details)
             else:
-                # If line starts with quotes or special markers, treat as a sub-point
-                if line.startswith('"') or line.startswith('**'):
-                    formatted_framework.append(f"  * {line}")
-                else:
-                    formatted_framework.append(line)
+                formatted_framework.append(f"  {line}")
         
         st.markdown('\n'.join(formatted_framework))
 
