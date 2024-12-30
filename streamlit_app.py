@@ -771,51 +771,58 @@ if start_button or st.session_state.get('start_button_clicked', False):
             return normalized
 
         def format_framework_text(framework: str) -> str:
-            """Format framework text with enhanced readability and visual hierarchy."""
+            """Format framework text using hierarchical numbered lists."""
             try:
                 # Normalize the input
                 normalized = normalize_framework_text(framework)
                 if not normalized:
                     return "Error: Could not parse framework structure."
                 
-                # Format according to template with enhanced spacing and hierarchy
+                # Format according to template with numbered hierarchy
                 formatted_lines = []
-                current_section = None
+                current_section = 0
+                current_point = 0
+                current_subpoint = 0
                 
                 for item in normalized:
                     if item[0] == 'section':
-                        # Add extra spacing before new sections (except first)
-                        if formatted_lines:
-                            formatted_lines.extend(['', ''])  # Double spacing between sections
-                        
-                        # Format section header with clear visual hierarchy
-                        section_title = item[2].strip().upper() if item[2] else f"SECTION {item[1]}"
-                        formatted_lines.append(f"**{item[1]}.** {section_title}")
+                        # Reset counters for new section
                         current_section = item[1]
+                        current_point = 0
+                        current_subpoint = 0
+                        
+                        # Add spacing between sections
+                        if formatted_lines:
+                            formatted_lines.extend(['', ''])
+                        
+                        # Format section header
+                        section_title = item[2].strip()
+                        formatted_lines.append(f"**{current_section}.** {section_title}")
                         
                     elif item[0] == 'primary':
-                        # Add spacing before primary points
-                        if formatted_lines and not formatted_lines[-1].startswith('-'):
-                            formatted_lines.append('')
+                        current_point += 1
+                        current_subpoint = 0
                         
-                        # Format primary points with clear distinction
+                        # Format primary point with section.point numbering
                         if ':' in item[1]:
                             point, desc = item[1].split(':', 1)
-                            formatted_lines.append(f"- **{point.strip()}**:{desc.strip()}")
+                            formatted_lines.append(f"{current_section}.{current_point}. {point.strip()}: {desc.strip()}")
                         else:
-                            formatted_lines.append(f"- **{item[1].strip()}**")
+                            formatted_lines.append(f"{current_section}.{current_point}. {item[1].strip()}")
                         
                     elif item[0] == 'sub':
-                        # Format sub-points with proper indentation and bullets
+                        current_subpoint += 1
+                        
+                        # Format sub-point with section.point.subpoint numbering
                         if ':' in item[1]:
                             point, desc = item[1].split(':', 1)
-                            formatted_lines.append(f"  • {point.strip()}: {desc.strip()}")
+                            formatted_lines.append(f"    {current_section}.{current_point}.{current_subpoint}. {point.strip()}: {desc.strip()}")
                         else:
-                            formatted_lines.append(f"  • {item[1].strip()}")
+                            formatted_lines.append(f"    {current_section}.{current_point}.{current_subpoint}. {item[1].strip()}")
                         
                     elif item[0] == 'text':
                         # Format additional text with clear indentation
-                        formatted_lines.append(f"    {item[1].strip()}")
+                        formatted_lines.append(f"        {item[1].strip()}")
                 
                 # Add final spacing
                 if formatted_lines:
