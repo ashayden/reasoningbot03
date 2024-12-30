@@ -377,10 +377,17 @@ CURRENT FOCUS:
 {current_aspect}
 
 Perform additional research and provide new findings. 
-Include any relevant data, references, or analysis points. 
+Include AMA-style in-line citations for each claim or finding using superscript numbers.
+Format citations as: Some claim[^1] another point[^2].
+
 Begin your response with a short title, then detail your findings.
-''',
-        height=250
+End your response with a References section using this format:
+
+References:
+1. Author(s). Title. Publication. Year;Volume(Issue):Pages.
+2. [Additional references...]
+
+Keep references scholarly, recent (within 10 years when possible), and from reputable sources.'''
     )
     agent3_prompt = st.text_area(
         "Agent 3 Prompt (Expert Analyst)",
@@ -395,45 +402,43 @@ FRAMEWORK:
 ALL RESEARCH RESULTS:
 {research_results}
 
-You are an expert analyst. Provide a comprehensive final report with the following structure:
+You are an expert analyst. Provide a comprehensive final report with AMA-style citations.
+Use superscript numbers for in-line citations: Example claim[^1] and another point[^2].
+
+Structure:
 
 1. Executive Summary
-- A concise overview of the investigation and key findings (2-3 paragraphs)
+- A concise overview with key citations[^n]
+- Support major claims with citations
 
 2. Key Insights
-- Bullet-pointed list of the most important discoveries and conclusions
+- Bullet-pointed list with citations for each major claim
 - Focus on actionable and noteworthy findings
-- Include surprising or counter-intuitive insights
 
 3. Analysis
 [Scale analysis depth based on research loops]
-- Synthesize major concepts and themes from the research
-- Examine relationships between different aspects
-- Support claims with evidence from the research
-- Address any contradictions or nuances found
+- Synthesize major concepts with citations
+- Support all claims with evidence
+- Address contradictions with cited sources
 
 4. Supplementary Synthesis
 [Dynamic section based on topic and research depth]
-Choose relevant elements from:
-- Recommendations for action or further investigation
-- Implications of the findings
-- Counter-arguments or alternative perspectives
-- Significance and broader impact
-- Limitations of current understanding
-- Future trends or developments
+Choose relevant elements, all with proper citations:
+- Evidence-based recommendations
+- Implications supported by research
+- Counter-arguments from literature
+- Future trends with supporting evidence
 
 5. Conclusion
-- Summarize the most important takeaways
-- Place findings in broader context
-- Highlight remaining questions or areas for future research
+- Summarize key findings with final citations
+- Place in broader context with support
 
-6. Further Learning
-- List key sources referenced in the analysis
-- Recommend additional reading materials
-- Suggest related topics for deeper investigation
+6. References
+List all cited works in AMA format:
+1. Author(s). Title. Publication. Year;Volume(Issue):Pages.
+2. [Continue format for all references]
 
-Write in a clear, authoritative tone. Support all major claims with evidence from the research.''',
-        height=250
+Write in a clear, authoritative tone. Every major claim must have a citation.'''
     )
 
 # Depth slider
@@ -470,7 +475,7 @@ def create_download_pdf(refined_prompt, framework, research_analysis, final_anal
             if not text:
                 return ""
             text = text.replace('—', '-').replace('–', '-')
-            text = text.replace('’', "'").replace('‘', "'").replace('…', '...')
+            text = text.replace(''', "'").replace(''', "'").replace('…', '...')
             return ''.join(char for char in text if ord(char) < 128)
 
         # Title
@@ -496,14 +501,32 @@ def create_download_pdf(refined_prompt, framework, research_analysis, final_anal
         pdf.set_font("Helvetica", "B", 14)
         pdf.cell(0, 10, "Research Analysis", ln=True)
         pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, sanitize_text(research_analysis))
+        
+        # Process research analysis to separate content and references
+        research_text, research_refs = process_citations(research_analysis)
+        pdf.multi_cell(0, 10, sanitize_text(research_text))
+        if research_refs:
+            pdf.ln(5)
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.cell(0, 10, "Research References", ln=True)
+            pdf.set_font("Helvetica", size=12)
+            pdf.multi_cell(0, 10, sanitize_text(research_refs))
         pdf.ln(10)
 
         # Final analysis
         pdf.set_font("Helvetica", "B", 14)
         pdf.cell(0, 10, "Final Analysis", ln=True)
         pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, sanitize_text(final_analysis))
+        
+        # Process final analysis to separate content and references
+        final_text, final_refs = process_citations(final_analysis)
+        pdf.multi_cell(0, 10, sanitize_text(final_text))
+        if final_refs:
+            pdf.ln(5)
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.cell(0, 10, "Final Analysis References", ln=True)
+            pdf.set_font("Helvetica", size=12)
+            pdf.multi_cell(0, 10, sanitize_text(final_refs))
 
         return pdf.output(dest='S').encode('latin-1')
 
@@ -1044,10 +1067,14 @@ if start_button or st.session_state.get('start_button_clicked', False):
         try:
             # Ensure valid title and content
             title = lines[0].strip() if lines and lines[0].strip() else f"Research Point {i+1}"
-            content = "\n".join(lines[1:]) if len(lines) > 1 else research_text
+            content, refs = process_citations(research_text)
             
             with st.expander(f"{get_title_emoji(title)}{title}", expanded=False):
                 st.markdown(content)
+                if refs:
+                    st.markdown("---")
+                    st.markdown("**References:**")
+                    st.markdown(refs)
                 
         except Exception as e:
             logging.error(f"Error in research block {i+1}: {str(e)}")
@@ -1079,8 +1106,13 @@ if start_button or st.session_state.get('start_button_clicked', False):
             st.stop()
             
         st.session_state.final_analysis = final_analysis
+        final_text, final_refs = process_citations(final_analysis)
         with st.expander("📋 Final Report", expanded=True):
-            st.markdown(final_analysis)
+            st.markdown(final_text)
+            if final_refs:
+                st.markdown("---")
+                st.markdown("**References:**")
+                st.markdown(final_refs)
 
         # Create PDF
         pdf_bytes = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
@@ -1120,3 +1152,23 @@ def is_emoji(c):
         '\U00002702-\U000027B0',  # Dingbats
         '\U000024C2-\U0001F251'   # Enclosed characters
     ]
+
+# Add function to process citations and create reference list
+def process_citations(text: str) -> tuple[str, str]:
+    """Process text with citations and return processed text and reference list."""
+    # Extract references section
+    parts = text.split("References:", 1)
+    main_text = parts[0].strip()
+    references = parts[1].strip() if len(parts) > 1 else ""
+    
+    # Format references as a numbered list if not already
+    if references:
+        ref_lines = [line.strip() for line in references.split('\n') if line.strip()]
+        formatted_refs = []
+        for i, ref in enumerate(ref_lines, 1):
+            if not ref.startswith(f"{i}."):
+                ref = f"{i}. {ref}"
+            formatted_refs.append(ref)
+        references = "\n".join(formatted_refs)
+    
+    return main_text, references
