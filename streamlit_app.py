@@ -4,6 +4,7 @@ import logging
 import random
 import io
 from fpdf import FPDF
+import re
 
 ########################################
 # GLOBAL CONFIG & LOGGING
@@ -560,26 +561,53 @@ If it fails verification, generate a new, verified fact following the same rules
         logging.error(f"Random fact generation error: {str(e)}")
         return None
 
+def count_emojis(text):
+    """Count the number of emojis in text using regex pattern."""
+    emoji_pattern = re.compile("["
+        u"\U0001F600-\U0001F64F"  # emoticons
+        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+        u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        u"\U00002702-\U000027B0"  # dingbats
+        u"\U000024C2-\U0001F251" 
+        "]+", flags=re.UNICODE)
+    return len(emoji_pattern.findall(text))
+
 def generate_quick_summary(topic):
-    """Generate a quick summary (TL;DR) with relevant emojis."""
+    """Generate a quick summary (TL;DR) with naturally integrated emojis."""
     try:
-        # First, get relevant emojis for the topic
-        emoji_prompt = f'''Suggest 1-4 relevant emojis for this topic, considering its key themes and concepts:
-Topic: {topic}
-Return only the emojis, separated by spaces.'''
+        summary_prompt = f'''Create a concise 1-2 sentence summary about {topic}.
+Include 1-4 relevant emojis naturally integrated into the text (not just at the beginning).
+The emojis should enhance readability and meaning, not distract from it.
+
+Guidelines:
+- Place emojis where they naturally relate to the concepts they represent
+- Don't cluster emojis together
+- Use emojis to highlight key points or transitions
+- Keep the total number of emojis between 1-4
+- Ensure the text makes sense even if emojis were removed
+
+Example format:
+"The rise of social media 📱 has transformed how we communicate, creating new opportunities for connection 🤝 while also raising concerns about privacy 🔐."
+
+Return only the summary with integrated emojis.'''
+
+        resp = model.generate_content(summary_prompt)
+        summary = handle_response(resp)
         
-        emoji_resp = model.generate_content(emoji_prompt)
-        emojis = handle_response(emoji_resp).strip()
+        # Validate emoji count
+        emoji_count = count_emojis(summary)
+        if emoji_count > 4:
+            # If too many emojis, try to get a new summary
+            retry_prompt = f'''Revise this summary to use fewer emojis (maximum 4):
+{summary}
+
+Keep the most relevant emojis and remove others while maintaining the meaning.'''
+            
+            retry_resp = model.generate_content(retry_prompt)
+            summary = handle_response(retry_resp)
         
-        # Then generate the summary
-        summary_prompt = f"Give a concise 1-2 sentence summary about {topic}."
-        summary_resp = model.generate_content(summary_prompt)
-        summary = handle_response(summary_resp)
-        
-        # Combine emojis and summary
-        if emojis and summary:
-            return f"{emojis} {summary}"
-        return summary
+        return summary.strip()
         
     except Exception as e:
         logging.error(e)
@@ -1056,3 +1084,19 @@ if start_button or st.session_state.get('start_button_clicked', False):
         logging.error(f"Final report error: {e}")
         st.error("Error generating final report. Please try again.")
         st.stop()
+
+# Add emoji range check helper at the top of the file with other imports
+def is_emoji(c):
+    return c in [
+        '\U0001F300-\U0001F9FF',  # Emoticons
+        '\U0001F600-\U0001F64F',  # Emoticons
+        '\U0001F680-\U0001F6FF',  # Transport & Map
+        '\U0001F700-\U0001F77F',  # Alchemical
+        '\U0001F780-\U0001F7FF',  # Geometric
+        '\U0001F800-\U0001F8FF',  # Supplemental Arrows-C
+        '\U0001F900-\U0001F9FF',  # Supplemental Symbols and Pictographs
+        '\U0001FA00-\U0001FA6F',  # Chess Symbols
+        '\U0001FA70-\U0001FAFF',  # Symbols and Pictographs Extended-A
+        '\U00002702-\U000027B0',  # Dingbats
+        '\U000024C2-\U0001F251'   # Enclosed characters
+    ]
