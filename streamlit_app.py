@@ -1158,19 +1158,43 @@ def is_emoji(c):
 # Add function to process citations and create reference list
 def process_citations(text: str) -> tuple[str, str]:
     """Process text with citations and return processed text and reference list."""
-    # Extract references section
-    parts = text.split("References:", 1)
-    main_text = parts[0].strip()
-    references = parts[1].strip() if len(parts) > 1 else ""
-    
-    # Format references as a numbered list if not already
-    if references:
-        ref_lines = [line.strip() for line in references.split('\n') if line.strip()]
-        formatted_refs = []
-        for i, ref in enumerate(ref_lines, 1):
-            if not ref.startswith(f"{i}."):
-                ref = f"{i}. {ref}"
-            formatted_refs.append(ref)
-        references = "\n".join(formatted_refs)
-    
-    return main_text, references
+    try:
+        # Handle empty or invalid input
+        if not text or not isinstance(text, str):
+            return "", ""
+        
+        # Split on References section if it exists
+        parts = text.split("\nReferences:", 1)
+        main_text = parts[0].strip()
+        references = parts[1].strip() if len(parts) > 1 else ""
+        
+        # If no explicit References section, look for numbered references at the end
+        if not references:
+            lines = main_text.split('\n')
+            ref_start = -1
+            for i, line in enumerate(lines):
+                if line.strip() and line.strip()[0].isdigit() and '.' in line:
+                    # Check if this line and subsequent lines look like references
+                    if all(l.strip() and l.strip()[0].isdigit() for l in lines[i:i+2]):
+                        ref_start = i
+                        break
+            
+            if ref_start != -1:
+                main_text = '\n'.join(lines[:ref_start]).strip()
+                references = '\n'.join(lines[ref_start:]).strip()
+        
+        # Format references as a numbered list if not already
+        if references:
+            ref_lines = [line.strip() for line in references.split('\n') if line.strip()]
+            formatted_refs = []
+            for i, ref in enumerate(ref_lines, 1):
+                if not ref.startswith(f"{i}."):
+                    ref = f"{i}. {ref}"
+                formatted_refs.append(ref)
+            references = "\n".join(formatted_refs)
+        
+        return main_text, references
+        
+    except Exception as e:
+        logging.error(f"Citation processing error: {str(e)}")
+        return text, ""  # Return original text if processing fails
