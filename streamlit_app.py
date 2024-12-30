@@ -751,63 +751,31 @@ def conduct_research(refined_prompt, framework, prev_analysis, aspect, iteration
 
 def get_title_emoji(title: str) -> str:
     """Select an emoji based on keywords in the research block title."""
-    # Convert title to lowercase for matching
-    title_lower = title.lower()
-    
-    # Common keywords and their corresponding emojis
-    keyword_emojis = {
+    keywords = {
         # Analysis & Research
         'analysis': '📊', 'research': '🔍', 'study': '📝', 'investigation': '🔎',
         'findings': '📋', 'results': '📈', 'data': '📊', 'evidence': '🔍',
         
-        # Development & Progress
-        'development': '📈', 'evolution': '🔄', 'progress': '⏩', 'growth': '🌱',
-        'advancement': '⬆️', 'improvement': '📈', 'innovation': '💡',
+        # Topics & Concepts
+        'history': '📜', 'development': '📈', 'impact': '💥', 'evolution': '🔄',
+        'technology': '💻', 'science': '🔬', 'nature': '🌿', 'social': '👥',
+        'economic': '💰', 'culture': '🎭', 'environment': '🌍', 'health': '🏥',
+        'education': '📚', 'politics': '🏛️', 'industry': '🏭', 'art': '🎨',
         
-        # Historical & Time
-        'history': '📜', 'historical': '⌛', 'ancient': '🏺', 'timeline': '⏳',
-        'past': '⌛', 'modern': '🌆', 'future': '🔮', 'era': '📅',
+        # Methods & Approaches
+        'comparison': '⚖️', 'evaluation': '📋', 'assessment': '📝', 'review': '🔎',
+        'survey': '📊', 'experiment': '🧪', 'observation': '👁️', 'test': '✅',
         
-        # Technical & Scientific
-        'technical': '⚙️', 'scientific': '🔬', 'engineering': '🛠️', 'mechanical': '⚙️',
-        'technology': '💻', 'design': '✏️', 'system': '🔧', 'process': '⚙️',
-        
-        # Impact & Effects
-        'impact': '💥', 'effect': '🎯', 'influence': '🔄', 'change': '🔄',
-        'transformation': '🔄', 'revolution': '💫', 'disruption': '💥',
-        
-        # Social & Cultural
-        'social': '👥', 'cultural': '🎭', 'society': '🌍', 'community': '👥',
-        'people': '👥', 'public': '🌐', 'population': '👥',
-        
-        # Economic & Business
-        'economic': '💰', 'business': '💼', 'market': '📊', 'commercial': '🏢',
-        'financial': '💵', 'trade': '🤝', 'industry': '🏭',
-        
-        # Environmental & Nature
-        'environmental': '🌿', 'nature': '🌳', 'ecological': '🌱', 'climate': '🌡️',
-        'natural': '🌿', 'earth': '🌍', 'environment': '🌱',
-        
-        # Comparison & Analysis
-        'comparison': '⚖️', 'contrast': '↔️', 'versus': '🆚', 'difference': '↔️',
-        'similarity': '🔄', 'pattern': '🔄', 'relationship': '🔗',
-        
-        # Problems & Solutions
-        'problem': '⚠️', 'solution': '💡', 'challenge': '🎯', 'issue': '⚠️',
-        'limitation': '⛔', 'barrier': '🚧', 'obstacle': '🚧',
-        
-        # Success & Achievement
-        'success': '🏆', 'achievement': '🎯', 'breakthrough': '💫', 'milestone': '🏁',
-        'accomplishment': '🎯', 'victory': '🏆', 'triumph': '🌟'
+        # Outcomes & Insights
+        'conclusion': '🎯', 'recommendation': '💡', 'solution': '🔑', 'problem': '⚠️',
+        'challenge': '🎯', 'success': '🏆', 'failure': '❌', 'improvement': '📈'
     }
     
-    # Check for keyword matches in the title
-    for keyword, emoji in keyword_emojis.items():
+    title_lower = title.lower()
+    for keyword, emoji in keywords.items():
         if keyword in title_lower:
-            return emoji
-    
-    # Default emoji if no keywords match
-    return '📌'
+            return f"{emoji} "
+    return "🔍 "  # Default emoji
 
 # Convert slider selection to numeric loops
 if loops == "Puddle":
@@ -1078,39 +1046,7 @@ if start_button or st.session_state.get('start_button_clicked', False):
             title = lines[0].strip() if lines and lines[0].strip() else f"Research Point {i+1}"
             content = "\n".join(lines[1:]) if len(lines) > 1 else research_text
             
-            # Clean and validate title
-            title = ''.join(c for c in title if c.isprintable() and ord(c) < 128)  # Remove non-ASCII chars
-            title = title.replace('"', '').replace("'", "")  # Remove quotes
-            title = ' '.join(title.split())  # Normalize whitespace
-            
-            if not title or len(title) < 1:
-                title = f"Research Point {i+1}"
-            elif len(title) > 100:
-                title = title[:97] + "..."
-            
-            # Clean and validate content
-            content = content.strip()
-            if not content:
-                content = "No content available."
-            
-            research_results_list.append((title, content))
-            
-            # Try to get emoji, with fallback
-            try:
-                emoji = get_title_emoji(title)
-                if not emoji or len(emoji) > 2 or not emoji.isprintable():
-                    emoji = "📌"
-                display_title = f"{emoji} {title}"
-            except:
-                display_title = f"📌 {title}"
-            
-            # Ensure display title is valid for Streamlit
-            display_title = display_title.encode('ascii', 'ignore').decode('ascii')
-            if not display_title or len(display_title) < 1:
-                display_title = f"Research Point {i+1}"
-            
-            # Display the expander
-            with st.expander(display_title, expanded=False):
+            with st.expander(f"{get_title_emoji(title)}{title}", expanded=False):
                 st.markdown(content)
                 
         except Exception as e:
