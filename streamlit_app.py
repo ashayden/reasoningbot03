@@ -859,18 +859,19 @@ if start_button or st.session_state.get('start_button_clicked', False):
             return normalized
 
         def format_framework_text(framework: str) -> str:
-            """Format framework text using hierarchical numbered lists."""
+            """Format framework text using hierarchical numbered lists with improved spacing."""
             try:
                 # Normalize the input
                 normalized = normalize_framework_text(framework)
                 if not normalized:
                     return "Error: Could not parse framework structure."
                 
-                # Format according to template with numbered hierarchy
+                # Format according to template with numbered hierarchy and spacing
                 formatted_lines = []
                 current_section = 0
                 current_point = 0
                 current_subpoint = 0
+                last_item_type = None
                 
                 for item in normalized:
                     if item[0] == 'section':
@@ -879,17 +880,22 @@ if start_button or st.session_state.get('start_button_clicked', False):
                         current_point = 0
                         current_subpoint = 0
                         
-                        # Add spacing between sections
+                        # Add extra spacing before new sections
                         if formatted_lines:
                             formatted_lines.extend(['', ''])
                         
                         # Format section header
                         section_title = item[2].strip()
                         formatted_lines.append(f"**{current_section}.** {section_title}")
+                        last_item_type = 'section'
                         
                     elif item[0] == 'primary':
                         current_point += 1
                         current_subpoint = 0
+                        
+                        # Add spacing before primary points
+                        if last_item_type == 'primary':
+                            formatted_lines.append('')
                         
                         # Format primary point with section.point numbering
                         if ':' in item[1]:
@@ -897,9 +903,14 @@ if start_button or st.session_state.get('start_button_clicked', False):
                             formatted_lines.append(f"{current_section}.{current_point}. {point.strip()}: {desc.strip()}")
                         else:
                             formatted_lines.append(f"{current_section}.{current_point}. {item[1].strip()}")
+                        last_item_type = 'primary'
                         
                     elif item[0] == 'sub':
                         current_subpoint += 1
+                        
+                        # Add slight spacing before first sub-point
+                        if last_item_type != 'sub' and current_subpoint == 1:
+                            formatted_lines.append('')
                         
                         # Format sub-point with section.point.subpoint numbering
                         if ':' in item[1]:
@@ -907,11 +918,16 @@ if start_button or st.session_state.get('start_button_clicked', False):
                             formatted_lines.append(f"    {current_section}.{current_point}.{current_subpoint}. {point.strip()}: {desc.strip()}")
                         else:
                             formatted_lines.append(f"    {current_section}.{current_point}.{current_subpoint}. {item[1].strip()}")
+                        last_item_type = 'sub'
                         
                     elif item[0] == 'text':
+                        # Add spacing before additional text
+                        if last_item_type != 'text':
+                            formatted_lines.append('')
                         # Format additional text with clear indentation
                         formatted_lines.append(f"        {item[1].strip()}")
-                
+                        last_item_type = 'text'
+                    
                 # Add final spacing
                 if formatted_lines:
                     formatted_lines.append('')
