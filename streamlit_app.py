@@ -637,13 +637,16 @@ Keep the most relevant emojis and remove others while maintaining the meaning.''
         return None
 
 def process_framework_output(raw_framework: str) -> str:
-    """Process raw LLM framework output into a structured, machine-readable format."""
+    """Process raw LLM framework output into a structured format without citations."""
     try:
         lines = [line.strip() for line in raw_framework.split('\n') if line.strip()]
         processed = []
         current_section = 0
         
         for line in lines:
+            # Remove any citation markers if present
+            line = re.sub(r'\[\^?\d+\]', '', line).strip()
+            
             # Main section headers
             if any(line.lower().startswith(p) for p in ['**1', '1.', '*1', '1)', '#1', 'section 1']):
                 current_section += 1
@@ -717,7 +720,7 @@ def extract_research_aspects(framework: str) -> list:
     return [aspect[0] for aspect in aspects if aspect[0]]  # Return only point titles
 
 def generate_refined_prompt_and_framework(topic):
-    """Generate structured research framework optimized for agent processing."""
+    """Generate structured research framework without citations."""
     try:
         initial_prompt = f'''Analyze this topic and create:
 1. A refined research prompt
@@ -729,8 +732,8 @@ Framework Requirements:
 1. Use clear section markers (SECTION_1, SECTION_2, etc.)
 2. Each point should have a clear identifier (POINT_1.1, POINT_1.2, etc.)
 3. Include supporting details with parent references (SUB_1.1.1, SUB_1.1.2, etc.)
-4. Add relevant metadata with META_ prefix
-5. Use pipe symbol (|) to separate point titles from descriptions
+4. Focus on key investigation areas and research questions
+5. Maintain clear hierarchical structure
 
 Format:
 Refined Prompt:
