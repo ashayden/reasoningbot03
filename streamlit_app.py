@@ -684,17 +684,19 @@ if start_button or st.session_state.get('start_button_clicked', False):
             if not line:
                 continue
                 
-            # Main points (numbered)
-            if line[0].isdigit() and line[1] == '.':
-                formatted_framework.append(f"\n**{line}**")
-            # Sub-points (lettered)
-            elif line[0].isalpha() and line[1] == '.':
-                formatted_framework.append(f"* {line[2:].strip()}")
-            # Sub-sub-points (roman numerals or other)
-            elif line.startswith(('i.', 'ii.', 'iii.')):
-                formatted_framework.append(f"  * {line}")
+            # Main numbered points (e.g., "1. Market Positioning:")
+            if line[0].isdigit() and '.' in line[:3]:
+                formatted_framework.append(f"\n### {line}")
+            # Main bullet points (e.g., "• Target Demographics:")
+            elif line.startswith(('•', '⚫', '○', '●', '-')):
+                formatted_framework.append(f"\n**{line[1:].strip()}**")
+            # Italicized sub-points (e.g., "Psychographic segmentation:")
+            elif ':' in line and not line[0].isdigit():
+                parts = line.split(':', 1)
+                formatted_framework.append(f"* *{parts[0].strip()}*:{parts[1] if len(parts) > 1 else ''}")
+            # Regular text (descriptions and details)
             else:
-                formatted_framework.append(line)
+                formatted_framework.append(f"  {line}")
         
         st.markdown('\n'.join(formatted_framework))
 
@@ -704,40 +706,35 @@ if start_button or st.session_state.get('start_button_clicked', False):
 
     # Step 3: Research Phase
     def extract_research_aspects(framework: str) -> list:
-        """Extract research aspects from the framework, handling both numbered points and bullet points."""
+        """Extract research aspects from the framework."""
         aspects = []
-        current_main_point = ""
         
         for line in framework.split('\n'):
             line = line.strip()
             if not line:
                 continue
             
-            # Match main numbered points (1., 2., etc.)
+            # Extract main numbered sections
             if line[0].isdigit() and '.' in line[:3]:
-                current_main_point = line[line.find('.')+1:].strip()
-                if current_main_point:
-                    aspects.append(current_main_point)
-            # Match bullet points and sub-points
-            elif line.startswith(('•', '-', '○', '·')) or (line[0].isalpha() and line[1] == '.'):
-                point = line[1:].strip() if line[1] == '.' else line[1:].strip()
-                if point and not point.lower().startswith(('i.', 'ii.', 'iii.')):
+                point = line[line.find('.')+1:].strip()
+                if point and ':' in point:
+                    point = point.split(':', 1)[0].strip()
+                if point:
                     aspects.append(point)
-                
-        # If we still have no aspects, try a more lenient approach
-        if not aspects:
-            for line in framework.split('\n'):
-                line = line.strip()
-                # Skip empty lines and roman numerals
-                if not line or line.lower().startswith(('i.', 'ii.', 'iii.')):
                     continue
-                # Include any line that seems to be a point
-                if any(line.startswith(p) for p in ('•', '-', '○', '·')) or \
-                   (line[0].isdigit() and '.' in line[:3]) or \
-                   (line[0].isalpha() and line[1] == '.'):
-                    point = line.split('.', 1)[-1].strip()
-                    if point:
-                        aspects.append(point)
+                
+            # Extract bullet points and labeled sections
+            if ':' in line:
+                # Skip sub-points (usually implementation details)
+                if line.lower().startswith(('i.', 'ii.', 'iii.')):
+                    continue
+                # Get the main point before the colon
+                point = line.split(':', 1)[0].strip()
+                # Remove bullet points and other markers
+                point = point.lstrip('•⚫○●-').strip()
+                # Skip if it's too short or looks like a sub-point
+                if len(point) > 3 and not point.lower().startswith(('and', 'or', 'but', 'the')):
+                    aspects.append(point)
         
         return aspects
 
