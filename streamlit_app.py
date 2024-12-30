@@ -317,35 +317,40 @@ with st.expander("**☠️ Advanced Prompt Customization ☠️**"):
 2) Provide an initial structured investigation framework
 3) Review and enhance the framework by adding depth and complexity to each point
 
-Format exactly:
+Format your response exactly as:
+
 Refined Prompt:
 [Your refined prompt here]
+
 ---
-Framework Format Requirements:
+
+Investigation Framework:
+
 **1. Main Section Title**
-- Key Point A: Description or elaboration
-- Key Point B: Description or elaboration
-  - Sub-point 1: Additional detail
-  - Sub-point 2: Additional detail
+- a. Key Point: Description
+  - i. Sub-point detail
+  - ii. Sub-point detail
+- b. Key Point: Description
+  - i. Sub-point detail
+  - ii. Sub-point detail
 
 **2. Main Section Title**
-- Key Point A: Description or elaboration
-- Key Point B: Description or elaboration
-  - Sub-point 1: Additional detail
-  - Sub-point 2: Additional detail
+- a. Key Point: Description
+  - i. Sub-point detail
+  - ii. Sub-point detail
+- b. Key Point: Description
+  - i. Sub-point detail
+  - ii. Sub-point detail
 
-Guidelines for framework enhancement:
-- Use bold (**) for main numbered sections
-- Use single dash (-) for key points
-- Use indented dashes (  -) for sub-points
-- Include descriptions after colons
-- Maintain consistent spacing (one line between main sections)
-- Each main point should have 2-3 sub-aspects to explore
-- Consider interconnections between points
-- Add specific areas of investigation under each point
-- Include both obvious and non-obvious angles
-- Ensure comprehensive coverage while maintaining focus
-''',
+Formatting Rules:
+1. Main sections: Bold numbers with periods (**1.**, **2.**)
+2. Key points: Use letters with periods (a., b.)
+3. Sub-points: Use roman numerals with periods (i., ii.)
+4. Always use colons before descriptions
+5. Maintain consistent indentation
+6. Include one blank line between main sections
+7. Each main section should have 2-3 key points
+8. Each key point should have 2-3 sub-points''',
         height=250
     )
     agent2_prompt = st.text_area(
@@ -779,48 +784,42 @@ if start_button or st.session_state.get('start_button_clicked', False):
         # Clean up and format the framework text
         framework_lines = framework.split('\n')
         formatted_framework = []
-        current_section = None
         
         for line in framework_lines:
             line = line.strip()
             if not line:
                 continue
                 
-            # Main numbered sections (e.g., "1. Title")
+            # Main numbered sections
             if line[0].isdigit() and '.' in line[:3]:
-                if current_section:
-                    formatted_framework.append("")  # Add spacing between sections
-                current_section = line
-                # Format main section with bold and proper spacing
-                parts = line.split(':', 1)
-                title = parts[0].strip()
-                desc = f": {parts[1].strip()}" if len(parts) > 1 else ""
-                formatted_framework.append(f"**{title}**{desc}")
+                if formatted_framework:  # Add spacing between sections
+                    formatted_framework.append("")
+                # Format: "**1. Title**"
+                title = line.split(':', 1)[0].strip()
+                desc = line.split(':', 1)[1].strip() if ':' in line else ""
+                formatted_framework.append(f"**{title}**{': ' + desc if desc else ''}")
                 
-            # Lettered points (e.g., "a. Title" or "b. Title")
+            # Key points (a., b., etc.)
             elif line[0].isalpha() and line[1] == '.':
-                parts = line.split(':', 1)
-                point = parts[0].strip()
-                desc = f": {parts[1].strip()}" if len(parts) > 1 else ""
-                formatted_framework.append(f"- {point}{desc}")
+                # Format: "- Point: Description"
+                point = line.split(':', 1)[0].strip()
+                desc = line.split(':', 1)[1].strip() if ':' in line else ""
+                formatted_framework.append(f"- {point}{': ' + desc if desc else ''}")
                 
-            # Sub-points (e.g., "i. Title" or "ii. Title")
-            elif line.lower().startswith(('i.', 'ii.', 'iii.')):
-                parts = line.split(':', 1)
-                point = parts[0].strip()
-                desc = f": {parts[1].strip()}" if len(parts) > 1 else ""
-                formatted_framework.append(f"  - {point}{desc}")
-                
-            # Additional descriptions or bullet points
-            else:
-                # Handle bullet points and maintain indentation
-                if line.startswith(('-', '•', '⚫', '○', '●')):
-                    line = line.lstrip('-•⚫○●').strip()
-                    formatted_framework.append(f"  - {line}")
+            # Sub-points
+            elif line.startswith(('  ', '\t')) or line.lower().startswith(('i.', 'ii.', 'iii.')):
+                # Format: "  - Point: Description"
+                point = line.lstrip(' \ti.').strip()
+                if ':' in point:
+                    point_parts = point.split(':', 1)
+                    formatted_framework.append(f"  - {point_parts[0].strip()}: {point_parts[1].strip()}")
                 else:
-                    formatted_framework.append(f"    {line}")
+                    formatted_framework.append(f"  - {point}")
+            
+            # Additional text
+            else:
+                formatted_framework.append(f"    {line}")
         
-        # Join with newlines and display
         st.markdown('\n'.join(formatted_framework))
 
     # Mark Step 2 complete
