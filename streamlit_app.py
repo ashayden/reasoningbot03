@@ -216,6 +216,45 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Move reset_all_states function definition before it's used
+def reset_all_states():
+    """Reset all session states to their initial values."""
+    st.session_state.update({
+        'analysis_complete': False,
+        'current_step': 0,
+        'pdf_buffer': None,
+        'final_analysis': None,
+        'research_results': [],
+        'tldr_summary': None,
+        'refined_prompt': None,
+        'framework': None,
+        'random_fact': None,
+        'start_button_clicked': False,
+        'previous_input': ""
+    })
+
+# Update the enter key handler
+def handle_enter():
+    """Handle enter key press in topic input."""
+    if st.session_state.topic_input and st.session_state.topic_input.strip():
+        if st.session_state.topic_input != st.session_state.get('previous_input', ''):
+            reset_all_states()
+        st.session_state.start_button_clicked = True
+
+# Update the topic input section
+topic = st.text_input(
+    "Enter a topic or question:",
+    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
+    key="topic_input",
+    on_change=handle_enter
+)
+
+# Update the topic change handler
+if topic != st.session_state.get('previous_input', ''):
+    st.session_state.previous_input = topic
+    reset_all_states()
+    st.experimental_rerun()
+
 # Initialize session state
 if 'analysis_complete' not in st.session_state:
     st.session_state.analysis_complete = False
@@ -267,28 +306,6 @@ st.markdown(
 )
 
 # ============ USER INPUT TOPIC ============
-def handle_enter():
-    """Handle enter key press in topic input."""
-    if st.session_state.topic_input and st.session_state.topic_input.strip():
-        if st.session_state.topic_input != st.session_state.get('previous_input', ''):
-            # New topic entered - reset everything first
-            reset_all_states()
-            st.session_state.previous_input = st.session_state.topic_input
-        # Set the trigger for analysis
-        st.session_state.start_button_clicked = True
-
-topic = st.text_input(
-    "Enter a topic or question:",
-    placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
-    key="topic_input",
-    on_change=handle_enter
-)
-
-# Update the topic change handler (keep this separate from enter handling)
-if topic != st.session_state.get('previous_input', ''):
-    st.session_state.previous_input = topic
-    reset_all_states()
-    st.experimental_rerun()
 
 # If analysis is done, show step #5
 if st.session_state.analysis_complete:
