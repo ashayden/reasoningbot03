@@ -760,40 +760,50 @@ if start_button or st.session_state.get('start_button_clicked', False):
     with st.expander("🎯 Refined Prompt", expanded=False):
         st.markdown(refined_prompt)
     with st.expander("🗺️ Investigation Framework", expanded=False):
-        # Clean up the framework text and ensure proper markdown formatting
+        # Clean up and format the framework text
         framework_lines = framework.split('\n')
         formatted_framework = []
         current_section = None
+        in_subpoints = False
         
         for line in framework_lines:
             line = line.strip()
             if not line:
                 continue
-                
-            # Main numbered sections (e.g., "1. Material Science and Manufacturing:")
+            
+            # Main numbered sections
             if line[0].isdigit() and '.' in line[:3]:
                 if current_section:
                     formatted_framework.append("")  # Add spacing between sections
                 current_section = line
-                # Use the same font style as research output
-                formatted_framework.append(f"\n**{line}**")
+                # Format main section with bold
+                title = line.split(':', 1)[0] if ':' in line else line
+                desc = line.split(':', 1)[1].strip() if ':' in line else ""
+                formatted_framework.append(f"**{title}**{': ' + desc if desc else ''}")
+                in_subpoints = False
                 
-            # Lettered sub-points (e.g., "a. Innovation & Trends:")
-            elif line[0].isalpha() and line[1] == '.':
-                formatted_framework.append(f"**{line}**")
-                
-            # Roman numeral points (e.g., "i. Patent Analysis:")
-            elif line.lower().startswith(('i.', 'ii.', 'iii.')):
-                # Extract the title and description if present
+            # Key points (a., b., etc. or bullet points)
+            elif line[0].isalpha() and line[1] == '.' or line[0] in '-•⚫○●':
+                # Convert to consistent bullet point format
                 parts = line.split(':', 1)
-                if len(parts) > 1:
-                    formatted_framework.append(f"* **{parts[0]}:** {parts[1].strip()}")
-                else:
-                    formatted_framework.append(f"* {line}")
+                point = parts[0].lstrip('abcdefghijklmnopqrstuvwxyz.').lstrip('-•⚫○●').strip()
+                desc = parts[1].strip() if len(parts) > 1 else ""
+                formatted_framework.append(f"- {point}{': ' + desc if desc else ''}")
+                in_subpoints = False
                 
-            # Regular text (descriptions and details)
+            # Sub-points (i., ii., etc. or indented points)
+            elif line.lower().startswith(('i.', 'ii.', 'iii.')) or (line[0] in '-•⚫○●' and in_subpoints):
+                parts = line.split(':', 1)
+                point = parts[0].lstrip('ivxIVX.').lstrip('-•⚫○●').strip()
+                desc = parts[1].strip() if len(parts) > 1 else ""
+                formatted_framework.append(f"  - {point}{': ' + desc if desc else ''}")
+                in_subpoints = True
+                
+            # Additional descriptions or details
             else:
-                formatted_framework.append(line)
+                # Add as plain text with proper indentation
+                indent = "  " if in_subpoints else ""
+                formatted_framework.append(f"{indent}{line}")
         
         st.markdown('\n'.join(formatted_framework))
 
