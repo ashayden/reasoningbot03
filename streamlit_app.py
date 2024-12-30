@@ -267,31 +267,25 @@ st.markdown(
 )
 
 # ============ USER INPUT TOPIC ============
+def handle_enter():
+    """Handle enter key press in topic input."""
+    if st.session_state.topic_input and st.session_state.topic_input.strip():
+        if st.session_state.topic_input != st.session_state.get('previous_input', ''):
+            # New topic entered - reset everything first
+            reset_all_states()
+            st.session_state.previous_input = st.session_state.topic_input
+        # Set the trigger for analysis
+        st.session_state.start_button_clicked = True
+
 topic = st.text_input(
     "Enter a topic or question:",
     placeholder='e.g. "Is the Ivory-billed woodpecker really extinct?"',
     key="topic_input",
-    on_change=lambda: setattr(st.session_state, 'start_button_clicked', True) if st.session_state.topic_input else None
+    on_change=handle_enter
 )
 
-# Add a complete reset function
-def reset_all_states():
-    """Reset all session states to their initial values."""
-    st.session_state.update({
-        'analysis_complete': False,
-        'current_step': 0,
-        'pdf_buffer': None,
-        'final_analysis': None,
-        'research_results': [],
-        'tldr_summary': None,
-        'refined_prompt': None,
-        'framework': None,
-        'random_fact': None,
-        'start_button_clicked': False
-    })
-
-# Update the topic change handler
-if topic != st.session_state.previous_input:
+# Update the topic change handler (keep this separate from enter handling)
+if topic != st.session_state.get('previous_input', ''):
     st.session_state.previous_input = topic
     reset_all_states()
     st.experimental_rerun()
@@ -626,8 +620,8 @@ else:
 ########################################
 # MAIN LOGIC WHEN USER CLICKS BUTTON
 ########################################
-if start_button or st.session_state.get('start_button_clicked', False):
-    # Reset the enter key trigger
+if start_button or ('start_button_clicked' in st.session_state and st.session_state.start_button_clicked):
+    # Reset the enter key trigger for next time
     st.session_state.start_button_clicked = False
     
     if not topic.strip():
