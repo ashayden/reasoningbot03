@@ -719,7 +719,13 @@ if start_button or st.session_state.get('start_button_clicked', False):
 
     if st.session_state.random_fact:
         with st.expander("🎲 Random Fact", expanded=True):
-            st.markdown(st.session_state.random_fact)
+            # Remove any verification text or commentary
+            fact = st.session_state.random_fact
+            if "Return unchanged:" in fact:
+                fact = fact.split("Return unchanged:", 1)[1].strip().strip('"')
+            elif "The fact is" in fact:
+                fact = fact.split("The fact is", 1)[1].strip().strip('"')
+            st.markdown(fact)
 
     if st.session_state.tldr_summary:
         with st.expander("💡 TL;DR", expanded=True):
