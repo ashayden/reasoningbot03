@@ -488,14 +488,50 @@ def create_download_pdf(refined_prompt, framework, research_analysis, final_anal
         return pdf.output(dest='S').encode('latin-1')
 
 def generate_random_fact(topic):
-    """Generate random interesting fact about the topic."""
+    """Generate a verified, interesting fact related to the topic's context but not answering the query."""
     try:
-        prompt = f"Give a short and surprising fact about {topic} in one sentence."
-        resp = model.generate_content(prompt)
-        return handle_response(resp)
+        # First, extract core topic terms and context
+        context_prompt = f'''Extract 2-3 core subject terms from this topic/question, ignoring question words (how, why, what, etc):
+Topic: {topic}
+Return only the core terms, separated by commas.'''
+        
+        context_resp = model.generate_content(context_prompt)
+        core_terms = handle_response(context_resp)
+        
+        # Generate fact with specific instructions
+        fact_prompt = f'''Generate an interesting fact about {core_terms} following these rules:
+1. The fact must be objectively verifiable and accurate
+2. Do NOT attempt to answer or address any questions in the original topic
+3. Focus on surprising or lesser-known aspects of the subject
+4. Keep it to 1-2 sentences maximum
+5. Include a relevant emoji if appropriate, but use sparingly
+6. The fact must be from a reliable source
+
+Format: Just provide the fact with optional emoji. No source needed.'''
+        
+        fact_resp = model.generate_content(fact_prompt)
+        initial_fact = handle_response(fact_resp)
+        
+        # Verify the fact
+        verify_prompt = f'''Verify this fact about {core_terms}:
+"{initial_fact}"
+
+Consider:
+1. Is it verifiable from reliable sources?
+2. Is it historically accurate?
+3. Is it stated objectively?
+4. Does it avoid speculation?
+
+If the fact passes verification, return it unchanged.
+If it fails verification, generate a new, verified fact following the same rules.'''
+        
+        verify_resp = model.generate_content(verify_prompt)
+        verified_fact = handle_response(verify_resp)
+        
+        return verified_fact.strip()
     except Exception as e:
-        logging.error(e)
-    return None
+        logging.error(f"Random fact generation error: {str(e)}")
+        return None
 
 def generate_quick_summary(topic):
     """Generate a quick summary (TL;DR)."""
