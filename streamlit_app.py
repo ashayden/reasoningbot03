@@ -561,14 +561,29 @@ If it fails verification, generate a new, verified fact following the same rules
         return None
 
 def generate_quick_summary(topic):
-    """Generate a quick summary (TL;DR)."""
+    """Generate a quick summary (TL;DR) with relevant emojis."""
     try:
-        prompt = f"Give a concise 1-2 sentence summary about {topic}."
-        resp = model.generate_content(prompt)
-        return handle_response(resp)
+        # First, get relevant emojis for the topic
+        emoji_prompt = f'''Suggest 1-4 relevant emojis for this topic, considering its key themes and concepts:
+Topic: {topic}
+Return only the emojis, separated by spaces.'''
+        
+        emoji_resp = model.generate_content(emoji_prompt)
+        emojis = handle_response(emoji_resp).strip()
+        
+        # Then generate the summary
+        summary_prompt = f"Give a concise 1-2 sentence summary about {topic}."
+        summary_resp = model.generate_content(summary_prompt)
+        summary = handle_response(summary_resp)
+        
+        # Combine emojis and summary
+        if emojis and summary:
+            return f"{emojis} {summary}"
+        return summary
+        
     except Exception as e:
         logging.error(e)
-    return None
+        return None
 
 def generate_refined_prompt_and_framework(topic):
     """Call Agent 1 to create and refine prompt + framework."""
