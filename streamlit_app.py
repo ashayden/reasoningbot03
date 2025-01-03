@@ -435,44 +435,77 @@ FRAMEWORK:
 ALL RESEARCH RESULTS:
 {research_results}
 
-You are an expert analyst. Provide a comprehensive final report with the following structure:
+Create a comprehensive research synthesis following this exact structure:
+
+Title: [Descriptive title reflecting the main focus of topic analysis]
+Subtitle: [Specific aspect of analysis]
 
 1. Executive Summary
-- A concise overview of the investigation and key findings (2-3 paragraphs)
+Provide a 2-3 paragraph overview that:
+- Synthesizes key findings with citations
+- Highlights major discoveries
+- Summarizes methodology
 
 2. Key Insights
-- Bullet-pointed list of the most important discoveries and conclusions
-- Focus on actionable and noteworthy findings
-- Include surprising or counter-intuitive insights
+Present 4-6 major insights that:
+- Include specific citations
+- Focus on significant findings
+- Connect to methodology
 
 3. Analysis
-[Scale analysis depth based on research loops]
-- Synthesize major concepts and themes from the research
-- Examine relationships between different aspects
-- Support claims with evidence from the research
-- Address any contradictions or nuances found
+Develop a thorough analysis that:
+- Synthesizes all findings
+- Integrates perspectives
+- Evaluates evidence
+- Organizes by themes
 
-4. Supplementary Synthesis
-[Dynamic section based on topic and research depth]
-Choose relevant elements from:
-- Recommendations for action or further investigation
-- Implications of the findings
-- Counter-arguments or alternative perspectives
-- Significance and broader impact
-- Limitations of current understanding
-- Future trends or developments
+4. Conclusion
+Provide research implications:
+- Summarize key findings
+- Discuss impacts
+- Suggest future directions
+- Make recommendations
 
-5. Conclusion
-- Summarize the most important takeaways
-- Place findings in broader context
-- Highlight remaining questions or areas for future research
+5. Further Considerations
+Address complexities:
+- Present counter-arguments
+- Discuss limitations
+- Note uncertainties
+- Identify challenges
 
-6. Further Learning
-- List key sources referenced in the analysis
-- Recommend additional reading materials
-- Suggest related topics for deeper investigation
+6. Recommended Readings
+List essential sources:
+- Note seminal works
+- Include recent research
+- Add methodology guides
+- List digital resources
 
-Write in a clear, authoritative tone. Support all major claims with evidence from the research.''',
+7. Works Cited
+Provide full bibliography:
+- Use APA 7th edition format
+- Include all in-text citations
+- Add DOIs where available
+- List primary sources first
+- Organize alphabetically
+- Each entry should be on a new line
+- Each entry should end with a period
+- Each entry should start with a bullet point (*)
+
+Important Guidelines:
+- Use proper APA in-text citations (Author, Year)
+- Ensure every citation has a reference
+- Include both classic and recent works
+- Maintain academic tone
+- Cross-reference analyses
+- Format citations consistently
+- Include DOIs for recent works
+
+Format Guidelines:
+- Use numbered sections (1., 2., etc.)
+- Use bullet points for lists (-)
+- Include proper spacing between sections
+- Format references with bullet points
+- End each reference with a period''',
         height=250
     )
 
@@ -770,12 +803,138 @@ Refined Prompt:
 def conduct_research(refined_prompt, framework, prev_analysis, aspect, iteration):
     """Call Agent 2 to conduct deeper research."""
     try:
-        prompt = agent2_prompt.format(
-            refined_prompt=refined_prompt,
-            framework=framework,
-            previous_analysis=prev_analysis,
-            current_aspect=aspect
-        )
+        # Base prompt for initial research
+        base_prompt = f'''Using the following inputs:
+
+REFINED PROMPT:
+{refined_prompt}
+
+FRAMEWORK:
+{framework}
+
+CURRENT FOCUS:
+{aspect}
+
+Follow the methodological approaches and evaluation criteria specified in the framework.
+Provide detailed findings for each key area of investigation outlined.
+
+Structure your analysis using this format:
+
+Title: [Descriptive title reflecting the main focus of {aspect}]
+Subtitle: [Specific aspect of analysis and/or approach being analyzed]
+
+1. Introduction
+   - Context and background
+   - Scope of analysis
+   - Key objectives
+
+2. Methodology Overview
+   - Approach used
+   - Data sources
+   - Analytical methods
+
+3. Key Findings
+   - Primary discoveries (with citations)
+   - Supporting evidence (with citations)
+   - Critical insights
+
+4. Analysis
+   - Detailed examination of findings (with citations)
+   - Interpretation of results
+   - Connections and patterns
+
+5. Implications
+   - Theoretical implications
+   - Practical applications
+   - Future considerations
+
+6. Limitations and Gaps
+   - Current limitations
+   - Areas needing further research
+   - Potential biases
+
+7. Works Cited
+   - Use APA 7th edition format
+   - Include all in-text citations
+   - Add DOIs where available
+   - List primary sources first
+   - Organize alphabetically
+   - Each entry should be on a new line
+   - Each entry should end with a period
+   - Each entry should start with a bullet point (*)
+
+Important:
+- Use proper APA in-text citations (Author, Year)
+- Each section should have at least 2-3 relevant citations
+- Ensure citations are from reputable academic sources
+- Include a mix of seminal works and recent research (last 5 years)
+- All citations must have corresponding entries in Works Cited
+
+Note: As this is iteration {iteration}, be more explorative and creative while maintaining academic rigor.'''
+
+        # Additional prompt for subsequent iterations
+        iteration_prompt = f'''
+PREVIOUS ANALYSIS:
+{prev_analysis}
+
+For iteration #{iteration}, focus on:
+1. Identifying gaps or areas needing more depth
+2. Exploring new connections and implications
+3. Refining and strengthening key arguments
+4. Adding new supporting evidence or perspectives
+
+Structure your analysis using this format:
+
+Title: [Descriptive title reflecting the new focus]
+Subtitle: [Specific aspect being expanded upon]
+
+1. Previous Analysis Review
+   - Key points from previous iteration
+   - Areas identified for expansion
+   - New perspectives to explore
+
+2. Expanded Analysis
+   - Deeper investigation of key themes (with citations)
+   - New evidence and insights (with citations)
+   - Advanced interpretations
+
+3. Novel Connections
+   - Cross-cutting themes (with citations)
+   - Interdisciplinary insights
+   - Emerging patterns
+
+4. Critical Evaluation
+   - Strengthened arguments (with citations)
+   - Counter-arguments addressed
+   - Enhanced evidence base
+
+5. Synthesis and Integration
+   - Integration with previous findings
+   - Enhanced understanding
+   - Refined conclusions
+
+6. Works Cited
+   - Use APA 7th edition format
+   - Include all in-text citations
+   - Add DOIs where available
+   - List primary sources first
+   - Organize alphabetically
+   - Each entry should be on a new line
+   - Each entry should end with a period
+   - Each entry should start with a bullet point (*)
+
+Important:
+- Use proper APA in-text citations (Author, Year)
+- Each section should have at least 2-3 relevant citations
+- Ensure citations are from reputable academic sources
+- Include a mix of seminal works and recent research (last 5 years)
+- All citations must have corresponding entries in Works Cited
+
+Note: As this is iteration {iteration}, be more explorative and creative while maintaining academic rigor.'''
+
+        # Choose prompt based on iteration
+        prompt = base_prompt if iteration == 1 else iteration_prompt
+        
         resp = model.generate_content(prompt)
         return handle_response(resp)
     except Exception as e:
