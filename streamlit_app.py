@@ -1011,6 +1011,9 @@ if start_button or st.session_state.get('start_button_clicked', False):
                 st.markdown(tldr_summary)
         st.session_state.tldr_summary = tldr_summary
 
+    # Visual separator
+    st.markdown("---")
+
     # Step 2: Framework Development
     with st.spinner("Optimizing research approach..."):
         refined_prompt, framework = generate_refined_prompt_and_framework(topic)
