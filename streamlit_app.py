@@ -226,47 +226,49 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Initialize session state
-if 'analysis_complete' not in st.session_state:
-    st.session_state.analysis_complete = False
-if 'current_step' not in st.session_state:
-    st.session_state.current_step = 0
-if 'pdf_buffer' not in st.session_state:
-    st.session_state.pdf_buffer = None
-if 'final_analysis' not in st.session_state:
-    st.session_state.final_analysis = None
-if 'research_results' not in st.session_state:
-    st.session_state.research_results = []
-if 'tldr_summary' not in st.session_state:
-    st.session_state.tldr_summary = None
-if 'refined_prompt' not in st.session_state:
-    st.session_state.refined_prompt = None
-if 'framework' not in st.session_state:
-    st.session_state.framework = None
-if 'previous_input' not in st.session_state:
-    st.session_state.previous_input = ""
-if 'start_button_clicked' not in st.session_state:
-    st.session_state.start_button_clicked = False
-if 'random_fact' not in st.session_state:
-    st.session_state.random_fact = None
+def init_session_state():
+    """Initialize all session state variables with default values."""
+    defaults = {
+        'analysis_complete': False,
+        'current_step': 0,
+        'pdf_buffer': None,
+        'final_analysis': None,
+        'research_results': [],
+        'tldr_summary': None,
+        'refined_prompt': None,
+        'framework': None,
+        'previous_input': "",
+        'start_button_clicked': False,
+        'random_fact': None
+    }
+    
+    for key, default_value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = default_value
 
-# Get your GenAI key
+# Complete reset function
+def reset_all_states():
+    """Reset all session states to their initial values."""
+    init_session_state()  # Reuse initialization function
+    st.experimental_rerun()
+
+# Initialize states at startup
+init_session_state()
+
+# Error handling for Streamlit Cloud
 try:
     api_key = st.secrets["GOOGLE_API_KEY"]
 except Exception as e:
-    st.error(f"GOOGLE_API_KEY not found in secrets: {e}")
+    st.error("Please set the GOOGLE_API_KEY in your Streamlit Cloud secrets.")
+    st.info("For local development, create a .streamlit/secrets.toml file with your API key.")
     st.stop()
 
 try:
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel("gemini-1.5-pro-latest")
-    agent3_config = genai.types.GenerationConfig(
-        temperature=0.7,
-        top_p=0.8,
-        top_k=40,
-        max_output_tokens=2048,
-    )
 except Exception as e:
-    st.error(f"Error configuring Gemini API: {e}")
+    st.error("Error initializing Gemini API. Please check your API key and try again.")
+    st.info("If the error persists, please contact support.")
     st.stop()
 
 # --- Main Title ---
@@ -532,97 +534,88 @@ def handle_response(response):
         return response.text.strip()
     return ""
 
-def create_download_pdf(refined_prompt, framework, research_analysis, final_analysis):
-    """Create a PDF from the analysis results."""
+def create_download_pdf():
+    """Create a PDF report of the analysis results."""
     try:
+        # Initialize PDF
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_font("Helvetica", size=12)
-
-        def sanitize_text(text):
-            if not text:
-                return ""
-            text = text.replace('—', '-').replace('–', '-')
-            text = text.replace(''', "'").replace(''', "'").replace('…', '...')
-            return ''.join(char for char in text if ord(char) < 128)
-
-        # Title
-        pdf.set_font("Helvetica", "B", 16)
-        pdf.cell(0, 10, "Analysis Report", ln=True, align="C")
+        
+        # Set font
+        pdf.set_font("Arial", "B", 16)
+        
+        # Add title
+        pdf.cell(0, 10, "Research Analysis Report", ln=True, align="C")
         pdf.ln(10)
-
-        # Refined prompt
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, "Research Focus", ln=True)
-        pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, sanitize_text(refined_prompt))
-        pdf.ln(10)
-
-        # Research analysis
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, "Research Analysis", ln=True)
-        pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, sanitize_text(research_analysis))
-        pdf.ln(10)
-
-        # Final analysis
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, "Final Analysis", ln=True)
-        pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, sanitize_text(final_analysis))
-
-        return pdf.output(dest='S').encode('latin-1')
-
+        
+        # TL;DR Summary
+        if st.session_state.tldr_summary:
+            pdf.set_font("Arial", "B", 14)
+            pdf.cell(0, 10, "Executive Summary", ln=True)
+            pdf.set_font("Arial", "", 12)
+            pdf.multi_cell(0, 10, st.session_state.tldr_summary)
+            pdf.ln(10)
+        
+        # Research Results
+        if st.session_state.research_results:
+            pdf.set_font("Arial", "B", 14)
+            pdf.cell(0, 10, "Research Findings", ln=True)
+            pdf.ln(5)
+            
+            for title, content in st.session_state.research_results:
+                pdf.set_font("Arial", "B", 12)
+                pdf.cell(0, 10, title, ln=True)
+                pdf.set_font("Arial", "", 12)
+                pdf.multi_cell(0, 10, content)
+                pdf.ln(5)
+        
+        # Final Analysis
+        if st.session_state.final_analysis:
+            pdf.set_font("Arial", "B", 14)
+            pdf.cell(0, 10, "Final Analysis", ln=True)
+            pdf.set_font("Arial", "", 12)
+            pdf.multi_cell(0, 10, st.session_state.final_analysis)
+        
+        # Save to buffer
+        pdf_buffer = io.BytesIO()
+        pdf.output(pdf_buffer)
+        pdf_buffer.seek(0)
+        
+        return pdf_buffer
+        
     except Exception as e:
-        logging.error(f"Failed to create PDF: {e}")
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Helvetica", size=12)
-        pdf.cell(0, 10, f"Error creating PDF: {str(e)}", ln=True)
-        return pdf.output(dest='S').encode('latin-1')
+        logging.error(f"PDF generation failed: {str(e)}")
+        st.error("Unable to generate PDF. Please try again.")
+        return None
 
 def generate_random_fact(topic):
-    """Generate a verified, interesting fact related to the topic's context but not answering the query."""
+    """Generate a fascinating and unexpected fact about the topic."""
     try:
-        # First, extract core topic terms and context
-        context_prompt = f'''Extract 2-3 core subject terms from this topic/question, ignoring question words (how, why, what, etc):
-Topic: {topic}
-Return only the core terms, separated by commas.'''
-        
-        context_resp = model.generate_content(context_prompt)
-        core_terms = handle_response(context_resp)
-        
-        # Generate fact with specific instructions
-        fact_prompt = f'''Generate an interesting fact about {core_terms} following these rules:
-1. The fact must be objectively verifiable and accurate
-2. Do NOT attempt to answer or address any questions in the original topic
-3. Focus on surprising or lesser-known aspects of the subject
-4. Keep it to 1-2 sentences maximum
-5. Include a relevant emoji if appropriate, but use sparingly
-6. The fact must be from a reliable source
-
-Format: Just provide the fact with optional emoji. No source needed.'''
+        fact_prompt = (
+            "Generate a fascinating and unexpected fact about this topic: "
+            f"'{topic}'\n\n"
+            "The fact should:\n"
+            "- Be surprising, unique, or counter-intuitive\n"
+            "- Reveal an interesting connection or lesser-known aspect\n"
+            "- Use vivid, engaging language\n"
+            "- Include relevant statistics or specific details when possible\n"
+            "- Add 1-2 relevant emojis that enhance understanding\n"
+            "- Be exactly one sentence that hooks the reader\n"
+            "- Challenge common assumptions or expectations\n\n"
+            "Make it memorable and thought-provoking. Respond with just the fact, no additional text."
+        )
         
         fact_resp = model.generate_content(fact_prompt)
-        initial_fact = handle_response(fact_resp)
+        fact = handle_response(fact_resp)
         
-        # Verify the fact
-        verify_prompt = f'''Verify this fact about {core_terms}:
-"{initial_fact}"
-
-Consider:
-1. Is it verifiable from reliable sources?
-2. Is it historically accurate?
-3. Is it stated objectively?
-4. Does it avoid speculation?
-
-If the fact passes verification, return it unchanged.
-If it fails verification, generate a new, verified fact following the same rules.'''
+        if fact:
+            # Clean up any verification language or extra formatting
+            fact = fact.strip().strip('"')
+            fact = re.sub(r'^(Fact:|Here\'s a fact:|The fact is:?)', '', fact, flags=re.IGNORECASE).strip()
+            return fact
+            
+        return None
         
-        verify_resp = model.generate_content(verify_prompt)
-        verified_fact = handle_response(verify_resp)
-        
-        return verified_fact.strip()
     except Exception as e:
         logging.error(f"Random fact generation error: {str(e)}")
         return None
@@ -999,38 +992,26 @@ if start_button or st.session_state.get('start_button_clicked', False):
     step_container = st.empty()
     step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
     
-    # Step 1: Initial Analysis
-    st.session_state.random_fact = generate_random_fact(topic)
-    st.session_state.tldr_summary = generate_quick_summary(topic)
+    # Show immediate feedback that analysis is starting
+    st.markdown("### 🔍 Beginning Analysis...")
+    
+    # Generate and display random fact immediately
+    with st.spinner("Discovering an interesting fact..."):
+        random_fact = generate_random_fact(topic)
+        if random_fact:
+            with st.expander("🎲 Did You Know?", expanded=True):
+                st.markdown(random_fact)
+        st.session_state.random_fact = random_fact
+    
+    # Generate quick summary
+    with st.spinner("Generating quick summary..."):
+        tldr_summary = generate_quick_summary(topic)
+        if tldr_summary:
+            with st.expander("💡 TL;DR", expanded=True):
+                st.markdown(tldr_summary)
+        st.session_state.tldr_summary = tldr_summary
 
-    if st.session_state.random_fact:
-        with st.expander("🎲 Random Fact", expanded=True):
-            # Extract only the fact content
-            fact = st.session_state.random_fact
-            
-            # Remove verification statements and commentary
-            if "Return unchanged:" in fact:
-                fact = fact.split("Return unchanged:", 1)[1].strip().strip('"')
-            elif "The fact is" in fact:
-                fact = fact.split("The fact is", 1)[1].strip().strip('"')
-            elif "The statement is" in fact:
-                fact = fact.split("The statement is", 1)[1].strip().strip('"')
-            
-            # Remove any verification language
-            lines = fact.split('\n')
-            fact = lines[-1] if len(lines) > 1 else fact
-            fact = fact.strip().strip('"')
-            
-            # Remove any remaining verification prefixes
-            fact = fact.replace("This is verifiable: ", "").replace("This is accurate: ", "").strip()
-            
-            st.markdown(fact)
-
-    if st.session_state.tldr_summary:
-        with st.expander("💡 TL;DR", expanded=True):
-            st.markdown(st.session_state.tldr_summary)
-
-    # Mark Step 1 complete
+    # Mark Step 1 complete and continue with rest of analysis
     st.session_state.current_step = 1
     step_container.markdown(render_stepper(st.session_state.current_step), unsafe_allow_html=True)
 
@@ -1177,42 +1158,42 @@ if start_button or st.session_state.get('start_button_clicked', False):
     # Step 3: Research Phase
     def extract_research_aspects(framework: str) -> list:
         """Extract research aspects from the framework."""
-        aspects = []
-        
-        for line in framework.split('\n'):
-            line = line.strip()
-            if not line:
-                continue
-            
-            # Extract main numbered sections
-            if line[0].isdigit() and '.' in line[:3]:
-                point = line[line.find('.')+1:].strip()
-                if point and ':' in point:
-                    point = point.split(':', 1)[0].strip()
-                if point:
-                    aspects.append(point)
+        try:
+            aspects = []
+            for line in framework.split('\n'):
+                line = line.strip()
+                if not line:
                     continue
                 
-            # Extract bullet points and labeled sections
-            if ':' in line:
-                # Skip sub-points (usually implementation details)
-                if line.lower().startswith(('i.', 'ii.', 'iii.')):
-                    continue
-                # Get the main point before the colon
-                point = line.split(':', 1)[0].strip()
-                # Remove bullet points and other markers
-                point = point.lstrip('•⚫○●-').strip()
-                # Skip if it's too short or looks like a sub-point
-                if len(point) > 3 and not point.lower().startswith(('and', 'or', 'but', 'the')):
-                    aspects.append(point)
-        
-        return aspects
+                # Extract main numbered sections
+                if line[0].isdigit() and '.' in line[:3]:
+                    point = line[line.find('.')+1:].strip()
+                    if point and ':' in point:
+                        point = point.split(':', 1)[0].strip()
+                    if point:
+                        aspects.append(point)
+                        continue
+                    
+                # Extract bullet points and labeled sections
+                if ':' in line:
+                    if line.lower().startswith(('i.', 'ii.', 'iii.')):
+                        continue
+                    point = line.split(':', 1)[0].strip()
+                    point = point.lstrip('•⚫○●-').strip()
+                    if len(point) > 3 and not point.lower().startswith(('and', 'or', 'but', 'the')):
+                        aspects.append(point)
+            
+            return aspects if aspects else None
+            
+        except Exception as e:
+            logging.error(f"Framework parsing error: {str(e)}")
+            return None
 
     aspects = extract_research_aspects(framework)
     
     if not aspects:
-        st.error("Framework parsing failed. Please try again.")
-        logging.error(f"Failed to parse framework: {framework}")
+        st.error("Unable to process the research framework. This might be due to an unexpected format.")
+        st.info("Please try again. If the problem persists, try rephrasing your topic.")
         st.stop()
 
     # Ensure we have enough aspects for the number of loops
@@ -1222,32 +1203,44 @@ if start_button or st.session_state.get('start_button_clicked', False):
     current_analysis = ""
     research_results_list = []
 
-    for i in range(loops_num):
-        aspect = aspects[i % len(aspects)]
-        research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
-        
-        if not research_text:
-            st.error(f"Research failed for aspect: {aspect}")
-            st.stop()
-            
-        current_analysis += "\n\n" + research_text
-        lines = research_text.split("\n")
-        
-        try:
-            # Ensure valid title and content
-            title = lines[0].strip() if lines and lines[0].strip() else f"Research Point {i+1}"
-            content = "\n".join(lines[1:]) if len(lines) > 1 else research_text
-            
-            with st.expander(f"{get_title_emoji(title)}{title}", expanded=False):
-                st.markdown(content)
-                
-        except Exception as e:
-            logging.error(f"Error in research block {i+1}: {str(e)}")
-            # Fallback display with guaranteed safe values
-            fallback_title = f"Research Point {i+1}"
-            with st.expander(fallback_title, expanded=False):
-                st.markdown("Error displaying research content. Please try again.")
+    progress_text = "Conducting research..."
+    research_progress = st.progress(0)
 
+    for i in range(loops_num):
+        try:
+            aspect = aspects[i % len(aspects)]
+            research_text = conduct_research(refined_prompt, framework, current_analysis, aspect, i+1)
+            
+            if not research_text:
+                st.warning(f"Research incomplete for aspect: {aspect}. Moving to next point...")
+                continue
+                
+            current_analysis += "\n\n" + research_text
+            
+            try:
+                # Extract title and content
+                lines = research_text.split("\n")
+                title = lines[0].strip() if lines and lines[0].strip() else f"Research Point {i+1}"
+                content = "\n".join(lines[1:]) if len(lines) > 1 else research_text
+                
+                with st.expander(f"{get_title_emoji(title)}{title}", expanded=False):
+                    st.markdown(content)
+                    
+                research_results_list.append((title, content))
+                
+            except Exception as e:
+                logging.error(f"Display error in research block {i+1}: {str(e)}")
+                with st.expander(f"Research Point {i+1}", expanded=False):
+                    st.markdown(research_text)
+                    
+            research_progress.progress((i + 1) / loops_num)
+            
+        except Exception as e:
+            logging.error(f"Research iteration {i+1} failed: {str(e)}")
+            st.warning(f"Some research points may be incomplete. Continuing with available results...")
+            continue
+
+    research_progress.empty()
     st.session_state.research_results = research_results_list
 
     # Mark Step 3 complete
@@ -1275,7 +1268,7 @@ if start_button or st.session_state.get('start_button_clicked', False):
             st.markdown(final_analysis)
 
         # Create PDF
-        pdf_bytes = create_download_pdf(refined_prompt, framework, current_analysis, final_analysis)
+        pdf_bytes = create_download_pdf()
         st.session_state.pdf_buffer = pdf_bytes
 
         # Mark analysis complete
