@@ -331,41 +331,73 @@ Refined Prompt:
 
 ---
 
-Investigation Framework:
+[Create a concise, descriptive title that directly states the analysis focus]
 
-**1.** Main Topic Area
-- Core Concept or Finding
-  - Key supporting evidence or detail
-  - Additional context or implication
-- Related Aspect or Development
-  - Specific example or case study
-  - Impact or significance
+A. Research Objectives:
+   1. Primary Research Questions
+      - Key inquiries driving the investigation
+      - Specific aspects to explore
+   2. Secondary Research Questions
+      - Supporting questions
+      - Related areas of interest
+   3. Expected Outcomes
+      - Anticipated findings
+      - Potential implications
 
-**2.** Secondary Topic Area
-- Primary Analysis Point
-  - Factual evidence or data
-  - Interpretation or insight
-- Comparative Analysis
-  - Contrasting perspective
-  - Synthesis of findings
+B. Methodological Approach:
+   1. Research Methods
+      - Primary investigation techniques
+      - Analytical frameworks
+   2. Data Collection Strategies
+      - Types of information needed
+      - Sources to be consulted
+   3. Analysis Techniques
+      - Methods for synthesizing findings
+      - Evaluation approaches
 
-**3.** Broader Implications
-- Practical Applications
-  - Real-world example
-  - Implementation consideration
-- Future Directions
-  - Potential developments
-  - Areas for further study
+C. Investigation Areas:
+   1. Core Topics
+      - Central themes
+      - Primary concepts
+   2. Subtopics
+      - Related elements
+      - Supporting aspects
+   3. Cross-cutting Themes
+      - Interconnections
+      - Common patterns
+
+D. Critical Considerations:
+   1. Key Issues
+      - Main challenges
+      - Important factors
+   2. Stakeholder Perspectives
+      - Different viewpoints
+      - Affected parties
+   3. Impact Assessment
+      - Potential effects
+      - Broader implications
+
+E. Evaluation Criteria:
+   1. Success Metrics
+      - Indicators of quality
+      - Measurement approaches
+   2. Quality Standards
+      - Benchmarks
+      - Assessment criteria
+   3. Verification Methods
+      - Validation techniques
+      - Quality checks
 
 Structure Requirements:
-1. Main sections: Bold numbers with period (**1.**)
-2. Primary points: Single dash with clear, concise statement
-3. Supporting details: Indented dash with specific evidence
-4. Spacing: One blank line between main sections
-5. Flow: Logical progression from specific to general
-6. Depth: 2-3 primary points per section, each with 2-3 supporting details
-7. Language: Clear, precise, and objective
-''',
+1. Each section should be clearly labeled (A, B, C, etc.)
+2. Use hierarchical numbering (1, 2, 3) for subsections
+3. Include bullet points for specific details
+4. Maintain consistent formatting throughout
+5. Focus on methodological and structural aspects
+6. Use clear, precise language
+7. Ensure logical flow between sections
+
+Note: Focus on creating a comprehensive research structure. The framework should be methodologically sound and topic-appropriate.''',
         height=250
     )
     agent2_prompt = st.text_area(
